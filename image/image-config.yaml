@@ -1,0 +1,11 @@
+Build:
+  InstanceType: t2.2xlarge 
+  ParentImage: ami-08031206a0ff5a6ac 
+  UpdateOsPackages:
+    Enabled: true
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+  Components:
+    - Type: script
+      Value: s3://hpc-scripts1234/image/install-image.sh

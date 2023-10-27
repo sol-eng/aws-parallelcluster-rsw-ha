@@ -1,0 +1,102 @@
+HeadNode: 
+  CustomActions: 
+    OnNodeConfigured: 
+      Args: 
+        - "/opt/rstudio/etc/rstudio"
+      Script: "s3://S3_BUCKETNAME/install-pwb-config.sh"
+  Iam: 
+    S3Access: 
+      - BucketName: S3_BUCKETNAME
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  InstanceType: t2.xlarge
+  Networking: 
+    SubnetId: SUBNETID
+  LocalStorage:
+    RootVolume:
+      Size: 100 
+  Ssh:
+    KeyName: michael
+Image: 
+  Os: ubuntu2004
+  CustomAmi: AMI
+Region: REGION
+Scheduling: 
+  Scheduler: slurm
+  SlurmSettings:
+     EnableMemoryBasedScheduling: true
+  SlurmQueues: 
+    - Name: all 
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: t2.xlarge
+          MaxCount: 10 
+          MinCount: 1
+          Efa:
+            Enabled: FALSE
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
+    - Name: gpu 
+      ComputeResources:
+        - Name: large
+          InstanceType: p3.16xlarge
+          MaxCount: 1
+          MinCount: 0
+          Efa:
+            Enabled: FALSE
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds: 
+          - SUBNETID
+
+
+LoginNodes:
+  Pools:
+    - Name: login
+      Count: 2 
+      InstanceType: t2.xlarge
+      Networking:
+        AdditionalSecurityGroups: 
+          - SECURITYGROUP_RSW
+        SubnetIds: 
+          - SUBNETID
+      Ssh:
+        KeyName: michael
+
+DevSettings:
+  Timeouts:
+    HeadNodeBootstrapTimeout: 5400  # timeout in seconds
+    ComputeNodeBootstrapTimeout: 5400  # timeout in seconds
+
+SharedStorage:
+  - MountDir: /data
+    Name: data
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+
+Tags:
+  - Key: rs:environment
+    Value: development
+  - Key: rs:owner
+    Value: michael.mayer@rstudio.com
+  - Key: rs:project
+    Value: solutions 
