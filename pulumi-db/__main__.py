@@ -18,6 +18,32 @@ def main():
         "rs:project": "solutions",
     }
 
+# --------------------------------------------------------------------------
+    # Get VPC information.
+    # --------------------------------------------------------------------------
+    
+    
+ 
+    # --------------------------------------------------------------------------
+    # Make security groups
+    # --------------------------------------------------------------------------
+
+    security_group_db = ec2.SecurityGroup(
+        "postgres",
+        description="SLURM security group for PostgreSQL access",
+        ingress=[
+            {"protocol": "TCP", "from_port": 5432, "to_port": 5432, 
+                'cidr_blocks': ['172.31.0.0/16'], "description": "PostgreSQL DB"},
+	],
+        egress=[
+            {"protocol": "All", "from_port": 0, "to_port": 0, 
+                'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
+        ],
+        tags=tags
+    )
+
+
+
 
     db = rds.Instance(
         "ukhsa-rsw-db",
@@ -30,6 +56,7 @@ def main():
         publicly_accessible=True,
         skip_final_snapshot=True,
         tags=tags | {"Name": "rsw-db"},
+	vpc_security_group_ids=[security_group_db.id]
     )
     pulumi.export("db_port", db.port)
     pulumi.export("db_address", db.address)
