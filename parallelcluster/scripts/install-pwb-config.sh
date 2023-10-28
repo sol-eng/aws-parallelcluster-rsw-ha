@@ -1,9 +1,13 @@
 #!/bin/bash
 
-PWB_CONFIG_DIR=$1
+PWB_CONFIG_DIR="/opt/rstudio/etc/rstudio"
+
+mkdir -p /opt/rstudio
+    grep slurm /etc/exports | sed 's/slurm/rstudio/' | sudo tee -a /etc/exports
+    exportfs -ar
 
 
-
+mkdir -p $PWB_CONFIG_DIR
 
 
 # Add SLURM integration 
@@ -19,6 +23,9 @@ EOF
 cat > $PWB_CONFIG_DIR/rserver.conf << EOF
 # Shared storage
 server-shared-storage-path=/opt/rstudio/shared-storage
+
+# enable load-balancing
+load-balancing-enabled=1
 
 # Launcher Config
 launcher-address=127.0.0.1
@@ -138,30 +145,6 @@ exe=/usr/lib/rstudio-server/bin/code-server/bin/code-server
 args=--verbose --host=0.0.0.0 --extensions-dir=$VSCODE_EXTDIR
 EOF
 
-# Install secure cookie and launcher keys
-apt-get update && apt-get install -y uuid && \
-    apt clean all && \
-    rm -rf /var/cache/apt
-
-echo `uuid` > $PWB_CONFIG_DIR/secure-cookie-key && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/secure-cookie-key && \
-    chmod 0600 $PWB_CONFIG_DIR/secure-cookie-key
-
-openssl genpkey -algorithm RSA \
-            -out $PWB_CONFIG_DIR/launcher.pem \
-            -pkeyopt rsa_keygen_bits:2048 && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pem && \
-    chmod 0600 $PWB_CONFIG_DIR/launcher.pem
-
-
-openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
-            -pubout > $PWB_CONFIG_DIR/launcher.pub && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pub
-
-
 # prepare renv package cache
 tmpfile=`mktemp`
 mkdir -p /data/renv
@@ -184,7 +167,7 @@ mkdir -p /opt/rstudio/containers
 
 cat << EOF > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
-host=ukhsa-rsw-dbc37e400.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+host=ukhsa-rsw-dbe204aac.clovh3dmuvji.eu-west-1.rds.amazonaws.com
 database=rsw
 port=5432
 username=rsw_db_admin
@@ -193,5 +176,3 @@ connection-timeout-seconds=10
 EOF
 
 sudo chmod 0600 $PWB_CONFIG_DIR/database.conf
-
-echo "balancer=sessions" > $PWB_CONFIG_DIR/load-balancer

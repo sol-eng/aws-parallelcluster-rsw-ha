@@ -48,7 +48,7 @@ setup_something install-quarto.sh "$QUARTO_VERSION"
 ##setup_something install-os-deps.sh
 
 # Install Workbench 
-setup_something install-pwb.sh $PWB_VERSION $PWB_CONFIG_DIR
+setup_something install-pwb.sh $PWB_VERSION 
 
 # Install Apptainer
 setup_something install-apptainer.sh $APPTAINER_VERSION

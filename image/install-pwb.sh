@@ -1,7 +1,6 @@
 # Install Posit Workbench 
 
 PWB_VERSION=$1
-PWB_CONFIG_DIR=$2
 
 # Add rstudio-server user and group 
 groupadd --system --gid 900 rstudio-server
@@ -79,36 +78,58 @@ rm -f /etc/rstudio
 
 # Create rc.local file to determine which services to start
 
-cat << EOF > /etc/rc.local 
+cat << EOF > /etc/rc.pwb 
 #!/bin/bash
-if (grep slurm /etc/exports >/dev/null); then
-    # we are on a head node and need to export /opt/rstudio
-    grep slurm /etc/exports | sed 's/slurm/rstudio/' | sudo tee -a /etc/exports
-    exportfs -ar
-else
-    # we are elsewhere and need to mount /opt/rstudio
+
+set -x 
+
+exec > /var/log/rc.pwb.log
+exec 2>&1
+
+if (mount | grep slurm >&/dev/null && ! mount | grep rstudio >&/dev/null); then
+    # we are not on the head node and need to mount /opt/rstudio
+    mkdir -p /opt/rstudio
     grep slurm /etc/fstab | sed 's#/opt/slurm#/opt/rstudio#g' | sudo tee -a /etc/fstab
     mount -a
 fi
 
-if (mount | grep login_node >/dev/null);  then 
-    # systemctl overrides
-    for i in server launcher 
-    do 
-        mkdir -p /etc/systemd/system/rstudio-\$i.service.d
-        mkdir -p /opt/rstudio/etc/rstudio
-        echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=$PWB_CONFIG_DIR\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
-    done
-    # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
-    systemctl daemon-reload
-    systemctl enable rstudio-server
-    systemctl enable rstudio-launcher
-    systemctl start rstudio-launcher
-    systemctl start rstudio-server
+if (mount | grep login_node >&/dev/null);  then 
+    # we are on a login node and need to start the workbench processes 
+    # but we need to make sure the config files are all there
+
+    while true ; do if [ -f /opt/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
+    if [ ! -f /etc/systemd/system/rstudio-server.service.d ]; then 
+        # systemctl overrides
+        for i in server launcher 
+        do 
+            mkdir -p /etc/systemd/system/rstudio-\$i.service.d
+            echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=/opt/rstudio/etc/rstudio\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
+        done
+        # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
+        systemctl daemon-reload
+        systemctl enable rstudio-server
+        systemctl enable rstudio-launcher
+        systemctl start rstudio-launcher
+        systemctl start rstudio-server
+    fi    
 fi
 
 EOF
 
-chmod +x /etc/rc.local
+chmod +x /etc/rc.pwb
 
-systemctl enable rc-local
+cat << EOF > /lib/systemd/system/pwb-script.service 
+[Unit]
+Description=Run PWB check
+
+[Service]
+Restart=always
+RestartSec=60s
+ExecStart=/bin/bash /etc/rc.pwb
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable pwb-script

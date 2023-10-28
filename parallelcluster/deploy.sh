@@ -1,12 +1,16 @@
 #!/bin/bash
 
-CLUSTERNAME="ukhsa-ha-4"
+CLUSTERNAME="ukhsa-ha-7"
 S3_BUCKETNAME="hpc-scripts1234"
 SECURITYGROUP_RSW="sg-0838ae772a776ab8e"
 SUBNETID="subnet-03259a81db5aec449"
 REGION="eu-west-1"
 KEY="michael"
 AMI="ami-07a393e54ebff1d5a"
+AMI="ami-0eac21985802aa9e0"
+AMI="ami-0a686e235c5e31943"
+AMI="ami-04f441ee2809bb306"
+AMI="ami-06703fc92368ea185"
 CERT="/Users/michael/projects/aws/certs/michael.pem"
 
 rm -rf tmp

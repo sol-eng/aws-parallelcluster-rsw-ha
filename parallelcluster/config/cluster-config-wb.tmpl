@@ -1,8 +1,6 @@
 HeadNode: 
   CustomActions: 
     OnNodeConfigured: 
-      Args: 
-        - "/opt/rstudio/etc/rstudio"
       Script: "s3://S3_BUCKETNAME/install-pwb-config.sh"
   Iam: 
     S3Access: 

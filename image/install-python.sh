@@ -2,6 +2,9 @@
 
 # cf. https://docs.posit.co/resources/install-python/
 
+PYTHON_VERSIONS=$1
+PYTHON_VERSION_DEFAULT=$2
+
 if ( ! dpkg -l curl >& /dev/null); then 
 apt-get update 
 apt-get install -y curl
@@ -12,7 +15,7 @@ apt-get update
 apt-get install -y gdebi
 fi
 
-for PYTHON_VERSION in $2
+for PYTHON_VERSION in ${PYTHON_VERSIONS}
 do
   curl -O https://cdn.rstudio.com/python/ubuntu-2004/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
   gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
@@ -30,12 +33,12 @@ cat << EOF > /etc/pip.conf
 index-url = https://packagemanager.rstudio.com/pypi/latest/simple
 EOF
 
-for PYTHON_VERSION in $2
+for PYTHON_VERSION in ${PYTHON_VERSIONS}
 do
-  /opt/python/"${PYTHON_VERSION}"/bin/pip install --upgrade \
+  /opt/python/${PYTHON_VERSION}/bin/pip install --upgrade \
     pip setuptools wheel && \
   /opt/python/${PYTHON_VERSION}/bin/pip install \
-    ipykernel
+    ipykernel \
     jupyter \
     jupyterlab \
     rsconnect_jupyter \
@@ -52,6 +55,6 @@ done
 wait
  
 # Use default version to point to jupyter and python 
-ln -s /opt/python/$3/bin/jupyter /usr/local/bin
-ln -s /opt/python/$3/bin/python /usr/local/bin
-ln -s /opt/python/$3/bin/python3 /usr/local/bin
+ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/jupyter /usr/local/bin
+ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/python /usr/local/bin
+ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/python3 /usr/local/bin
