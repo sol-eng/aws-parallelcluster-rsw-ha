@@ -1,0 +1,36 @@
+name: rsw-ha
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: Deploy Posit Workbench in HA/LB configuration 
+
+config:
+  email:
+    type: string
+    description: EMail address
+    default: tbd@tbc.com
+  ServerInstanceType:
+    type: string
+    description: AWS instance type for EC2 instance (ex. "t3.medium")
+    default: t3.medium
+  ami:
+    type: string
+    description: A valid AMI used to deploy the SLURM nodes (must be Ubunto 20.04 LTS)
+    default: ami-0d2a4a5d69e46ea0b
+  Domain:
+    type: string
+    description: Name of Domain to be used for AD (ex. "pwb.posit.co")
+    default: pwb.posit.co
+  DomainPW:
+    type: string
+    description: Password for the Administrator AD account 
+    default: Testme123! 
+  db_username:
+    type: string
+    description: Username for the PositgreSQL db
+    default: pwb_db_admin 
+  db_password:
+    type: string
+    description: Password for the PositgreSQL db
+    default: pwb_db_password 

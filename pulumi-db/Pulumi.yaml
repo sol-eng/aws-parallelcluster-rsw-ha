@@ -1,6 +1,0 @@
-name: rsw-ha
-runtime:
-  name: python
-  options:
-    virtualenv: venv
-description: Deploy Posit Workbench in HA/LB configuration 
