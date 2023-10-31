@@ -2,8 +2,11 @@
 
 # cf. https://docs.posit.co/resources/install-python/
 
-PYTHON_VERSIONS=$1
-PYTHON_VERSION_DEFAULT=$2
+PYTHON_VERSION_LIST=${@: 2:$#-2}
+PYTHON_VERSION_DEFAULT=${@: -1}
+
+echo $PYTHON_VERSION_LIST >> /var/log/py.log
+echo $PYTHON_VERSION_DEFAULT >> /var/log/py.log
 
 if ( ! dpkg -l curl >& /dev/null); then 
 apt-get update 
@@ -15,7 +18,7 @@ apt-get update
 apt-get install -y gdebi
 fi
 
-for PYTHON_VERSION in ${PYTHON_VERSIONS}
+for PYTHON_VERSION in ${PYTHON_VERSION_LIST}
 do
   curl -O https://cdn.rstudio.com/python/ubuntu-2004/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
   gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
@@ -33,7 +36,7 @@ cat << EOF > /etc/pip.conf
 index-url = https://packagemanager.rstudio.com/pypi/latest/simple
 EOF
 
-for PYTHON_VERSION in ${PYTHON_VERSIONS}
+for PYTHON_VERSION in ${PYTHON_VERSION_LIST}
 do
   /opt/python/${PYTHON_VERSION}/bin/pip install --upgrade \
     pip setuptools wheel && \
@@ -55,6 +58,8 @@ done
 wait
  
 # Use default version to point to jupyter and python 
-ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/jupyter /usr/local/bin
-ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/python /usr/local/bin
-ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/python3 /usr/local/bin
+if [ ! -z ${PYTHON_VERSION_DEFAULT} ]; then
+  ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/jupyter /usr/local/bin
+  ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/python /usr/local/bin
+  ln -s /opt/python/${PYTHON_VERSION_DEFAULT}/bin/python3 /usr/local/bin
+fi

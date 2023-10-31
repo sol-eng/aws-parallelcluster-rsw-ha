@@ -109,27 +109,20 @@ if (mount | grep login_node >&/dev/null);  then
         systemctl daemon-reload
         systemctl enable rstudio-server
         systemctl enable rstudio-launcher
+        rm -f /var/lib/rstudio-server/secure-cookie-key
         systemctl start rstudio-launcher
         systemctl start rstudio-server
+        rm -f /var/lib/rstudio-server/secure-cookie-key
+        systemctl restart rstudio-server 
     fi    
+    if [ ! -f /etc/ssh/sshd_config.d/ukhsa.conf ]; then 
+        echo "Port 3000" > /etc/ssh/sshd_config.d/ukhsa.conf
+        systemctl restart sshd
+    fi
 fi
 
 EOF
 
 chmod +x /etc/rc.pwb
 
-cat << EOF > /lib/systemd/system/pwb-script.service 
-[Unit]
-Description=Run PWB check
-
-[Service]
-Restart=always
-RestartSec=60s
-ExecStart=/bin/bash /etc/rc.pwb
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable pwb-script
+(crontab -l ; echo "0-59/1 * * * * /etc/rc.pwb")| crontab -
