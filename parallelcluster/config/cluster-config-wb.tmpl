@@ -91,6 +91,15 @@ SharedStorage:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
 
+DirectoryService:
+  DomainName: pwb.posit.co
+  DomainAddr: d-93675f05f3.awsapps.com
+  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:PWBADSecret-cprgvT
+  DomainReadOnlyUser: cn=ReadOnlyUser,cn=Users,dc=pwb,dc=posit,dc=co
+  GenerateSshKeysForUsers: true
+  AdditionalSssdConfigs: 
+    override_homedir : /data/home/%u
+
 Tags:
   - Key: rs:environment
     Value: development

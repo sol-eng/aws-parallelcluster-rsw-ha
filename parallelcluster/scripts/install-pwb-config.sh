@@ -27,6 +27,9 @@ server-shared-storage-path=/opt/rstudio/shared-storage
 # enable load-balancing
 load-balancing-enabled=1
 
+# www port 
+www-port=22
+
 # Launcher Config
 launcher-address=127.0.0.1
 launcher-port=5559
@@ -167,12 +170,32 @@ mkdir -p /opt/rstudio/containers
 
 cat << EOF > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
-host=ukhsa-rsw-dbe204aac.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+host=ukhsa-rsw-db6ed6c8f.clovh3dmuvji.eu-west-1.rds.amazonaws.com
 database=rsw
 port=5432
-username=rsw_db_admin
-password=password
+username=pwb_db_admin
+password=pwb_db_password
 connection-timeout-seconds=10
 EOF
 
+
+openssl genpkey -algorithm RSA \
+            -out $PWB_CONFIG_DIR/launcher.pem \
+            -pkeyopt rsa_keygen_bits:2048 && \
+    chown rstudio-server:rstudio-server \
+            $PWB_CONFIG_DIR/launcher.pem && \
+    chmod 0600 $PWB_CONFIG_DIR/launcher.pem
+
+openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
+            -pubout > $PWB_CONFIG_DIR/launcher.pub && \
+    chown rstudio-server:rstudio-server \
+            $PWB_CONFIG_DIR/launcher.pub
+
+
+
 sudo chmod 0600 $PWB_CONFIG_DIR/database.conf
+
+
+echo "Port 3000" > /etc/ssh/sshd_config.d/ukhsa.conf
+
+systemctl restart sshd

@@ -17,7 +17,7 @@ HeadNode:
     KeyName: michael
 Image: 
   Os: ubuntu2004
-  CustomAmi: ami-06703fc92368ea185
+  CustomAmi: ami-06530b1df07c59d68
 Region: eu-west-1
 Scheduling: 
   Scheduler: slurm
@@ -90,6 +90,15 @@ SharedStorage:
     FsxLustreSettings:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
+
+DirectoryService:
+  DomainName: pwb.posit.co
+  DomainAddr: d-93675f1ea8.awsapps.com
+  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:ADSecret-5gpM76
+  DomainReadOnlyUser: cn=ReadOnlyUser,cn=Users,dc=pwb,dc=posit,dc=co
+  GenerateSshKeysForUsers: true
+  AdditionalSssdConfigs: 
+    override_homedir : /data/home/%u
 
 Tags:
   - Key: rs:environment
