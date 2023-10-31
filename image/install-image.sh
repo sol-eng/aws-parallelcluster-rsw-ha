@@ -19,7 +19,7 @@ function setup_something() {
 # $1 - script to be run
 # $2 - parameters
 aws s3 cp s3://hpc-scripts1234/image/$1 /tmp
-bash /tmp/$1 $2 $3
+bash /tmp/$1 ${@: 2:$#-1}
 rm -f /tmp/$1
 }
 
