@@ -1,0 +1,14 @@
+#!/usr/bin/expect -f 
+# example call: ./script.exp testgroup testuser 
+
+set domain {{domain_name}} 
+set bindpw {{domain_passwd}} 
+set groupname [lindex \$argv 0]
+set username [lindex \$argv 1]
+
+spawn /usr/local/sbin/adcli add-member -D \$domain \$groupname \$username
+
+expect \"Password for *\"
+send -- \"\$bindpw\\r\"
+expect eof
+

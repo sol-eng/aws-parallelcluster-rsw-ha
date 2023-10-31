@@ -1,0 +1,50 @@
+set dotenv-load
+
+AD_DOMAIN := env_var("AD_DOMAIN")
+AD_PASSWD := env_var("AD_PASSWD")
+
+
+install-adcli:
+    #!/bin/bash
+    sudo apt-get update 
+    sudo apt install -y git automake libtool libkrb5-dev libldap2-dev libsasl2-dev make expect
+    git clone -b 0.9.2 https://gitlab.freedesktop.org/realmd/adcli.git
+    pushd adcli
+    ./autogen.sh --disable-doc
+    make
+    sudo make install
+    popd
+    rm -rf adcli 
+
+install-ad-prereqs:
+    #!/bin/bash
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -y install sssd realmd krb5-user samba-common packagekit pamtester
+
+update-etchosts:
+    #!/bin/bash
+    sudo apt-get install -y net-tools
+    echo -e "\n#Local server\n`ifconfig | grep inet | head -1 | awk '{print $2}'` `hostname`" | sudo tee -a /etc/hosts
+
+copy-ad-files:
+    #!/bin/bash
+    #let's remove the symlink so that systemd does not interfere 
+    sudo rm -f /etc/resolv.conf
+    sudo cp ~/krb5.conf /etc/
+    sudo cp ~/resolv.conf /etc/
+    #rm -f ~/krb5.conf ~/resolv.conf
+
+join-ad:
+    #!/bin/bash
+    echo $AD_PASSWD | sudo realm join -U Administrator $AD_DOMAIN
+    echo "ad_gpo_map_service = +rstudio" | sudo tee -a /etc/sssd/sssd.conf
+    echo "krb5_canonicalize = True" | sudo tee -a /etc/sssd/sssd.conf
+    sudo sed -i 's#use_fully_qualified_names.*#use_fully_qualified_names=False#' /etc/sssd/sssd.conf
+    sudo systemctl stop sssd && sudo rm -f /var/lib/sss/db/* && sudo systemctl start sssd
+    sudo pam-auth-update --enable mkhomedir
+
+integrate-ad:
+    just install-adcli 
+    just install-ad-prereqs
+    just update-etchosts 
+    just copy-ad-files
+    just join-ad
