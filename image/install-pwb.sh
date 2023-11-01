@@ -96,7 +96,10 @@ fi
 if (mount | grep login_node >&/dev/null);  then 
     # we are on a login node and need to start the workbench processes 
     # but we need to make sure the config files are all there
-
+    if [ ! -f /etc/ssh/sshd_config.d/ukhsa.conf ]; then 
+        echo "Port 3000" > /etc/ssh/sshd_config.d/ukhsa.conf
+        systemctl restart sshd
+    fi
     while true ; do if [ -f /opt/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
     if [ ! -f /etc/systemd/system/rstudio-server.service.d ]; then 
         # systemctl overrides
@@ -115,10 +118,7 @@ if (mount | grep login_node >&/dev/null);  then
         rm -f /var/lib/rstudio-server/secure-cookie-key
         systemctl restart rstudio-server 
     fi    
-    if [ ! -f /etc/ssh/sshd_config.d/ukhsa.conf ]; then 
-        echo "Port 3000" > /etc/ssh/sshd_config.d/ukhsa.conf
-        systemctl restart sshd
-    fi
+    
 fi
 
 EOF
