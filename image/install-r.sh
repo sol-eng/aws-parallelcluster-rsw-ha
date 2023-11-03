@@ -48,9 +48,11 @@ done
 
 aws s3 cp s3://hpc-scripts1234/image/run.R /tmp
 
+PATH_NOW=$PATH
 
 for R_VERSION in $R_VERSION_LIST
 do
+  export PATH=/opt/R/${R_VERSION}/bin:$PATH
   /opt/R/${R_VERSION}/bin/Rscript /tmp/run.R && \
 	JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/ \
 	  /opt/R/${R_VERSION}/bin/R CMD javareconf 
