@@ -1,9 +1,9 @@
 #!/bin/bash
 
-R_VERSION_LIST="4.3.1"
+R_VERSION_LIST="4.3.1 4.2.3 4.1.3 4.0.5"
 R_VERSION_DEFAULT=4.3.1
 
-PYTHON_VERSION_LIST="3.11.6"
+PYTHON_VERSION_LIST="3.11.6 3.10.13 3.9.18"
 PYTHON_VERSION_DEFAULT=3.11.6
 
 QUARTO_VERSION=1.4.449
@@ -11,8 +11,6 @@ QUARTO_VERSION=1.4.449
 PWB_VERSION=2023.09.1-494.pro2
 
 APPTAINER_VERSION="1.2.4"
-
-PWB_CONFIG_DIR="/opt/rstudio/etc/rstudio"
 
 
 function setup_something() {
@@ -36,10 +34,10 @@ systemctl stop apparmor && systemctl disable apparmor
 setup_something install-dummy.sh
 
 # Install R version(s)
-setup_something install-r.sh "$R_VERSION_LIST" $R_VERSION_DEFAULT
+setup_something install-r.sh $R_VERSION_DEFAULT "$R_VERSION_LIST" 
 
 # Install Python version(s)
-setup_something install-python.sh "$PYTHON_VERSION_LIST" $PYTHON_VERSION_DEFAULT
+setup_something install-python.sh $PYTHON_VERSION_DEFAULT "$PYTHON_VERSION_LIST"
 
 # Install Quarto
 setup_something install-quarto.sh "$QUARTO_VERSION"

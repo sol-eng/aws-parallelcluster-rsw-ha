@@ -1,4 +1,4 @@
 aws secretsmanager create-secret \
-    --name PWBADSecret \
+    --name PWBADSecretPWD \
     --description "Secret for simpleAD integration read-only password" \
-    --secret-string "TestMe123!"
+    --secret-string "Testme123!"

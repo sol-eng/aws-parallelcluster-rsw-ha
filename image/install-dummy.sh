@@ -1,6 +1,6 @@
 # Add sample user 
 groupadd --system --gid 8787 rstudio
-useradd -s /bin/bash -d /data/rstudio --system --gid rstudio --uid 8787 rstudio
+useradd -s /bin/bash -d /shared/rstudio --system --gid rstudio --uid 8787 rstudio
 groupadd --system --gid 8788 rstudio-admins
 groupadd --system --gid 8789 rstudio-superuser-admins
 usermod -G rstudio-admins,rstudio-superuser-admins rstudio

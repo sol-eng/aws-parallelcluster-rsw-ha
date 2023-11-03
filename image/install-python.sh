@@ -2,11 +2,16 @@
 
 # cf. https://docs.posit.co/resources/install-python/
 
-PYTHON_VERSION_LIST=${@: 2:$#-2}
-PYTHON_VERSION_DEFAULT=${@: -1}
+set -x 
 
-echo $PYTHON_VERSION_LIST >> /var/log/py.log
-echo $PYTHON_VERSION_DEFAULT >> /var/log/py.log
+exec > /opt/python-install.log
+exec 2>&1
+
+PYTHON_VERSION_LIST=${@: 2:$#}
+PYTHON_VERSION_DEFAULT=${@: 1:1}
+
+echo "PYTHON_VERSION_LIST": $PYTHON_VERSION_LIST
+echo "PYTHON_VERSION_DEFAULT": $PYTHON_VERSION_DEFAULT
 
 if ( ! dpkg -l curl >& /dev/null); then 
 apt-get update 

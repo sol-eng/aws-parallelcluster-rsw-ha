@@ -65,7 +65,7 @@ def make_server(
         ami=ami,
         tags=tags,
         subnet_id=subnet_id,
-        key_name=key_pair,
+        key_name=key_pair.key_name,
         iam_instance_profile="WindowsJoinDomain"
     )
     
@@ -90,12 +90,16 @@ def main():
     # --------------------------------------------------------------------------
     # Set up keys.
     # --------------------------------------------------------------------------
+    # key_pair = ec2.get_key_pair(key_name=f"{config.email}-keypair-for-pulumi",
+    # include_public_key=True)
+
     key_pair = ec2.KeyPair(
         "ec2 key pair",
         key_name=f"{config.email}-keypair-for-pulumi",
         public_key=config.public_key,
         tags=tags | {"Name": "key-pair"},
     )
+    pulumi.export("key_pair id", key_pair.id)
 
     # --------------------------------------------------------------------------
     # Get VPC information.
@@ -283,7 +287,8 @@ def main():
                         f"copy {f.file_out} server",
                         create=pulumi.Output.concat('echo "', f.template_render_command, f'" > {f.file_out}'),
                         connection=connection, 
-                        triggers=[hash_file(f.file_in)]
+                        triggers=[hash_file(f.file_in)],
+                        opts=pulumi.ResourceOptions(depends_on=[jump_host])
                     )
                 )
 
@@ -292,7 +297,7 @@ def main():
             # create="alias just='/home/ubuntu/bin/just'; just build-rsw", 
             create="""export PATH="$PATH:$HOME/bin"; just integrate-ad""", 
             connection=connection, 
-            opts=pulumi.ResourceOptions(depends_on=[command_set_environment_variables, command_install_justfile, command_copy_justfile] + command_copy_config_files)
+            opts=pulumi.ResourceOptions(depends_on=[jump_host, command_set_environment_variables, command_install_justfile, command_copy_justfile] + command_copy_config_files)
     )
 
 

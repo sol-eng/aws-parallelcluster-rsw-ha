@@ -13,3 +13,4 @@ if ( lspci | grep NVIDIA ); then
    rmmod nvidia
    modprobe nvidia
 fi
+

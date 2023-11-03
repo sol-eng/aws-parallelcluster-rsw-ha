@@ -2,8 +2,17 @@
 
 # cf. https://docs.posit.co/resources/install-r/
 
-R_VERSION_LIST=${@: 2:$#-2}
-R_VERSION_DEFAULT=${@: -1}
+set -x 
+
+exec > /opt/r-install.log
+exec 2>&1
+
+R_VERSION_LIST=${@: 2:$#}
+R_VERSION_DEFAULT=${@: 1:1}
+
+
+echo "R_VERSION_LIST": $R_VERSION_LIST
+echo "R_VERSION_DEFAULT": $R_VERSION_DEFAULT
 
 # Remove OS provided R 
 apt remove -y r-base r-base-core r-base-dev r-base-html r-doc-html

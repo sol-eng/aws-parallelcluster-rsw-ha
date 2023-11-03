@@ -13,6 +13,7 @@ HeadNode:
   LocalStorage:
     RootVolume:
       Size: 100 
+  InternalSharedStorageType: Efs
   Ssh:
     KeyName: michael
 Image: 
@@ -84,8 +85,8 @@ DevSettings:
     ComputeNodeBootstrapTimeout: 5400  # timeout in seconds
 
 SharedStorage:
-  - MountDir: /data
-    Name: data
+  - MountDir: /home
+    Name: home
     StorageType: FsxLustre
     FsxLustreSettings:
       StorageCapacity: 1200
@@ -93,12 +94,15 @@ SharedStorage:
 
 DirectoryService:
   DomainName: pwb.posit.co
-  DomainAddr: d-93675f1ea8.awsapps.com
-  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:ADSecret-5gpM76
-  DomainReadOnlyUser: cn=ReadOnlyUser,cn=Users,dc=pwb,dc=posit,dc=co
+  DomainAddr: ldap://pwb.posit.co
+  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:PWBADSecretPWD-pulSGd
+  DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
   GenerateSshKeysForUsers: true
   AdditionalSssdConfigs: 
-    override_homedir : /data/home/%u
+    override_homedir : /home/%u
+    ldap_id_use_start_tls : false
+    ldap_tls_reqcert : never
+    ldap_auth_disable_tls_never_use_in_production : true
 
 Tags:
   - Key: rs:environment

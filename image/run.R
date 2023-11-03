@@ -22,7 +22,7 @@
 # main config parameters
 
 # root folder for global renv cache 
-renvdir<-"/data/renv"
+renvdir<-"/home/renv"
 
 # base folder site libraries for additional packages 
 basepackagedir<-"/opt/rstudio/rver"
