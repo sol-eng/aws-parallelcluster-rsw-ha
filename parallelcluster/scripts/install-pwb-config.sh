@@ -227,6 +227,8 @@ if (mount | grep login_node >&/dev/null);  then
         systemctl enable rstudio-server
         systemctl enable rstudio-launcher
         rm -f /var/lib/rstudio-server/secure-cookie-key
+        rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pub
+        rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pem
         systemctl start rstudio-launcher
         systemctl start rstudio-server
         rm -f /var/lib/rstudio-server/secure-cookie-key
