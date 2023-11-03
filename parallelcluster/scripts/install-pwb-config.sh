@@ -235,13 +235,13 @@ if (mount | grep login_node >&/dev/null);  then
     
 fi
 
-# if ( ! grep 172.31.34.129 /etc/resolv.conf >& /dev/null ); then 
-#         cp /etc/resolv.conf /etc/resolv.conf.bak
-#         cp /etc/resolv.conf /etc/resolv.conf.orig
-#         sed -i '/^nameserver.*/i nameserver 172.31.34.129/' /etc/resolv.conf.bak
-#         rm -f /etc/resolv.conf  && mv /etc/resolv.conf.bak /etc/resolv.conf
-#         systemctl restart sssd
-# fi
+if ( ! grep 172.31.34.129 /etc/resolv.conf >& /dev/null ); then 
+        cp /etc/resolv.conf /etc/resolv.conf.bak
+        cp /etc/resolv.conf /etc/resolv.conf.orig
+        sed -i '/^nameserver.*/a nameserver 172.31.34.129' /etc/resolv.conf.bak
+        rm -f /etc/resolv.conf  && mv /etc/resolv.conf.bak /etc/resolv.conf
+        systemctl restart sssd
+fi
 
 EOF
 
