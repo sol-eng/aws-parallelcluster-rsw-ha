@@ -198,7 +198,7 @@ if (mount | grep login_node >&/dev/null);  then
     #    systemctl restart sshd
     #fi
     while true ; do if [ -f /opt/parallelcluster/shared/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
-    if [ ! -f /etc/systemd/system/rstudio-server.service.d ]; then 
+    if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
         # systemctl overrides
         for i in server launcher 
         do 
