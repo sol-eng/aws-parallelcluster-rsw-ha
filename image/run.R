@@ -105,11 +105,11 @@ os_vers=system(". /etc/os-release && echo $VERSION_ID", intern = TRUE)
 
 packages_needed<-pnames[pnames %in% avpack]
 
-paste("Installing system dependencies")
-sysdeps<-pak::pkg_sysreqs(packages_needed)
-system(sysdeps$pre_install)
-system(sysdeps$install_scripts)
-system(sysdeps$post_install)
+# paste("Installing system dependencies")
+# sysdeps<-pak::pkg_sysreqs(packages_needed)
+# system(sysdeps$pre_install)
+# system(sysdeps$install_scripts)
+# system(sysdeps$post_install)
 
 paste("Installing packages for RSW integration")
 pak::pkg_install(packages_needed,lib=libdir)
