@@ -24,7 +24,7 @@ server-shared-storage-path=${PWB_BASE_DIR}/shared-storage
 load-balancing-enabled=1
 
 # www port 
-www-port=22
+www-port=8787
 
 # Launcher Config
 launcher-address=127.0.0.1
@@ -95,21 +95,9 @@ EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurm.resources.conf<<EOF
 [small]
-name = "Small (1 cpu, 4 GB mem)"
+name = "Small (1 cpu, 2 GB mem)"
 cpus=1
-mem-mb=4096
-[medium]
-name = "Medium (4 cpu, 16 GB mem)"
-cpus=4
-mem-mb=16384
-[large]
-name = "Large (8 cpu, 32 GB mem)"
-cpus=8
-mem-mb=32768
-[xlarge]
-name = "Extra Large (16 cpu, 64 GB mem)"
-cpus=16
-mem-mb=65536
+mem-mb=1940
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurm.conf << EOF 
@@ -190,11 +178,6 @@ openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
 
 
 sudo chmod 0600 $PWB_CONFIG_DIR/database.conf
-
-
-echo "Port 3000" > /etc/ssh/sshd_config.d/ukhsa.conf
-
-systemctl restart sshd
 
 
 

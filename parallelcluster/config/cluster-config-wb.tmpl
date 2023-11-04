@@ -28,9 +28,9 @@ Scheduling:
     - Name: all 
       ComputeResources:
         - Name: rstudio 
-          InstanceType: t2.xlarge
+          InstanceType: c5.24xlarge 
           MaxCount: 10 
-          MinCount: 1
+          MinCount: 0
           Efa:
             Enabled: FALSE
       CustomActions:
