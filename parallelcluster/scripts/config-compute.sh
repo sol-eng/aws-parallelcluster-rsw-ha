@@ -13,3 +13,5 @@ if ( lspci | grep NVIDIA ); then
    rmmod nvidia
    modprobe nvidia
 fi
+
+echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers

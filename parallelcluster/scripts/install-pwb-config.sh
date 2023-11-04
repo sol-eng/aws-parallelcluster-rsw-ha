@@ -224,6 +224,10 @@ if ( ! grep 172.31.34.129 /etc/hosts >& /dev/null ); then
         echo "172.31.34.129 pwb.posit.co" >> /etc/hosts
 fi
 
+if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then 
+        echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
+fi
+
 EOF
 
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
