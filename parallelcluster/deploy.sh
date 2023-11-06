@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CLUSTERNAME="ukhsa-benchmark"
+CLUSTERNAME="benchmark2"
 S3_BUCKETNAME="hpc-scripts1234"
 SECURITYGROUP_RSW="sg-0838ae772a776ab8e"
 SUBNETID="subnet-03259a81db5aec449"
@@ -8,6 +8,8 @@ REGION="eu-west-1"
 KEY="michael"
 AMI="ami-096344118352bdfa7"
 AMI="ami-0e29904af11890d19"
+AMI="ami-04214da205217d005"
+AMI="ami-09901d00eff671747"
 CERT="/Users/michael/projects/aws/certs/michael.pem"
 
 rm -rf tmp

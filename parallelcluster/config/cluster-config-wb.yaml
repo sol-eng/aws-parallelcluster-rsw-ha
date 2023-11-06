@@ -10,6 +10,8 @@ HeadNode:
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: subnet-03259a81db5aec449
+    AdditionalSecurityGroups:
+       - sg-0838ae772a776ab8e
   LocalStorage:
     RootVolume:
       Size: 100 
@@ -18,7 +20,7 @@ HeadNode:
     KeyName: michael
 Image: 
   Os: ubuntu2004
-  CustomAmi: ami-0e29904af11890d19
+  CustomAmi: ami-09901d00eff671747
 Region: eu-west-1
 Scheduling: 
   Scheduler: slurm

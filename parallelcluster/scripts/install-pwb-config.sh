@@ -40,7 +40,7 @@ launcher-sessions-callback-address=http://${myip}:8787
 r-versions-path=${PWB_BASE_DIR}/shared-storage/r-versions
 
 auth-pam-sessions-enabled=1
-auth-pam-sessions-use-password=1
+#auth-pam-sessions-use-password=1
 
 # Enable Admin Dashboard
 admin-enabled=1

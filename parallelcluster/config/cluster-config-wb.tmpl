@@ -10,6 +10,8 @@ HeadNode:
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: SUBNETID
+    AdditionalSecurityGroups:
+       - SECURITYGROUP_RSW
   LocalStorage:
     RootVolume:
       Size: 100 
