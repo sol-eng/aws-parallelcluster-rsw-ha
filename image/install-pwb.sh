@@ -23,6 +23,13 @@ gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
 rm -f rstudio-workbench-${PWB_VERSION}-amd64.deb
 
 
+# replace launcher with 2.15.0 pre-release 
+
+pushd /tmp && \ 
+    curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.0-110.tar.gz && \
+    tar xvfz launcher-* -C /usr/lib/rstudio-server/  --strip-components=1 && \
+    rm -f launcher-* && popd 
+
 
 
 

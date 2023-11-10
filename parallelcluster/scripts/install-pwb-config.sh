@@ -20,6 +20,9 @@ cat > $PWB_CONFIG_DIR/rserver.conf << EOF
 # Shared storage
 server-shared-storage-path=${PWB_BASE_DIR}/shared-storage
 
+# prevent singularity to attempt creating a user in the container (admin rights)
+launcher-sessions-create-container-user=0
+
 # enable load-balancing
 load-balancing-enabled=1
 
@@ -85,8 +88,11 @@ type=Slurm
 
 EOF
 
+mkdir -p $PWB_CONFIG_DIR/apptainer
+
 cat > $PWB_CONFIG_DIR/launcher.slurm.profiles.conf<<EOF 
-#[*]
+[*]
+#singularity-image-directory=/opt/parallelcluster/shared/rstudio/apptainer
 #default-mem-mb=512
 #default-cpus=4
 #max-cpus=2
