@@ -6,6 +6,10 @@ runtime:
 description: Deploy Posit Workbench in HA/LB configuration 
 
 config:
+  region:
+    type: string
+    description: AWS region to use
+    default: eu-west-1
   email:
     type: string
     description: EMail address

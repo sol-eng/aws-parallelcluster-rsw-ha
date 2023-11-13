@@ -1,13 +1,21 @@
 #!/bin/bash
 
-N=10
+N=20
 
-for i in `seq 1 $1`
+for i in \`seq 1 \$1\`
 do
     (	
-	expect create-users.exp posit`printf %04i $i` Testme1234
+        while true
+            do
+                username=posit\`printf %04i \$i\`
+	            expect create-users.exp \$username Testme1234
+                echo "Testme1234" | pamtester login posit0001 authenticate
+                if [ \$? -eq 0 ]; then
+                    break 
+                fi
+            done
     ) &
-    if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+    if [[ \$(jobs -r -p | wc -l) -ge \$N ]]; then
         wait -n
     fi
 done

@@ -8,7 +8,7 @@ from typing import Dict, List
 
 import jinja2
 import pulumi
-from pulumi_aws import ec2, efs, rds, lb, directoryservice
+from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager
 from pulumi_command import remote
 
 # ------------------------------------------------------------------------------
@@ -51,11 +51,11 @@ def make_server(
     name: str, 
     type: str,
     tags: Dict, 
-    key_pair: ec2.KeyPair, 
     vpc_group_ids: List[str],
     subnet_id: str,
     instance_type: str,
-    ami: str
+    ami: str,
+    key_name: str
 ):
     # Stand up a server.
     server = ec2.Instance(
@@ -65,7 +65,7 @@ def make_server(
         ami=ami,
         tags=tags,
         subnet_id=subnet_id,
-        key_name=key_pair.key_name,
+        key_name=key_name,
         iam_instance_profile="WindowsJoinDomain"
     )
     
@@ -95,12 +95,14 @@ def main():
 
     key_pair = ec2.KeyPair(
         "ec2 key pair",
+        public_key=Path("key.pem.pub").read_text(),
         key_name=f"{config.email}-keypair-for-pulumi",
-        public_key=config.public_key,
         tags=tags | {"Name": "key-pair"},
     )
-    pulumi.export("key_pair id", key_pair.id)
 
+    pulumi.export("key_pair id", key_pair.key_name)
+
+    
     # --------------------------------------------------------------------------
     # Get VPC information.
     # --------------------------------------------------------------------------
@@ -149,7 +151,7 @@ def main():
 
 
     db = rds.Instance(
-        "ukhsa-rsw-db",
+        "rsw-db",
         instance_class="db.t3.micro",
         allocated_storage=5,
         username=config.db_username,
@@ -165,6 +167,18 @@ def main():
     pulumi.export("db_address", db.address)
     pulumi.export("db_endpoint", db.endpoint)
     pulumi.export("db_name", db.name)
+
+
+
+    secret = secretsmanager.Secret("SimpleADPassword")
+
+    #pulumi.export("DomainPWARN", secret.arn)
+
+    example = secretsmanager.SecretVersion("SimpleADPassword",
+        secret_id=secret.id,
+        secret_string=config.DomainPW)
+    
+    pulumi.export("DomainPWARN", example.arn)
 
 
     # --------------------------------------------------------------------------
@@ -196,11 +210,11 @@ def main():
             "jump_host", 
             "ad",
             tags=tags | {"Name": "jump-host-ad"},
-            key_pair=key_pair,
             vpc_group_ids=[security_group_ssh.id],
             instance_type=config.ServerInstanceType,
             subnet_id=vpc_subnet.id,
-            ami=config.ami
+            ami=config.ami,
+            key_name=key_pair.key_name
         )
     
     pulumi.export("jump_host_dns", jump_host.public_dns)
@@ -217,7 +231,8 @@ def main():
                 'echo "export AD_PASSWD=',         config.DomainPW,   '" >> .env;\n',
                 'echo "export AD_DOMAIN=',         config.Domain,   '" >> .env;\n',
             ), 
-            connection=connection
+            connection=connection,
+            opts=pulumi.ResourceOptions(depends_on=jump_host)
         )
     
     command_install_justfile = remote.Command(
@@ -226,6 +241,7 @@ def main():
                 """curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
                 """echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bashrc;"""
             ]),
+            opts=pulumi.ResourceOptions(depends_on=jump_host),
             connection=connection
         )
 
@@ -234,6 +250,7 @@ def main():
             local_path="server-side-files/justfile", 
             remote_path='justfile', 
             connection=connection,
+            opts=pulumi.ResourceOptions(depends_on=jump_host),
             triggers=[hash_file("server-side-files/justfile")]
         )
 
@@ -288,7 +305,7 @@ def main():
                         create=pulumi.Output.concat('echo "', f.template_render_command, f'" > {f.file_out}'),
                         connection=connection, 
                         triggers=[hash_file(f.file_in)],
-                        opts=pulumi.ResourceOptions(depends_on=[jump_host])
+                        opts=pulumi.ResourceOptions(depends_on=jump_host)
                     )
                 )
 
