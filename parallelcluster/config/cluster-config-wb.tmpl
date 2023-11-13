@@ -17,7 +17,7 @@ HeadNode:
       Size: 100 
   InternalSharedStorageType: Efs
   Ssh:
-    KeyName: michael
+    KeyName: KEY 
 Image: 
   Os: ubuntu2004
   CustomAmi: AMI
@@ -79,7 +79,7 @@ LoginNodes:
         SubnetIds: 
           - SUBNETID
       Ssh:
-        KeyName: michael
+        KeyName: KEY 
 
 DevSettings:
   Timeouts:
@@ -97,7 +97,7 @@ SharedStorage:
 DirectoryService:
   DomainName: pwb.posit.co
   DomainAddr: ldap://pwb.posit.co
-  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:PWBADSecretPWD-pulSGd
+  PasswordSecretArn: DOMAINPWSecret 
   DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
   GenerateSshKeysForUsers: true
   AdditionalSssdConfigs: 

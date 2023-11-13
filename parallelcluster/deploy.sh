@@ -5,12 +5,10 @@ S3_BUCKETNAME="hpc-scripts1234"
 SECURITYGROUP_RSW="sg-0838ae772a776ab8e"
 SUBNETID="subnet-03259a81db5aec449"
 REGION="eu-west-1"
-KEY="michael"
-AMI="ami-096344118352bdfa7"
-AMI="ami-0e29904af11890d19"
-AMI="ami-04214da205217d005"
+KEY=` cd ../pulumi && pulumi stack output "key_pair id" `
+DOMAINPWSecret=` cd ../pulumi && pulumi stack output "DomainPWARN" `
 AMI="ami-09901d00eff671747"
-CERT="/Users/michael/projects/aws/certs/michael.pem"
+CERT="../pulumi/key.pem"
 
 rm -rf tmp
 mkdir -p tmp
@@ -27,6 +25,7 @@ cat config/cluster-config-wb.tmpl | \
         sed "s#SUBNETID#${SUBNETID}#g" | \
         sed "s#REGION#${REGION}#g" | \
         sed "s#AMI#${AMI}#g" | \
+	sed "s#DOMAINPWSecret#${DOMAINPWSecret}#g" | \
         sed "s#KEY#${KEY}#g"  \
 	> config/cluster-config-wb.yaml
 pcluster create-cluster --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 
