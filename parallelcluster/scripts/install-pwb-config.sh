@@ -10,6 +10,8 @@ mkdir -p $PWB_BASE_DIR/{etc/rstudio,shared-storage,scripts}
 # Add SLURM integration 
 myip=`curl http://checkip.amazonaws.com`
 
+# Make sure node is detectable as head node
+touch /etc/head-node
 
 cat > $PWB_CONFIG_DIR/launcher-env << EOF
 RSTUDIO_DISABLE_PACKAGE_INSTALL_PROMPT=yes
@@ -160,7 +162,8 @@ mkdir -p ${PWB_BASE_DIR}/containers
 
 cat << EOF > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
-host=ukhsa-rsw-dbca27dc2.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+#host=ukhsa-rsw-dbca27dc2.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+host=extra-rsw-dbf287ba5.clovh3dmuvji.eu-west-1.rds.amazonaws.com
 database=pwb
 port=5432
 username=pwb_db_admin
@@ -196,13 +199,9 @@ set -x
 exec > /var/log/rc.pwb.log
 exec 2>&1
 
-if (mount | grep login_node >&/dev/null);  then 
+if (mount | grep login_node >&/dev/null && ! -f /etc/head-node);  then 
     # we are on a login node and need to start the workbench processes 
     # but we need to make sure the config files are all there
-    #if [ ! -f /etc/ssh/sshd_config.d/ukhsa.conf ]; then 
-    #    echo "Port 3000" > /etc/ssh/sshd_config.d/ukhsa.conf
-    #    systemctl restart sshd
-    #fi
     while true ; do if [ -f /opt/parallelcluster/shared/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
     if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
         # systemctl overrides

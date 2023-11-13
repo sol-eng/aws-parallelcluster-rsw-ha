@@ -24,7 +24,6 @@ class ConfigValues:
 
     def __post_init__(self):
         self.email = self.config.require("email")
-        self.public_key = self.config.require("public_key")   
         self.ami = self.config.require("ami")
         self.Domain = self.config.require("Domain")
         self.DomainPW = self.config.require("DomainPW")
