@@ -70,6 +70,13 @@ EOF
 mkdir -p ${PWB_BASE_DIR}/shared-data/head-node/{audit-data,monitor-data}
 chown -R rstudio-server ${PWB_BASE_DIR}/shared-data/head-node/
 
+cat > $PWB_CONFIG_DIR/rserver-http.conf<<EOF
+worker_rlimit_nofile 4096;
+events {
+    worker_connections  2048;
+}
+EOF
+
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
 [server]
 address=127.0.0.1
