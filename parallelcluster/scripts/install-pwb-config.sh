@@ -70,12 +70,9 @@ EOF
 mkdir -p ${PWB_BASE_DIR}/shared-data/head-node/{audit-data,monitor-data}
 chown -R rstudio-server ${PWB_BASE_DIR}/shared-data/head-node/
 
-cat > $PWB_CONFIG_DIR/rserver-http.conf<<EOF
-worker_rlimit_nofile 4096;
-events {
-    worker_connections  2048;
-}
-EOF
+# add stuff for improved performance (benchmarking) 
+sed -i 's/worker_connections.*/worker_connections   2048;/' /usr/lib/rstudio-server/conf/rserver-http.conf
+sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
 
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
 [server]
