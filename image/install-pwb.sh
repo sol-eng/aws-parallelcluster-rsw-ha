@@ -23,18 +23,6 @@ gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
 rm -f rstudio-workbench-${PWB_VERSION}-amd64.deb
 
 
-## replace launcher with 2.15.0 pre-release 
-
-#pushd /tmp && \ 
-#    curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.0-110.tar.gz && \
-#    tar xvfz launcher-* -C /usr/lib/rstudio-server/  --strip-components=1 && \
-#    rm -f launcher-* && popd 
-
-
-
-
-
-
 # Add sample user and groups, make rstudio part of admins and superuseradmin
 
 groupadd --system --gid 8787 rstudio
@@ -85,3 +73,13 @@ rm -f /etc/rstudio
 
 #add crontab entry
 (crontab -l ; echo "0-59/1 * * * * /opt/parallelcluster/shared/rstudio/scripts/rc.pwb")| crontab -
+
+
+## replace launcher with 2.15.x pre-release if not using 2023.12.0 daily
+
+if [ `rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'` -lt 2023120 ]; then
+    pushd /tmp && \ 
+    curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.1-5.tar.gz && \
+    tar xvfz launcher-* -C /usr/lib/rstudio-server/  --strip-components=1 && \
+    rm -f launcher-* && popd 
+
