@@ -16,15 +16,15 @@ config:
     default: tbd@tbc.com
   ServerInstanceType:
     type: string
-    description: AWS instance type for EC2 instance (ex. "t3.medium")
+    description: AWS instance type for AD jumphost EC2 instance 
     default: t3.medium
   ami:
     type: string
-    description: A valid AMI used to deploy the SLURM nodes (must be Ubunto 20.04 LTS)
+    description: A valid AMI used to deploy on AD jumphost (must be Ubuntu 20.04 LTS)
     default: ami-0d2a4a5d69e46ea0b
   Domain:
     type: string
-    description: Name of Domain to be used for AD (ex. "pwb.posit.co")
+    description: Name of Domain to be used for AD 
     default: pwb.posit.co
   DomainPW:
     type: string
@@ -32,9 +32,9 @@ config:
     default: Testme123! 
   db_username:
     type: string
-    description: Username for the PositgreSQL db
+    description: Username for the PostgreSQL db
     default: pwb_db_admin 
   db_password:
     type: string
-    description: Password for the PositgreSQL db
+    description: Password for the PostgreSQL db
     default: pwb_db_password 

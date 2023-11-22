@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+from time import time 
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
@@ -89,13 +90,12 @@ def main():
     # --------------------------------------------------------------------------
     # Set up keys.
     # --------------------------------------------------------------------------
-    # key_pair = ec2.get_key_pair(key_name=f"{config.email}-keypair-for-pulumi",
-    # include_public_key=True)
 
+    timestamp=int(time())
     key_pair = ec2.KeyPair(
         "ec2 key pair",
         public_key=Path("key.pem.pub").read_text(),
-        key_name=f"{config.email}-keypair-for-pulumi",
+        key_name=f"{config.email}-keypair-for-pulumi-{timestamp}",
         tags=tags | {"Name": "key-pair"},
     )
 
@@ -166,6 +166,8 @@ def main():
     pulumi.export("db_address", db.address)
     pulumi.export("db_endpoint", db.endpoint)
     pulumi.export("db_name", db.name)
+    pulumi.export("db_user", config.db_username)
+    pulumi.export("db_pass", config.db_password)
 
 
 
