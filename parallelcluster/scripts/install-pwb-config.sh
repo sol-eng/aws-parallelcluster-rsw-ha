@@ -246,4 +246,6 @@ cd /tmp && \
         git clone https://github.com/sol-eng/singularity-rstudio.git && \
         cd singularity-rstudio/data/r-session-complete &&
         for i in centos7 jammy; do pushd $i && \
+                slurm_version=`sinfo -V | cut -d " " -f 2`
+                sed -i "s/SLURM_VERSION.*/SLURM_VERSION=${slurm_version}/" r-session-complete.sdef
                 singularity build /opt/parallelcluster/shared/rstudio/apptainer/$i.sif r-session-complete.sdef && popd; done
