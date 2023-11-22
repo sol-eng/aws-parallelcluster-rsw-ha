@@ -51,7 +51,7 @@ aws-cdk.core==1.204.0
 aws-cdk.custom-resources==1.204.0
 aws-cdk.cx-api==1.204.0
 aws-cdk.region-info==1.204.0
-aws-parallelcluster==3.7.2
+aws-parallelcluster==3.8.0b1
 blinker==1.6.3
 boto3==1.28.72
 botocore==1.31.72
@@ -63,7 +63,7 @@ clickclick==20.10.2
 connexion==2.13.1
 constructs==3.4.344
 exceptiongroup==1.1.3
-#Flask==2.2.3
+Flask==2.2.5
 idna==3.4
 importlib-resources==6.1.0
 inflection==0.5.1
