@@ -4,7 +4,7 @@ PWB_BASE_DIR="/opt/parallelcluster/shared/rstudio/"
 
 PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
 
-mkdir -p $PWB_BASE_DIR/{etc/rstudio,shared-storage,scripts}
+mkdir -p $PWB_BASE_DIR/{etc/rstudio,shared-storage,scripts,apptainer}
 
 
 # Add SLURM integration 
@@ -24,6 +24,8 @@ server-shared-storage-path=${PWB_BASE_DIR}/shared-storage
 
 # prevent singularity to attempt creating a user in the container (admin rights)
 launcher-sessions-create-container-user=0
+# forward environment variables into the container 
+launcher-sessions-forward-container-environment=1
 
 # enable load-balancing
 load-balancing-enabled=1
@@ -98,7 +100,7 @@ mkdir -p $PWB_CONFIG_DIR/apptainer
 
 cat > $PWB_CONFIG_DIR/launcher.slurm.profiles.conf<<EOF 
 [*]
-#singularity-image-directory=/opt/parallelcluster/shared/rstudio/apptainer
+singularity-image-directory=${PWB_BASE_DIR}/apptainer
 #default-mem-mb=512
 #default-cpus=4
 #max-cpus=2
@@ -166,12 +168,11 @@ mkdir -p ${PWB_BASE_DIR}/containers
 
 cat << EOF > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
-#host=ukhsa-rsw-dbca27dc2.clovh3dmuvji.eu-west-1.rds.amazonaws.com
-host=extra-rsw-dbf287ba5.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+host=DB_HOST
 database=pwb
 port=5432
-username=pwb_db_admin
-password=pwb_db_password
+username=DB_USER
+password=DB_PASS
 connection-timeout-seconds=10
 EOF
 
@@ -229,8 +230,8 @@ if (mount | grep login_node >&/dev/null && ! -f /etc/head-node);  then
     
 fi
 
-if ( ! grep 172.31.34.129 /etc/hosts >& /dev/null ); then 
-        echo "172.31.34.129 pwb.posit.co" >> /etc/hosts
+if ( ! grep AD_DNS /etc/hosts >& /dev/null ); then 
+        echo "AD_DNS pwb.posit.co" >> /etc/hosts
 fi
 
 if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then 
@@ -240,3 +241,9 @@ fi
 EOF
 
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
+
+cd /tmp && \
+        git clone https://github.com/sol-eng/singularity-rstudio.git && \
+        cd singularity-rstudio/data/r-session-complete &&
+        for i in centos7 jammy; do pushd $i && \
+                singularity build /opt/parallelcluster/shared/rstudio/apptainer/$i.sif r-session-complete.sdef && popd; done

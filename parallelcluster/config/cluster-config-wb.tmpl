@@ -10,11 +10,9 @@ HeadNode:
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: SUBNETID
-    AdditionalSecurityGroups:
-       - SECURITYGROUP_RSW
   LocalStorage:
     RootVolume:
-      Size: 100 
+      Size: 120 
   InternalSharedStorageType: Efs
   Ssh:
     KeyName: KEY 
@@ -30,9 +28,9 @@ Scheduling:
     - Name: all 
       ComputeResources:
         - Name: rstudio 
-          InstanceType: c5.24xlarge 
+          InstanceType: t2.xlarge 
           MaxCount: 10 
-          MinCount: 0
+          MinCount: 1
           Efa:
             Enabled: FALSE
       CustomActions:
@@ -50,7 +48,7 @@ Scheduling:
     - Name: gpu 
       ComputeResources:
         - Name: large
-          InstanceType: p3.16xlarge
+          InstanceType: p3.2xlarge
           MaxCount: 1
           MinCount: 0
           Efa:
@@ -110,6 +108,6 @@ Tags:
   - Key: rs:environment
     Value: development
   - Key: rs:owner
-    Value: michael.mayer@rstudio.com
+    Value: EMAIL 
   - Key: rs:project
     Value: solutions 

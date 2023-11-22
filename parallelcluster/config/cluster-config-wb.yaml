@@ -10,14 +10,12 @@ HeadNode:
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: subnet-03259a81db5aec449
-    AdditionalSecurityGroups:
-       - sg-0838ae772a776ab8e
   LocalStorage:
     RootVolume:
       Size: 100 
   InternalSharedStorageType: Efs
   Ssh:
-    KeyName: michael
+    KeyName: michael.mayer@posit.co-keypair-for-pulumi-1700646177 
 Image: 
   Os: ubuntu2004
   CustomAmi: ami-09901d00eff671747
@@ -30,9 +28,9 @@ Scheduling:
     - Name: all 
       ComputeResources:
         - Name: rstudio 
-          InstanceType: c5.24xlarge 
+          InstanceType: t2.xlarge 
           MaxCount: 10 
-          MinCount: 0
+          MinCount: 1
           Efa:
             Enabled: FALSE
       CustomActions:
@@ -50,7 +48,7 @@ Scheduling:
     - Name: gpu 
       ComputeResources:
         - Name: large
-          InstanceType: p3.16xlarge
+          InstanceType: p3.2xlarge
           MaxCount: 1
           MinCount: 0
           Efa:
@@ -75,11 +73,11 @@ LoginNodes:
       InstanceType: t2.xlarge
       Networking:
         AdditionalSecurityGroups: 
-          - sg-0838ae772a776ab8e
+          - sg-09ca531e5331195f1
         SubnetIds: 
           - subnet-03259a81db5aec449
       Ssh:
-        KeyName: michael
+        KeyName: michael.mayer@posit.co-keypair-for-pulumi-1700646177 
 
 DevSettings:
   Timeouts:
@@ -97,7 +95,7 @@ SharedStorage:
 DirectoryService:
   DomainName: pwb.posit.co
   DomainAddr: ldap://pwb.posit.co
-  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:PWBADSecretPWD-pulSGd
+  PasswordSecretArn: arn:aws:secretsmanager:eu-west-1:637485797898:secret:SimpleADPassword-2898387-BQn4mT 
   DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
   GenerateSshKeysForUsers: true
   AdditionalSssdConfigs: 
@@ -110,6 +108,6 @@ Tags:
   - Key: rs:environment
     Value: development
   - Key: rs:owner
-    Value: michael.mayer@rstudio.com
+    Value: michael.mayer@posit.co 
   - Key: rs:project
     Value: solutions 
