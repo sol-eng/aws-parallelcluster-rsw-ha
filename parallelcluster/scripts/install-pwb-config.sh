@@ -204,7 +204,7 @@ set -x
 exec > /var/log/rc.pwb.log
 exec 2>&1
 
-if (mount | grep login_node >&/dev/null && ! -f /etc/head-node);  then 
+if (mount | grep login_node >&/dev/null) && [ ! -f /etc/head-node ]; then echo x; fi
     # we are on a login node and need to start the workbench processes 
     # but we need to make sure the config files are all there
     while true ; do if [ -f /opt/parallelcluster/shared/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
