@@ -162,9 +162,6 @@ EOF
 setfacl -R --set-file=$tmpfile /data/renv
 rm -rf $tmpfile
 
-#prepare for singularity integration 
-mkdir -p ${PWB_BASE_DIR}/containers
-
 
 cat << EOF > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
