@@ -247,7 +247,7 @@ cd /tmp && \
         cd singularity-rstudio/data/r-session-complete &&
         for i in *; do \
                 pushd $i && \
-                slurm_version=`sinfo -V | cut -d " " -f 2`
+                slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2`
                 sed -i "0,/SLURM_VERSION/{s/SLURM_VERSION.*/SLURM_VERSION=${slurm_version}/}" r-session-complete.sdef
                 singularity build /opt/parallelcluster/shared/rstudio/apptainer/$i.sif r-session-complete.sdef && \
                 popd; done
