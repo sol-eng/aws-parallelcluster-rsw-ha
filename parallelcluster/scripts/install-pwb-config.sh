@@ -242,6 +242,9 @@ EOF
 
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
 
+
+# we're building singularity containers here 
+# since PPM sometimes behaves rather funny (package download failure) we run the build until it succeeds. 
 cd /tmp && \
         git clone https://github.com/sol-eng/singularity-rstudio.git && \
         cd singularity-rstudio/data/r-session-complete &&
@@ -249,5 +252,5 @@ cd /tmp && \
                 pushd $i && \
                 slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2`
                 sed -i "0,/SLURM_VERSION/{s/SLURM_VERSION.*/SLURM_VERSION=${slurm_version}/}" r-session-complete.sdef
-                singularity build /opt/parallelcluster/shared/rstudio/apptainer/$i.sif r-session-complete.sdef && \
+                while true ; do singularity build /opt/parallelcluster/shared/rstudio/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 ]; then break; fi; done
                 popd; done
