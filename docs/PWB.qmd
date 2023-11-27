@@ -262,6 +262,8 @@ You may want to add the patch described in @sec-patch-for-elb to ensure full fun
 
     4.  `AMI` - the AMI created in @sec-how-to-build-a-custom-ami
 
+    5. `SINGULARITY_SUPPORT` - if set true, Workbench will be configured for Singularity integration and two `r-session-complete` containers (Ubuntu Jammy and Cent OS 7 based) will be built. Please note that this significantly extends the spin-up time of the cluster.
+
 ### Default values for Cluster deployment
 
 For the `deploy.sh` script, unless mentioned in step 2 of the deployment instructions (cf. @sec-deployment-instructions), all relevant parameters are extracted from the pulumi deployment for the auxiliary services.
@@ -358,6 +360,8 @@ With the release of [AWS ParallelCluster 3.8.0](https://github.com/aws/aws-paral
 Once this is in place, the boundaries between the Login Nodes and Head Nodes will become much less clear. With adding additional logic, one can automatically start additional `slurmctld` processes on the login nodes and configure those hosts in the slurm configuration. If the head node then fails, a `slurmctld` of one of the compute nodes will take over. While adding additional `slurmctld` is fairly straightforward, there also is a need for regular checks if all the defined `slurmctld`\` hosts are still up and running. If not, those need to be removed from the slurm config.
 
 The complexity of establishing the above is fairly small but then it is another customisation we have to make and maintain. As long as this is only a posit internal solution, we should be ok.
+
+A drawback of having full HA as mentioned above however is that very likely the ParallelCluster API may become unuseable in case the head node is no longer available. Things like updating configuration and settings of the running cluster may no longer work. Whether this is needed in a productive cluster is another matter of debate. 
 
 # Appendix
 
