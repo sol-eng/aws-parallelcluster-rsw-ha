@@ -80,6 +80,6 @@ rm -f /etc/rstudio
 if [ `rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'` -lt 2023120 ]; then
     pushd /tmp && \ 
     curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.1-5.tar.gz && \
-    tar xvfz launcher-* -C /usr/lib/rstudio-server/  --strip-components=1 && \
+    tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
     rm -f launcher-* && popd 
 
