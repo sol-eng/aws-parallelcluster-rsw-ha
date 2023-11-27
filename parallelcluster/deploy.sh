@@ -5,6 +5,7 @@ S3_BUCKETNAME="hpc-scripts1234"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
 AMI="ami-09901d00eff671747"
 REGION="eu-west-1"
+SINGULARITY_SUPPORT=true
 
 echo "Extracting values from pulumi setup"
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet` 
@@ -26,8 +27,9 @@ cat scripts/install-pwb-config.sh | \
         sed "s#AD_DNS#${AD_DNS}#g" | \
         sed "s#DB_HOST#${DB_HOST}#g" | \
         sed "s#DB_USER#${DB_USER}#g" | \
-        sed "s#DB_PASS#${DB_PASS}#g" \
-        > tmp/install-pwb-config.sh 
+       	sed "s#DB_PASS#${DB_PASS}#g" | \
+        sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" \
+	> tmp/install-pwb-config.sh 
 
 aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
 
