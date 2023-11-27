@@ -239,7 +239,7 @@ EOF
 
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
 
-if (SINGULARITY_SUPPORT) {
+if (SINGULARITY_SUPPORT); then
         # we're building singularity containers here 
         # since PPM sometimes behaves rather funny (package download failure) we run the build until it succeeds. 
         cd /tmp && \
@@ -249,7 +249,7 @@ if (SINGULARITY_SUPPORT) {
                         pushd $i && \
                         slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2`
                         sed -i "0,/SLURM_VERSION/{s/SLURM_VERSION.*/SLURM_VERSION=${slurm_version}/}" r-session-complete.sdef
-                        while true ; do singularity build $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 ]; then break; fi; done
+                        while true ; do singularity build $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 ]; then break; fi; done 
                         popd; done
 
         # We also need to build the SPANK plugin for singularity
@@ -260,6 +260,6 @@ if (SINGULARITY_SUPPORT) {
 
         # Uncomment singularity-image-directory
 
-        sed sed -i -r '/^#sing/ s/.(.*)/\1/' launcher.slurm.profiles.conf $PWB_CONFIG_DIR/launcher.slurm.profiles.conf
+        sed -i -r '/^#sing/ s/.(.*)/\1/' $PWB_CONFIG_DIR/launcher.slurm.profiles.conf
 
-}
+fi
