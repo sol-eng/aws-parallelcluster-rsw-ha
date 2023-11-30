@@ -86,6 +86,9 @@ pulumi stack init auxiliary-wb
 # Configure eMail address to ensure resources are properly tagged
 pulumi config set email my-email@corp.co
 
+# add EC2 keypair via AWS CLI
+aws ec2 import-key-pair --key-name `pulumi config get email`-keypair-for-pulumi --public-key-material `cat key.pem.pub| base64 ` 
+
 # Finally start deployment of SimpleAD, PostgreSQL DB and Jump Host
 # Also create 500 users at the same time
 just up
