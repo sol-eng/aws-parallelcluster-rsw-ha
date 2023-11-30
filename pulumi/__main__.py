@@ -66,7 +66,8 @@ def make_server(
         tags=tags,
         subnet_id=subnet_id,
         key_name=key_name,
-        iam_instance_profile="WindowsJoinDomain"
+        iam_instance_profile="WindowsJoinDomain",
+        associate_public_ip_address=True
     )
     
     # Export final pulumi variables.
@@ -91,13 +92,20 @@ def main():
     # Set up keys.
     # --------------------------------------------------------------------------
 
-    timestamp=int(time())
-    key_pair = ec2.KeyPair(
-        "ec2 key pair",
-        public_key=Path("key.pem.pub").read_text(),
-        key_name=f"{config.email}-keypair-for-pulumi-{timestamp}",
-        tags=tags | {"Name": "key-pair"},
-    )
+    timestamp = int(time())
+
+    key_pair_name = f"{config.email}-keypair-for-pulumi"
+
+    
+    #key_pair = ec2.KeyPair(
+    #    "ec2 key pair",
+    #    public_key=Path("key.pem.pub").read_text(),
+    #    key_name=key_pair_name,
+    #    tags=tags | {"Name": "key-pair"},
+    #)
+    
+    key_pair = ec2.get_key_pair(key_name=key_pair_name)
+        
 
     pulumi.export("key_pair id", key_pair.key_name)
 
@@ -105,12 +113,13 @@ def main():
     # --------------------------------------------------------------------------
     # Get VPC information.
     # --------------------------------------------------------------------------
-    vpc = ec2.get_vpc(default=True)
-    vpc_subnets = ec2.get_subnets()
+    vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
+        name="tag:Name",
+        values=["shared"])])
+    vpc_subnets = ec2.get_subnets(filters=[ec2.GetSubnetsFilterArgs(
+        name="vpc-id",
+        values=[vpc.id])])
     vpc_subnet = ec2.get_subnet(id=vpc_subnets.ids[0])
-    vpc_subnet = ec2.get_subnet(filters=[ec2.GetSubnetFilterArgs(
-    name="tag:Name",
-    values=["parallelcluster:public-subnet"])])
     
     pulumi.export("vpc_subnet", vpc_subnet.id)
     
@@ -130,8 +139,10 @@ def main():
             {"protocol": "All", "from_port": 0, "to_port": 0, 
                 'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
         ],
-        tags=tags
+        tags=tags,
+        vpc_id=vpc.id
     )
+    pulumi.export("security_group_db", security_group_db.id)
 
     security_group_ssh = ec2.SecurityGroup(
         "ssh",
@@ -144,10 +155,19 @@ def main():
             {"protocol": "All", "from_port": 0, "to_port": 0, 
                 'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
         ],
-        tags=tags
+        tags=tags,
+        vpc_id=vpc.id
     )
+    pulumi.export("security_group_ssh", security_group_ssh.id)
 
-
+    subnetgroup = rds.SubnetGroup("postgresdbsubnetgroup",
+        subnet_ids=[
+            vpc_subnet.id,
+            vpc_subnets.ids[1],
+        ],
+        tags={
+            "Name": "Postgres subnet group",
+        })
 
     db = rds.Instance(
         "rsw-db",
@@ -160,7 +180,8 @@ def main():
         publicly_accessible=True,
         skip_final_snapshot=True,
         tags=tags | {"Name": "pwb-db"},
-	vpc_security_group_ids=[security_group_db.id]
+	    vpc_security_group_ids=[security_group_db.id],
+        db_subnet_group_name=subnetgroup 
     )
     pulumi.export("db_port", db.port)
     pulumi.export("db_address", db.address)
@@ -197,7 +218,7 @@ def main():
             vpc_id=vpc.id,
             subnet_ids=[
                 vpc_subnet.id,
-                vpc_subnets.ids[0],
+                vpc_subnets.ids[1],
             ],
         ),
         tags=tags | {"Name": "pwb-directory"},
@@ -220,8 +241,8 @@ def main():
     
     pulumi.export("jump_host_dns", jump_host.public_dns)
     
-    connection = remote.ConnectionArgs(
-            host=jump_host.public_dns, 
+    connection = remote.ProxyConnectionArgs(
+            host=jump_host.public_dns ,# host=jump_host.id, 
             user="ubuntu", 
             private_key=Path("key.pem").read_text()
         )
