@@ -1,11 +1,12 @@
 #!/bin/bash
 
-CLUSTERNAME="benchmark4"
-S3_BUCKETNAME="hpc-scripts1234"
+CLUSTERNAME="full"
+S3_BUCKETNAME="hpc-scripts1234a"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
-AMI="ami-09901d00eff671747"
+AMI="ami-087ccbe156d606047"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=true
+CONFIG="default"
 
 echo "Extracting values from pulumi setup"
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet` 
@@ -33,7 +34,7 @@ cat scripts/install-pwb-config.sh | \
 
 aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
 
-cat config/cluster-config-wb.tmpl | \
+cat config/cluster-config-wb.${CONFIG}.tmpl | \
 	sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
         sed "s#SECURITYGROUP_RSW#${SECURITYGROUP_RSW}#g" | \
         sed "s#SUBNETID#${SUBNETID}#g" | \
