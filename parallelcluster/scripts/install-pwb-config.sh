@@ -148,7 +148,7 @@ EOF
 
 # prepare renv package cache
 tmpfile=`mktemp`
-mkdir -p /data/renv
+mkdir -p /home/renv
 cat << EOF > $tmpfile
 user::rwx
 group::rwx
@@ -159,7 +159,7 @@ default:group::rwx
 default:mask::rwx
 default:other::rwx
 EOF
-setfacl -R --set-file=$tmpfile /data/renv
+setfacl -R --set-file=$tmpfile /home/renv
 rm -rf $tmpfile
 
 
@@ -234,6 +234,8 @@ fi
 if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then 
         echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
 fi
+
+
 
 EOF
 
