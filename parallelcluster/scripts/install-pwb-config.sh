@@ -6,6 +6,9 @@ PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
 
 mkdir -p $PWB_BASE_DIR/{etc/rstudio,shared-storage,scripts,apptainer}
 
+# copy and protect SSL certs
+aws s3 cp s3://hpc-scripts1234a/key.pem $PWB_CONFIG_DIR
+aws s3 cp s3://hpc-scripts1234a/cert.pem $PWB_CONFIG_DIR
 
 # Add SLURM integration 
 myip=`curl http://checkip.amazonaws.com`
@@ -29,6 +32,11 @@ launcher-sessions-forward-container-environment=1
 
 # enable load-balancing
 load-balancing-enabled=1
+
+# SSL
+ssl-enabled=1
+ssl-certificate=${PWB_CONFIG_DIR}/cert.pem
+ssl-certificate-key=${PWB_CONFIG_DIR}/key.pem
 
 # www port 
 www-port=8787
