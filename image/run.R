@@ -103,9 +103,9 @@ library(pak,lib.loc="/tmp/curl")
 os_name=system(". /etc/os-release && echo $ID", intern = TRUE)
 os_vers=system(". /etc/os-release && echo $VERSION_ID", intern = TRUE)
 
-#Let's also pre-install tidyverse, batchtools and clustermq
+#Let's also pre-install tidyverse, clustermq, batchtools and microbenchmark
 Sys.setenv("CLUSTERMQ_USE_SYSTEM_LIBZMQ" = 0)
-pnames=c(pnames,"clustermq","tidyverse","batchtools")
+pnames=c(pnames,"tidyverse","clustermq","batchtools","microbenchmark")
 
 packages_needed<-pnames[pnames %in% avpack]
 
@@ -119,6 +119,11 @@ paste("Installing packages for RSW integration")
 pak::pkg_install(packages_needed,lib=libdir)
 paste("Creating lock file for further reproducibility")
 pak::lockfile_create(packages_needed,lockfile=paste0(libdir,"/pkg.lock"))
+
+# workaround for clustermq as it cannot cooperate with pak... 
+if ( paste0(R.Version()$major,".",R.Version()$minor)>"4.3.0" ) { 
+  remotes::install_github("mschubert/clustermq@v0.9.1",lib=libdir)
+}
 
 paste("Setting up global renv cache")
 sink(paste0("/opt/R/",currver,"/lib/R/etc/Renviron.site"), append=TRUE)

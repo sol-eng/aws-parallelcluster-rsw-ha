@@ -82,6 +82,9 @@ if (!(slurm_bin_path %in% curr_path)) {
 
 }
 
+rm(slurm_bin_path)
+rm(curr_path)
+
 options(
     clustermq.scheduler = "slurm",
     clustermq.template = "~/slurm.tmpl" 
@@ -105,4 +108,20 @@ export OMP_NUM_THREADS={{ cores | 1 }}
 CMQ_AUTH={{ auth }} \${R_HOME}/bin/R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
 EOF
 
+# git clone course material
+cd /tmp
+git clone https://github.com/luwidmer/fastR-website.git
+cd fastR-website/
+git checkout 8799116e06d943e605216eb689662486e70eaa53
+cd "materials/2023-09-03 CEN 2023"
+mkdir -p /usr/local/course-material
+cp -Rf * /usr/local/course-material
+
+# deploy it when user logs in the first time 
+cat >> /etc/skel/.profile << EOF
+# set PATH so it includes user's private bin if it exists
+if [ ! -d "\$HOME/course-material" ] ; then
+    cp -Rf /usr/local/course-material \$HOME
+fi
+EOF
 
