@@ -104,6 +104,7 @@ os_name=system(". /etc/os-release && echo $ID", intern = TRUE)
 os_vers=system(". /etc/os-release && echo $VERSION_ID", intern = TRUE)
 
 #Let's also pre-install tidyverse, batchtools and clustermq
+Sys.setenv("CLUSTERMQ_USE_SYSTEM_LIBZMQ" = 0)
 pnames=c(pnames,"clustermq","tidyverse","batchtools")
 
 packages_needed<-pnames[pnames %in% avpack]
