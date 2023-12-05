@@ -9,7 +9,7 @@ config:
   region:
     type: string
     description: AWS region to use
-    default: eu-west-1
+    default: eu-west-1 
   email:
     type: string
     description: EMail address
@@ -21,7 +21,7 @@ config:
   ami:
     type: string
     description: A valid AMI used to deploy on AD jumphost (must be Ubuntu 20.04 LTS)
-    default: ami-0d2a4a5d69e46ea0b
+    default: ami-07b36ea9852e986ad 
   Domain:
     type: string
     description: Name of Domain to be used for AD 
