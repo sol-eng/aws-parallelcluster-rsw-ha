@@ -65,3 +65,44 @@ if [ ! -z $R_VERSION_DEFAULT ]; then
 fi
 
 
+# Setting up Rprofile etc.. for clustermq integration 
+
+cat  > /etc/skel/.Rprofile << EOF
+#set SLURM binaries PATH so that RSW Launcher jobs work
+slurm_bin_path<-"/opt/slurm/bin"
+
+curr_path<-strsplit(Sys.getenv("PATH"),":")[[1]]
+
+if (!(slurm_bin_path %in% curr_path)) {
+  if (length(curr_path) == 0) {
+     Sys.setenv(PATH = slurm_bin_path)
+  } else {
+     Sys.setenv(PATH = paste0(Sys.getenv("PATH"),":",slurm_bin_path))
+}
+
+}
+
+options(
+    clustermq.scheduler = "slurm",
+    clustermq.template = "~/slurm.tmpl" 
+)
+EOF
+
+cat > /etc/skel/slurm.tmpl << EOF
+#!/bin/bash -l
+
+# File: slurm.tmpl
+# Template for using clustermq against a SLURM backend
+
+#SBATCH --job-name={{ job_name }}
+#SBATCH --error={{ log_file | /dev/null }}
+#SBATCH --mem-per-cpu={{ memory | 1024 }}
+#SBATCH --array=1-{{ n_jobs }}
+#SBATCH --cpus-per-task={{ cores | 1 }}
+
+
+export OMP_NUM_THREADS={{ cores | 1 }}
+CMQ_AUTH={{ auth }} \${R_HOME}/bin/R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
+EOF
+
+
