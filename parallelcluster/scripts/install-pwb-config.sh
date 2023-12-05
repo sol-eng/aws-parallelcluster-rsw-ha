@@ -39,7 +39,8 @@ ssl-certificate=${PWB_CONFIG_DIR}/cert.pem
 ssl-certificate-key=${PWB_CONFIG_DIR}/key.pem
 
 # www port 
-#www-port=443
+www-port=443
+ssl-redirect-http=0
 
 # Launcher Config
 launcher-address=127.0.0.1
@@ -75,6 +76,10 @@ audit-r-sessions-limit-months=6
 
 # Enable Monitoring
 monitor-data-path=${PWB_BASE_DIR}/shared-data/head-node/monitor-data
+EOF
+
+cat > $PWB_CONFIG_DIR/load-balancer << EOF
+verify-ssl-certs=0
 EOF
 
 mkdir -p ${PWB_BASE_DIR}/shared-data/head-node/{audit-data,monitor-data}
