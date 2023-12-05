@@ -53,9 +53,10 @@ dir.create(libdir,recursive=TRUE)
 
 if(dir.exists("/tmp/curl")) {unlink("/tmp/curl",recursive=TRUE)}
 dir.create("/tmp/curl")
-install.packages(c("rjson","RCurl","pak","BiocManager"),"/tmp/curl", repos=paste0(pmurl,"/cran/",binaryflag,"latest"))
+install.packages(c("rjson","RCurl","pak","BiocManager","remotes"),"/tmp/curl", repos=paste0(pmurl,"/cran/",binaryflag,"latest"))
 library(RCurl,lib.loc="/tmp/curl")
 library(rjson,lib.loc="/tmp/curl")
+library(remotes,lib.loc="/tmp/curl")
 
 jsondata<-fromJSON(file="https://raw.githubusercontent.com/rstudio/rstudio/main/src/cpp/session/resources/dependencies/r-packages.json")
 pnames<-c()
@@ -122,7 +123,7 @@ pak::lockfile_create(packages_needed,lockfile=paste0(libdir,"/pkg.lock"))
 
 # workaround for clustermq as it cannot cooperate with pak... 
 if ( paste0(R.Version()$major,".",R.Version()$minor)>"4.3.0" ) { 
-  remotes::install_github("mschubert/clustermq@v0.9.1",lib=libdir)
+  install_github("mschubert/clustermq@v0.9.1",lib=libdir)
 }
 
 paste("Setting up global renv cache")
