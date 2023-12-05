@@ -264,4 +264,8 @@ if (SINGULARITY_SUPPORT); then
 
         sed -i -r '/^#sing/ s/.(.*)/\1/' $PWB_CONFIG_DIR/launcher.slurm.profiles.conf
 
+        cat << EOF >> $PWB_CONFIG_DIR/launcher-env
+SINGULARITY_BIND="/sys,/opt/slurm,/var/run/munge,/var/spool/slurmd,/etc/munge,/run/munge"
+EOF
+
 fi
