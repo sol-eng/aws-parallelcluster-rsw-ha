@@ -111,7 +111,19 @@ cat > $PWB_CONFIG_DIR/launcher.slurm.resources.conf<<EOF
 [small]
 name = "Small (1 cpu, 2 GB mem)"
 cpus=1
-mem-mb=1940
+mem-mb=1936
+[medium]
+name = "Medium (2 cpu, 4 GB mem)"
+cpus=2
+mem-mb=3873
+[large]
+name = "Large (4 cpu, 8 GB mem)"
+cpus=4
+mem-mb=7746
+[xlarge]
+name = "Extra Large (8 cpu, 16 GB mem)"
+cpus=8
+mem-mb=15493
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurm.conf << EOF 
