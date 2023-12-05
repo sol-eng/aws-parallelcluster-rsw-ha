@@ -39,14 +39,14 @@ ssl-certificate=${PWB_CONFIG_DIR}/cert.pem
 ssl-certificate-key=${PWB_CONFIG_DIR}/key.pem
 
 # www port 
-www-port=8787
+#www-port=443
 
 # Launcher Config
 launcher-address=127.0.0.1
 launcher-port=5559
 launcher-sessions-enabled=1
 launcher-default-cluster=Slurm
-launcher-sessions-callback-address=http://${myip}:8787
+launcher-sessions-callback-address=https://${myip}
 
 # Disable R Versions scanning
 #r-versions-scan=0
