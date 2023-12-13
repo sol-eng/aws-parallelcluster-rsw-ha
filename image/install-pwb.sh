@@ -32,7 +32,7 @@ groupadd --system --gid 8789 rstudio-superuser-admins
 usermod -G rstudio-admins,rstudio-superuser-admins rstudio
 
 # add super secure password  
-echo -e "rstudio\nrstudio" | passwd rstudio
+echo -e "Testme1234\nTestme1234" | passwd rstudio
 
 
 
