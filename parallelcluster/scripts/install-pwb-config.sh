@@ -263,11 +263,12 @@ if (SINGULARITY_SUPPORT); then
                 pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
                 sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
                 sed -i "s/PWB_VERSION.*/PWB_VERSION=$pwb_version/" build.env &&
-                for i in `find . -type d -maxdepth 1`; do \
-                        pushd $i && \
-                        ctr=0
-                        while true ; do ctr=$(( $ctr+1 )) singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 || $ctr -gt 3 ]; then break; fi; done 
-                        popd; done
+                for i in `ls | grep -v build.env`; do \
+		        pushd $i && \
+			ctr=0
+		        while true ; do ctr=$(( $ctr+1 )) singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 ] || [ $ctr -gt 3 ]; then break; fi; done
+                        popd
+                done
 
         # We also need to build the SPANK plugin for singularity
 
