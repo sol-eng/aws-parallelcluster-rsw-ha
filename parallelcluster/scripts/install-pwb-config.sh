@@ -259,11 +259,14 @@ if (SINGULARITY_SUPPORT); then
         cd /tmp && \
                 git clone https://github.com/sol-eng/singularity-rstudio.git && \
                 cd singularity-rstudio/data/r-session-complete &&
-                for i in *; do \
+                slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
+                pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
+                sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
+                sed -i "s/PWB_VERSION.*/PWB_VERSION=$pwb_version/" build.env &&
+                for i in `find . -type d -maxdepth 1`; do \
                         pushd $i && \
-                        slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2`
-                        sed -i "0,/SLURM_VERSION/{s/SLURM_VERSION.*/SLURM_VERSION=${slurm_version}/}" r-session-complete.sdef
-                        while true ; do singularity build $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 ]; then break; fi; done 
+                        ctr=0
+                        while true ; do ctr=$(( $ctr+1 )) singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 || $ctr -gt 3 ]; then break; fi; done 
                         popd; done
 
         # We also need to build the SPANK plugin for singularity
