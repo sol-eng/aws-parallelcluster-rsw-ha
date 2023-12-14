@@ -21,20 +21,14 @@ config:
   ami:
     type: string
     description: A valid AMI used to deploy on AD jumphost (must be Ubuntu 20.04 LTS)
-    default: ami-07b36ea9852e986ad 
-  Domain:
+    default: ami-0d86ecafd19013f31 
+#    default: ami-07b36ea9852e986ad 
+
+  domain_name:
     type: string
     description: Name of Domain to be used for AD 
     default: pwb.posit.co
-  DomainPW:
-    type: string
-    description: Password for the Administrator AD account 
-    default: Testme123! 
   db_username:
     type: string
     description: Username for the PostgreSQL db
     default: pwb_db_admin 
-  db_password:
-    type: string
-    description: Password for the PostgreSQL db
-    default: pwb_db_password 
