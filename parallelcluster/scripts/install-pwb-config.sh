@@ -30,8 +30,8 @@ launcher-sessions-forward-container-environment=1
 # enable load-balancing
 load-balancing-enabled=1
 
-# www port 
-www-port=8787
+# enable access logs
+server-access-log=1
 
 # Launcher Config
 launcher-address=127.0.0.1
@@ -72,9 +72,22 @@ EOF
 mkdir -p ${PWB_BASE_DIR}/shared-data/head-node/{audit-data,monitor-data}
 chown -R rstudio-server ${PWB_BASE_DIR}/shared-data/head-node/
 
+pwb_ver=`rstudio-server version | cut -d " " -f 1 | cut -d "." -f 1,2 | sed 's/\.//'`
+if [ $pwb_ver -ge 202312 ]; then 
+cat > $PWB_CONFIG_DIR/nginx.worker.conf<<EOF
+worker_processes 1;
+
+worker_rlimit_nofile 8192;
+
+events {
+    worker_connections  4096;
+}
+EOF
+else
 # add stuff for improved performance (benchmarking) 
 sed -i 's/worker_connections.*/worker_connections   2048;/' /usr/lib/rstudio-server/conf/rserver-http.conf
 sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
+fi
 
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
 [server]
