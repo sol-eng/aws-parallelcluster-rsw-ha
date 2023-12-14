@@ -8,8 +8,8 @@ do
         while true
             do
                 username=posit\`printf %04i \$i\`
-	            expect create-users.exp \$username Testme1234
-                echo "Testme1234" | pamtester login posit0001 authenticate
+	            expect create-users.exp \$username {{user_password}} 
+                echo {{user_password}} | pamtester login \$username authenticate
                 if [ \$? -eq 0 ]; then
                     break 
                 fi
