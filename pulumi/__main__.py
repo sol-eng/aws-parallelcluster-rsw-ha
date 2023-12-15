@@ -34,6 +34,7 @@ class ConfigValues:
         self.user_password = self.config.require("user_password")
         self.aws_region = self.config.require("region")
         self.db_username = self.config.require("db_username")
+        self.secure_cookie_key = self.config.require("secure_cookie_key")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
 
 def create_template(path: str) -> jinja2.Template:
@@ -97,7 +98,7 @@ def main():
     pulumistack = pulumi.get_stack()
     pulumi.export("Pulumi Stack NAME", pulumistack)
     pulumi.export("user_password", config.user_password)
-
+    pulumi.export("secure_cookie_key", config.secure_cookie_key)
     # --------------------------------------------------------------------------
     # Set up keys.
     # --------------------------------------------------------------------------

@@ -8,8 +8,13 @@ do
         while true
             do
                 username=posit\`printf %04i \$i\`
-	            expect create-users.exp \$username {{user_password}} 
-                echo {{user_password}} | pamtester login \$username authenticate
+                if ( ! id \$username >& /dev/null ); then
+                    echo "creating user \$username"
+	                expect create-users.exp \$username {{user_password}} >& /dev/null
+                    #echo {{user_password}} | pamtester login \$username authenticate
+                else
+                    echo "user \$username already exists"
+                fi
                 if [ \$? -eq 0 ]; then
                     break 
                 fi
