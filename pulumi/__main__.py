@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
 
+import random,string
+
 import jinja2
 import pulumi
 from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager
@@ -26,11 +28,12 @@ class ConfigValues:
     def __post_init__(self):
         self.email = self.config.require("email")
         self.ami = self.config.require("ami")
-        self.Domain = self.config.require("Domain")
-        self.DomainPW = self.config.require("DomainPW")
+        self.domain_name = self.config.require("domain_name")
+        self.domain_password = self.config.require("domain_password")
+        self.db_password = self.config.require("db_password")
+        self.user_password = self.config.require("user_password")
         self.aws_region = self.config.require("region")
         self.db_username = self.config.require("db_username")
-        self.db_password = self.config.require("db_password")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
 
 def create_template(path: str) -> jinja2.Template:
@@ -87,6 +90,13 @@ def main():
         "rs:project": "solutions",
     }
 
+    # --------------------------------------------------------------------------
+    # Print Pulumi stack name for better visibility
+    # --------------------------------------------------------------------------
+
+    pulumistack = pulumi.get_stack()
+    pulumi.export("Pulumi Stack NAME", pulumistack)
+    pulumi.export("user_password", config.user_password)
 
     # --------------------------------------------------------------------------
     # Set up keys.
@@ -95,34 +105,27 @@ def main():
     timestamp = int(time())
 
     key_pair_name = f"{config.email}-keypair-for-pulumi"
-
-    
-    #key_pair = ec2.KeyPair(
-    #    "ec2 key pair",
-    #    public_key=Path("key.pem.pub").read_text(),
-    #    key_name=key_pair_name,
-    #    tags=tags | {"Name": "key-pair"},
-    #)
     
     key_pair = ec2.get_key_pair(key_name=key_pair_name)
-        
 
     pulumi.export("key_pair id", key_pair.key_name)
 
-    
     # --------------------------------------------------------------------------
     # Get VPC information.
     # --------------------------------------------------------------------------
     vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
         name="tag:Name",
         values=["shared"])])
+    vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
+        name="vpc-id",
+        values=["vpc-1486376d"])])
     vpc_subnets = ec2.get_subnets(filters=[ec2.GetSubnetsFilterArgs(
         name="vpc-id",
         values=[vpc.id])])
     vpc_subnet = ec2.get_subnet(id=vpc_subnets.ids[0])
     
     pulumi.export("vpc_subnet", vpc_subnet.id)
-    
+    pulumi.export("vpc_subnet", vpc_subnets.ids[1])
  
     # --------------------------------------------------------------------------
     # Make security groups
@@ -168,7 +171,7 @@ def main():
         tags={
             "Name": "Postgres subnet group",
         })
-
+    
     db = rds.Instance(
         "rsw-db",
         instance_class="db.t3.micro",
@@ -194,13 +197,12 @@ def main():
 
     secret = secretsmanager.Secret("SimpleADPassword")
 
-    #pulumi.export("DomainPWARN", secret.arn)
-
     example = secretsmanager.SecretVersion("SimpleADPassword",
         secret_id=secret.id,
-        secret_string=config.DomainPW)
+        secret_string=config.domain_password)
     
-    pulumi.export("DomainPWARN", example.arn)
+    pulumi.export("domain_password_arn", example.arn)
+    pulumi.export("domain_password", config.domain_password)
 
 
     # --------------------------------------------------------------------------
@@ -208,8 +210,8 @@ def main():
     # --------------------------------------------------------------------------
 
     ad = directoryservice.Directory("pwb_directory",
-        name=config.Domain,
-        password=config.DomainPW,
+        name=config.domain_name,
+        password=config.domain_password,
         #edition="Standard",
         type="SimpleAD",
         size="Small",
@@ -226,7 +228,7 @@ def main():
     pulumi.export('ad_dns_1', ad.dns_ip_addresses[0])
     pulumi.export('ad_dns_2', ad.dns_ip_addresses[1])
     pulumi.export('ad_access_url', ad.access_url) 
-
+    pulumi.export('ad_password',config.domain_password) 
 
     jump_host=make_server(
             "jump_host", 
@@ -241,17 +243,17 @@ def main():
     
     pulumi.export("jump_host_dns", jump_host.public_dns)
     
-    connection = remote.ProxyConnectionArgs(
+    connection = remote.ConnectionArgs(
             host=jump_host.public_dns ,# host=jump_host.id, 
             user="ubuntu", 
-            private_key=Path("key.pem").read_text()
+            private_key=Path(f"{key_pair.key_name}.pem").read_text()
         )
     
     command_set_environment_variables = remote.Command(
             f"set-env", 
             create=pulumi.Output.concat(
-                'echo "export AD_PASSWD=',         config.DomainPW,   '" >> .env;\n',
-                'echo "export AD_DOMAIN=',         config.Domain,   '" >> .env;\n',
+                'echo "export AD_PASSWD=',         config.domain_password,   '" >> .env;\n',
+                'echo "export AD_DOMAIN=',         config.domain_name,   '" >> .env;\n',
             ), 
             connection=connection,
             opts=pulumi.ResourceOptions(depends_on=jump_host)
@@ -288,33 +290,33 @@ def main():
             serverSideFile(
                 "server-side-files/config/krb5.conf",
                 "~/krb5.conf",
-                pulumi.Output.all().apply(lambda x: create_template("server-side-files/config/krb5.conf").render(domain_name=config.Domain))
+                pulumi.Output.all().apply(lambda x: create_template("server-side-files/config/krb5.conf").render(domain_name=config.domain_name))
     
             ),
             serverSideFile(
                 "server-side-files/config/resolv.conf",
                 "~/resolv.conf",
-                pulumi.Output.all(config.Domain,ad.dns_ip_addresses,config.aws_region).apply(lambda x: create_template("server-side-files/config/resolv.conf").render(domain_name=x[0],dns1=x[1][0], dns2=x[1][1], aws_region=x[2]))
+                pulumi.Output.all(config.domain_name,ad.dns_ip_addresses,config.aws_region).apply(lambda x: create_template("server-side-files/config/resolv.conf").render(domain_name=x[0],dns1=x[1][0], dns2=x[1][1], aws_region=x[2]))
             ),
             serverSideFile(
                 "server-side-files/config/create-users.exp",
                 "~/create-users.exp",
-                pulumi.Output.all(config.Domain,config.DomainPW).apply(lambda x: create_template("server-side-files/config/create-users.exp").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,config.domain_password).apply(lambda x: create_template("server-side-files/config/create-users.exp").render(domain_name=x[0],domain_passwd=x[1]))
             ),
             serverSideFile(
                 "server-side-files/config/create-group.exp",
                 "~/create-group.exp",
-                pulumi.Output.all(config.Domain,config.DomainPW).apply(lambda x: create_template("server-side-files/config/create-group.exp").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,config.domain_password).apply(lambda x: create_template("server-side-files/config/create-group.exp").render(domain_name=x[0],domain_passwd=x[1]))
             ),
             serverSideFile(
                 "server-side-files/config/add-group-member.exp",
                 "~/add-group-member.exp",
-                pulumi.Output.all(config.Domain,config.DomainPW).apply(lambda x: create_template("server-side-files/config/add-group-member.exp").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,config.domain_password).apply(lambda x: create_template("server-side-files/config/add-group-member.exp").render(domain_name=x[0],domain_passwd=x[1]))
             ),
             serverSideFile(
                 "server-side-files/config/useradd.sh",
                 "~/useradd.sh",
-                pulumi.Output.all(config.Domain,config.DomainPW).apply(lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,config.domain_password,config.user_password).apply(lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],domain_passwd=x[1],user_password=x[2]))
             ),
         ]
 
