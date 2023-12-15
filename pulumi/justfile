@@ -1,3 +1,5 @@
+set shell := ["bash"]
+
 key-pair-new:
     just key-pair-new-script
     chmod 400 key.pem
@@ -10,12 +12,22 @@ key-pair-new-script:
    echo "" | ssh-keygen -t rsa -f key.pem
 
 create-users num="10":
+    #!/bin/bash
     ssh \
-        -i key.pem \
+        -i "$(pulumi stack output 'key_pair id').pem" \
         -o StrictHostKeyChecking=no \
         ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
         "bash useradd.sh {{num}}"
 
+create-secrets:
+    #!/bin/bash
+    pulumi config set domain_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
+    pulumi config set user_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
+    pulumi config set db_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
+    export email=`pulumi config get email`
+    export keyname="${email}-keypair-for-pulumi"
+    aws ec2 describe-key-pairs --key-names=$keyname
+    if [ $? -ne 0 ]; then aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --output text > ${keyname}.pem ; fi
 
 up: 
     pulumi up -y
