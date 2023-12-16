@@ -29,7 +29,7 @@ Scheduling:
       ComputeResources:
         - Name: rstudio 
           InstanceType: c5.24xlarge 
-          MaxCount: 21 
+          MaxCount: 53 
           MinCount: 0
           Efa:
             Enabled: FALSE
@@ -45,31 +45,10 @@ Scheduling:
         SubnetIds:
           - SUBNETID
 
-    - Name: gpu 
-      ComputeResources:
-        - Name: large
-          InstanceType: p3.2xlarge
-          MaxCount: 1
-          MinCount: 0
-          Efa:
-            Enabled: FALSE
-      CustomActions:
-        OnNodeConfigured:
-          Script: "s3://S3_BUCKETNAME/config-compute.sh"
-      Iam:
-        S3Access:
-          - BucketName: S3_BUCKETNAME
-      Networking:
-        PlacementGroup:
-          Enabled: FALSE
-        SubnetIds: 
-          - SUBNETID
-
-
 LoginNodes:
   Pools:
     - Name: login
-      Count: 2 
+      Count: 4 
       InstanceType: t2.xlarge
       Networking:
         AdditionalSecurityGroups: 
