@@ -13,6 +13,24 @@ myip=`curl http://checkip.amazonaws.com`
 # Make sure node is detectable as head node
 touch /etc/head-node
 
+# generate launcher ssl keys
+openssl genpkey -algorithm RSA \
+            -out $PWB_CONFIG_DIR/launcher.pem \
+            -pkeyopt rsa_keygen_bits:2048 && \
+    chown rstudio-server:rstudio-server \
+            $PWB_CONFIG_DIR/launcher.pem && \
+    chmod 0600 $PWB_CONFIG_DIR/launcher.pem
+
+openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
+            -pubout > $PWB_CONFIG_DIR/launcher.pub && \
+    chown rstudio-server:rstudio-server \
+            $PWB_CONFIG_DIR/launcher.pub
+
+
+# generate secure-cookie-key as a simple UUID
+sh -c "echo SECURE_COOKIE_KEY > $PWB_CONFIG_DIR/secure-cookie-key"
+chmod 0600 $PWB_CONFIG_DIR/etc/rstudio/secure-cookie-key
+
 cat > $PWB_CONFIG_DIR/launcher-env << EOF
 RSTUDIO_DISABLE_PACKAGE_INSTALL_PROMPT=yes
 SLURM_CONF=/opt/slurm/etc/slurm.conf
@@ -30,7 +48,7 @@ launcher-sessions-forward-container-environment=1
 # enable load-balancing
 load-balancing-enabled=1
 
-# enable access logs
+# server access log
 server-access-log=1
 
 # Launcher Config
@@ -67,14 +85,19 @@ audit-r-sessions-limit-months=6
 
 # Enable Monitoring
 monitor-data-path=${PWB_BASE_DIR}/shared-data/head-node/monitor-data
+
+# secure cookie key
+secure-cookie-key-file=${PWB_CONFIG_DIR}/secure-cookie-key
 EOF
 
 mkdir -p ${PWB_BASE_DIR}/shared-data/head-node/{audit-data,monitor-data}
 chown -R rstudio-server ${PWB_BASE_DIR}/shared-data/head-node/
 
-pwb_ver=`rstudio-server version | cut -d " " -f 1 | cut -d "." -f 1,2 | sed 's/\.//'`
-if [ $pwb_ver -ge 202312 ]; then 
-cat > $PWB_CONFIG_DIR/nginx.worker.conf<<EOF
+
+# Add stuff for increased performance 
+export pwb_version=`rstudio-server version | cut -d "-" -f 1 | sed 's/\.//g'`
+if [ $pwb_version -ge 2023120 ]; then 
+        cat > $PWB_CONFIG_DIR/nginx.worker.conf << EOF
 worker_processes 1;
 
 worker_rlimit_nofile 8192;
@@ -83,10 +106,6 @@ events {
     worker_connections  4096;
 }
 EOF
-else
-# add stuff for improved performance (benchmarking) 
-sed -i 's/worker_connections.*/worker_connections   2048;/' /usr/lib/rstudio-server/conf/rserver-http.conf
-sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
 fi
 
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
@@ -125,19 +144,20 @@ cat > $PWB_CONFIG_DIR/launcher.slurm.resources.conf<<EOF
 name = "Small (1 cpu, 2 GB mem)"
 cpus=1
 mem-mb=1936
-[medium]
-name = "Medium (2 cpu, 4 GB mem)"
-cpus=2
-mem-mb=3873
-[large]
-name = "Large (4 cpu, 8 GB mem)"
-cpus=4
-mem-mb=7746
-[xlarge]
-name = "Extra Large (8 cpu, 16 GB mem)"
-cpus=8
-mem-mb=15493
+#name = "Medium (2 cpu, 4 GB mem)"
+#[medium]
+#mem-mb=3873
+#[large]
+#cpus=2
+#name = "Large (4 cpu, 8 GB mem)"
+#cpus=4
+#mem-mb=7746
+#[xlarge]
+#name = "Extra Large (8 cpu, 16 GB mem)"
+#cpus=8
+#mem-mb=15493
 EOF
+
 
 cat > $PWB_CONFIG_DIR/launcher.slurm.conf << EOF 
 # Enable debugging
@@ -198,23 +218,7 @@ password=DB_PASS
 connection-timeout-seconds=10
 EOF
 
-
-openssl genpkey -algorithm RSA \
-            -out $PWB_CONFIG_DIR/launcher.pem \
-            -pkeyopt rsa_keygen_bits:2048 && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pem && \
-    chmod 0600 $PWB_CONFIG_DIR/launcher.pem
-
-openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
-            -pubout > $PWB_CONFIG_DIR/launcher.pub && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pub
-
-
-
-sudo chmod 0600 $PWB_CONFIG_DIR/database.conf
-
+chmod 0600 $PWB_CONFIG_DIR/database.conf
 
 
 
@@ -225,6 +229,15 @@ set -x
 
 exec > /var/log/rc.pwb.log
 exec 2>&1
+
+# Add stuff for increased performance 
+export pwb_version=\`rstudio-server version | cut -d "-" -f 1 | sed 's/\.//g'\`
+
+if [ \$pwb_version -lt 2023120 ] && \
+        !( grep "worker_rlimit_nofile 4096" /usr/lib/rstudio-server/conf/rserver-http.conf >& /dev/null); then 
+        sed -i 's/worker_connections.*/worker_connections   2048;/' /usr/lib/rstudio-server/conf/rserver-http.conf
+        sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
+fi
 
 if (mount | grep login_node >&/dev/null) && [ ! -f /etc/head-node ]; then
     # we are on a login node and need to start the workbench processes 
@@ -241,13 +254,13 @@ if (mount | grep login_node >&/dev/null) && [ ! -f /etc/head-node ]; then
         systemctl daemon-reload
         systemctl enable rstudio-server
         systemctl enable rstudio-launcher
-        rm -f /var/lib/rstudio-server/secure-cookie-key
-        rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pub
-        rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pem
+        #rm -f /var/lib/rstudio-server/secure-cookie-key
+        #rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pub
+        #rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pem
         systemctl start rstudio-launcher
         systemctl start rstudio-server
-        rm -f /var/lib/rstudio-server/secure-cookie-key
-        systemctl restart rstudio-server 
+        #rm -f /var/lib/rstudio-server/secure-cookie-key
+        #systemctl restart rstudio-server 
     fi    
     
 fi
@@ -272,8 +285,8 @@ if (SINGULARITY_SUPPORT); then
         cd /tmp && \
                 git clone https://github.com/sol-eng/singularity-rstudio.git && \
                 cd singularity-rstudio/data/r-session-complete &&
-                slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
-                pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
+                export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
+                export pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
                 sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
                 sed -i "s/PWB_VERSION.*/PWB_VERSION=$pwb_version/" build.env &&
                 for i in `ls | grep -v build.env`; do \
