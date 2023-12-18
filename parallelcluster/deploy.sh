@@ -18,6 +18,8 @@ AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1`
 DB_HOST=`cd ../pulumi && pulumi stack output db_address`
 DB_USER=`cd ../pulumi && pulumi stack output db_user`
 DB_PASS=`cd ../pulumi && pulumi stack output db_pass`
+BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code`
+
 
 echo "preparing scripts" 
 rm -rf tmp
@@ -42,7 +44,8 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#AMI#${AMI}#g" | \
 	sed "s#DOMAINPWSecret#${DOMAINPWSecret}#g" | \
         sed "s#KEY#${KEY}#g" | \
-	sed "s#EMAIL#${EMAIL}#g" \
+	sed "s#EMAIL#${EMAIL}#g" | \
+	sed "s#BILLING_CODE#${BILLING_CODE}#g" \
 	> config/cluster-config-wb.yaml
 
 echo "Starting deployment"

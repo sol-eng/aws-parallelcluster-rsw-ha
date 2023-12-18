@@ -27,8 +27,10 @@ class ConfigValues:
     email: str = field(init=False)
     public_key: str = field(init=False)
     interpreter: str = field(init=False)
+    billing_code: str = field(init=False)
 
-    def __post_init__(self):
+
+def __post_init__(self):
         self.email = self.config.require("email")
         self.ami = self.config.require("ami")
         self.domain_name = self.config.require("domain_name")
@@ -40,6 +42,8 @@ class ConfigValues:
         self.secure_cookie_key = self.config.require("secure_cookie_key")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
         self.interpreter = self.config.require("interpreter")
+        self.billing_code = self.config.require("billing_code")
+
 
 def create_template(path: str) -> jinja2.Template:
     with open(path, 'r') as f:
@@ -110,9 +114,14 @@ def main():
         "rs:environment": "development",
         "rs:owner": config.email,
         "rs:project": "solutions",
+        "rs:subsystem": config.billing_code
     }
 
+    pulumi.export("billing_code", config.billing_code)
+
+
     path_to_bash=config.interpreter
+
 
     interpreter=[path_to_bash, "-c"]
 
