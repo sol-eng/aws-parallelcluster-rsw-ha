@@ -2,7 +2,7 @@
 
 CLUSTERNAME="full"
 S3_BUCKETNAME="hpc-scripts1234a"
-SECURITYGROUP_RSW="sg-09ca531e5331195f1"
+SECURITYGROUP_RSW="sg-02f5bac286a0df0b8"
 AMI="ami-087ccbe156d606047"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=true
@@ -11,7 +11,7 @@ CONFIG="default"
 echo "Extracting values from pulumi setup"
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet` 
 KEY=`cd ../pulumi && pulumi stack output "key_pair id" `
-DOMAINPWSecret=` cd ../pulumi && pulumi stack output "DomainPWARN" `
+DOMAINPWSecret=` cd ../pulumi && pulumi stack output "domain_password_arn" `
 CERT="../pulumi/key.pem"
 EMAIL=`cd ../pulumi && pulumi stack output 'key_pair id' | cut -d "-" -f 1`
 AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1`
