@@ -9,6 +9,6 @@ set username [lindex $argv 1]
 spawn /usr/local/sbin/adcli add-member -D $domain $groupname $username
 
 expect "Password for *"
-send -- "$bindpwr"
+send -- "$bindpw\r"
 expect eof
 

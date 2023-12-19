@@ -361,7 +361,6 @@ def main():
     command_copy_config_files = []
     for f in server_side_files:
             if True:
-                pulumi.export("cmd",f.template_render_command)
                 command_copy_config_files.append(
                     local.Command(
                         f"copy {f.file_out} to server",

@@ -33,7 +33,7 @@ cat scripts/install-pwb-config.sh | \
         sed "s#DB_USER#${DB_USER}#g" | \
        	sed "s#DB_PASS#${DB_PASS}#g" | \
         sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
-        sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" \
+        sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
 	> tmp/install-pwb-config.sh 
 
