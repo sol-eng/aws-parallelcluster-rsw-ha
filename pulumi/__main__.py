@@ -30,7 +30,7 @@ class ConfigValues:
     billing_code: str = field(init=False)
 
 
-def __post_init__(self):
+    def __post_init__(self):
         self.email = self.config.require("email")
         self.ami = self.config.require("ami")
         self.domain_name = self.config.require("domain_name")
@@ -278,7 +278,7 @@ def main():
     
     pulumi.export("jump_host_dns", jump_host.public_dns)
 
-    ssh_wrapper = jump_host.id.apply(lambda x: f"ssh ubuntu@{x} -i ./\"sam.cofer@posit.co-keypair-for-pulumi.pem\" -F ./config ")
+    ssh_wrapper = jump_host.id.apply(lambda x: f"ssh ubuntu@{x} -i ./\"{key_pair_name}.pem\" -F ./config ")
 
     rsw_env = dedent(f"""
             << EOF 
