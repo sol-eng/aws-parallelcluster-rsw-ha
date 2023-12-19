@@ -12,7 +12,9 @@ import random,string
 import jinja2
 import pulumi
 from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager
-from pulumi_command import remote
+from pulumi_command import local
+from textwrap import dedent
+import pulumiverse_time as time
 
 # ------------------------------------------------------------------------------
 # Helper functions
@@ -24,6 +26,9 @@ class ConfigValues:
     config: pulumi.Config = field(default_factory=lambda: pulumi.Config())
     email: str = field(init=False)
     public_key: str = field(init=False)
+    interpreter: str = field(init=False)
+    billing_code: str = field(init=False)
+
 
     def __post_init__(self):
         self.email = self.config.require("email")
@@ -36,6 +41,9 @@ class ConfigValues:
         self.db_username = self.config.require("db_username")
         self.secure_cookie_key = self.config.require("secure_cookie_key")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
+        self.interpreter = self.config.require("interpreter")
+        self.billing_code = self.config.require("billing_code")
+
 
 def create_template(path: str) -> jinja2.Template:
     with open(path, 'r') as f:
@@ -61,6 +69,18 @@ def make_server(
     ami: str,
     key_name: str
 ):
+    user_data = dedent(f"""
+    #!/bin/bash
+    echo "Installing commonly used Linux tools"
+    sudo apt-get update
+    sudo apt-get upgrade -y
+    cd /tmp
+    sudo apt install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+    sudo systemctl enable amazon-ssm-agent
+    sudo systemctl start amazon-ssm-agent
+    echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc;
+    """).strip()
+
     # Stand up a server.
     server = ec2.Instance(
         f"{type}-{name}",
@@ -70,7 +90,12 @@ def make_server(
         tags=tags,
         subnet_id=subnet_id,
         key_name=key_name,
+        user_data=user_data,
         iam_instance_profile="WindowsJoinDomain",
+        metadata_options=ec2.LaunchTemplateMetadataOptionsArgs(
+            http_endpoint="enabled",
+            http_tokens="required",
+        ),
         associate_public_ip_address=True
     )
     
@@ -89,7 +114,16 @@ def main():
         "rs:environment": "development",
         "rs:owner": config.email,
         "rs:project": "solutions",
+        "rs:subsystem": config.billing_code
     }
+
+    pulumi.export("billing_code", config.billing_code)
+
+
+    path_to_bash=config.interpreter
+
+
+    interpreter=[path_to_bash, "-c"]
 
     # --------------------------------------------------------------------------
     # Print Pulumi stack name for better visibility
@@ -103,7 +137,6 @@ def main():
     # Set up keys.
     # --------------------------------------------------------------------------
 
-    timestamp = int(time())
 
     key_pair_name = f"{config.email}-keypair-for-pulumi"
     
@@ -117,9 +150,6 @@ def main():
     vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
         name="tag:Name",
         values=["shared"])])
-    vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
-        name="vpc-id",
-        values=["vpc-1486376d"])])
     vpc_subnets = ec2.get_subnets(filters=[ec2.GetSubnetsFilterArgs(
         name="vpc-id",
         values=[vpc.id])])
@@ -148,21 +178,21 @@ def main():
     )
     pulumi.export("security_group_db", security_group_db.id)
 
-    security_group_ssh = ec2.SecurityGroup(
-        "ssh",
-        description="ssh access ",
+    default_security_group = ec2.SecurityGroup(
+        "default ssh security group",
+        description="default ssh security group",
         ingress=[
-            {"protocol": "TCP", "from_port": 22, "to_port": 22, 
-                'cidr_blocks': ['0.0.0.0/0'], "description": "SSH"},
-	],
+            {"protocol": "TCP", "from_port": 22, "to_port": 22,
+             'cidr_blocks': [vpc_subnet.cidr_block], "description": "SSH"},
+        ],
         egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0, 
-                'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
+            {"protocol": "All", "from_port": 0, "to_port": 0,
+             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
         ],
         tags=tags,
         vpc_id=vpc.id
     )
-    pulumi.export("security_group_ssh", security_group_ssh.id)
+    pulumi.export("default_security_group", default_security_group.id)
 
     subnetgroup = rds.SubnetGroup("postgresdbsubnetgroup",
         subnet_ids=[
@@ -185,7 +215,7 @@ def main():
         skip_final_snapshot=True,
         tags=tags | {"Name": "pwb-db"},
 	    vpc_security_group_ids=[security_group_db.id],
-        db_subnet_group_name=subnetgroup 
+        db_subnet_group_name=subnetgroup
     )
     pulumi.export("db_port", db.port)
     pulumi.export("db_address", db.address)
@@ -228,57 +258,64 @@ def main():
     )
     pulumi.export('ad_dns_1', ad.dns_ip_addresses[0])
     pulumi.export('ad_dns_2', ad.dns_ip_addresses[1])
-    pulumi.export('ad_access_url', ad.access_url) 
-    pulumi.export('ad_password',config.domain_password) 
+    pulumi.export('ad_access_url', ad.access_url)
+    pulumi.export('ad_password',config.domain_password)
 
     jump_host=make_server(
             "jump_host", 
             "ad",
             tags=tags | {"Name": "jump-host-ad"},
-            vpc_group_ids=[security_group_ssh.id],
+            vpc_group_ids=[default_security_group.id],
             instance_type=config.ServerInstanceType,
             subnet_id=vpc_subnet.id,
             ami=config.ami,
             key_name=key_pair.key_name
         )
+
+    pulumi.export("jump_host_id", jump_host.id)
+    server_wait = time.Sleep("wait_for_server", create_duration="30s",
+                             opts=pulumi.ResourceOptions(depends_on=[jump_host]))
     
     pulumi.export("jump_host_dns", jump_host.public_dns)
-    
-    connection = remote.ConnectionArgs(
-            host=jump_host.public_dns ,# host=jump_host.id, 
-            user="ubuntu", 
-            private_key=Path(f"{key_pair.key_name}.pem").read_text()
-        )
-    
-    command_set_environment_variables = remote.Command(
-            f"set-env", 
-            create=pulumi.Output.concat(
-                'echo "export AD_PASSWD=',         config.domain_password,   '" >> .env;\n',
-                'echo "export AD_DOMAIN=',         config.domain_name,   '" >> .env;\n',
-            ), 
-            connection=connection,
-            opts=pulumi.ResourceOptions(depends_on=jump_host)
-        )
-    
-    command_install_justfile = remote.Command(
-            f"install-justfile",
-            create="\n".join([
-                """curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
-                """echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bashrc;"""
-            ]),
-            opts=pulumi.ResourceOptions(depends_on=jump_host),
-            connection=connection
-        )
 
-    command_copy_justfile = remote.CopyFile(
-            f"copy-justfile",  
-            local_path="server-side-files/justfile", 
-            remote_path='justfile', 
-            connection=connection,
-            opts=pulumi.ResourceOptions(depends_on=jump_host),
-            triggers=[hash_file("server-side-files/justfile")]
-        )
+    ssh_wrapper = jump_host.id.apply(lambda x: f"ssh ubuntu@{x} -i ./\"{key_pair_name}.pem\" -F ./config ")
 
+    rsw_env = dedent(f"""
+            << EOF 
+            echo "export AD_PASSWD={config.domain_password}" >> .env;
+            echo "export AD_DOMAIN={config.domain_name}" >> .env;
+            EOF
+            """).strip()
+
+    command_set_environment_variables = local.Command(
+        f"set-env",
+        create=pulumi.Output.concat(ssh_wrapper,rsw_env),
+        interpreter=interpreter,
+        opts=pulumi.ResourceOptions(depends_on=[server_wait])
+    )
+
+    install_justfile = dedent(f"""
+            << EOF 
+            echo 'test'
+            curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;
+            EOF
+            """).strip()
+
+    command_install_justfile = local.Command(
+        f"server-install-justfile",
+        create=pulumi.Output.concat(ssh_wrapper,install_justfile),
+        interpreter=interpreter,
+        opts=pulumi.ResourceOptions(depends_on=[server_wait])
+    )
+
+    copy_justfile = jump_host.id.apply(lambda x: f"scp -i ./{key_pair_name}.pem -F ./config server-side-files/justfile ubuntu@{x}:~/justfile")
+
+    command_copy_justfile = local.Command(
+        f"server-copy-justfile",
+        create=copy_justfile,
+        interpreter=interpreter,
+        opts=pulumi.ResourceOptions(depends_on=[server_wait])
+    )
 
     # Copy the server side files
     @dataclass
@@ -323,23 +360,32 @@ def main():
 
     command_copy_config_files = []
     for f in server_side_files:
-            if True: 
+            if True:
                 command_copy_config_files.append(
-                    remote.Command(
-                        f"copy {f.file_out} server",
-                        create=pulumi.Output.concat('echo "', f.template_render_command, f'" > {f.file_out}'),
-                        connection=connection, 
-                        triggers=[hash_file(f.file_in)],
-                        opts=pulumi.ResourceOptions(depends_on=jump_host)
+                    local.Command(
+                        f"copy {f.file_out} to server",
+                        create=pulumi.Output.concat(ssh_wrapper,"<<-EOF\n",f"cat <<-EOE > {f.file_out}\n", f.template_render_command,"\nEOE","\nEOF"),
+                        interpreter=interpreter,
+                        opts=pulumi.ResourceOptions(depends_on=[server_wait])
                     )
                 )
 
-    command_build_jumphost = remote.Command(
-            f"build-jump-host", 
-            # create="alias just='/home/ubuntu/bin/just'; just build-rsw", 
-            create="""export PATH="$PATH:$HOME/bin"; just integrate-ad""", 
-            connection=connection, 
-            opts=pulumi.ResourceOptions(depends_on=[jump_host, command_set_environment_variables, command_install_justfile, command_copy_justfile] + command_copy_config_files)
+    build_jumphost = pulumi.Output.all(jump_host.public_ip).apply(
+        lambda x:
+        dedent(f"""
+            << EOF
+            just integrate-ad
+            EOF
+            """).strip())
+
+    build_wait = time.Sleep(f"wait_for_justfile", create_duration="20s",
+                            opts=pulumi.ResourceOptions(depends_on=[command_copy_justfile,command_install_justfile]))
+
+    command_integrate_ad = local.Command(
+        f"integrate ad",
+        create=pulumi.Output.concat(ssh_wrapper, build_jumphost),
+        interpreter=interpreter,
+        opts=pulumi.ResourceOptions(depends_on=[command_copy_justfile, command_install_justfile, server_wait,ad, build_wait, command_set_environment_variables])
     )
 
 

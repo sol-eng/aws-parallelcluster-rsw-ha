@@ -1,10 +1,17 @@
 #!/bin/bash
 
+<<<<<<< HEAD
 CLUSTERNAME="usual"
 S3_BUCKETNAME="hpc-scripts1234-bm-old"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
 AMI="ami-01f00a49c53bfbb46" # final / bleeding edge wb 
 AMI="ami-075a426f0133659ff" # old / 2023.09.1
+=======
+CLUSTERNAME="full"
+S3_BUCKETNAME="hpc-scripts1234a"
+SECURITYGROUP_RSW="sg-02f5bac286a0df0b8"
+AMI="ami-087ccbe156d606047"
+>>>>>>> shared_vpc
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
 CONFIG="benchmark"
@@ -20,6 +27,7 @@ DB_HOST=`cd ../pulumi && pulumi stack output db_address`
 DB_USER=`cd ../pulumi && pulumi stack output db_user`
 DB_PASS=`cd ../pulumi && pulumi stack output db_pass`
 SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key`
+BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code`
 
 
 echo "preparing scripts" 
@@ -47,7 +55,8 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#AMI#${AMI}#g" | \
 	sed "s#DOMAINPWSecret#${DOMAINPWSecret}#g" | \
         sed "s#KEY#${KEY}#g" | \
-	sed "s#EMAIL#${EMAIL}#g" \
+	sed "s#EMAIL#${EMAIL}#g" | \
+	sed "s#BILLING_CODE#${BILLING_CODE}#g" \
 	> config/cluster-config-wb.yaml
 
 echo "Starting deployment"

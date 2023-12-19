@@ -12,3 +12,4 @@ pulumi-command==0.9.1
 PyYAML==6.0.1
 semver==2.13.0
 six==1.16.0
+pulumiverse_time
