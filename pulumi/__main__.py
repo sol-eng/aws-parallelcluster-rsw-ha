@@ -334,7 +334,7 @@ def main():
             serverSideFile(
                 "server-side-files/config/resolv.conf",
                 "~/resolv.conf",
-                pulumi.Output.all(config.domain_name,ad.dns_ip_addresses,config.aws_region).apply(lambda x: create_template("server-side-files/config/resolv.conf").render(domain_name=x[0],dns1=x[1][0], dns2=x[1][1], aws_region=x[2]))
+                pulumi.Output.all(config.domain_name,ad.dns_ip_addresses,config.aws_region).apply(lambda x: create_template("server-side-files/config/resolv.conf").render(domain_name=x[0],dns1=x[1][1], dns2=x[1][0], aws_region=x[2]))
             ),
             serverSideFile(
                 "server-side-files/config/create-users.exp",
