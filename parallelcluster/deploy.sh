@@ -1,17 +1,9 @@
 #!/bin/bash
 
-<<<<<<< HEAD
-CLUSTERNAME="usual"
-S3_BUCKETNAME="hpc-scripts1234-bm-old"
-SECURITYGROUP_RSW="sg-09ca531e5331195f1"
-AMI="ami-01f00a49c53bfbb46" # final / bleeding edge wb 
-AMI="ami-075a426f0133659ff" # old / 2023.09.1
-=======
 CLUSTERNAME="full"
 S3_BUCKETNAME="hpc-scripts1234a"
 SECURITYGROUP_RSW="sg-02f5bac286a0df0b8"
 AMI="ami-087ccbe156d606047"
->>>>>>> shared_vpc
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
 CONFIG="benchmark"
