@@ -9,15 +9,16 @@ set password [lindex $argv 1]
 spawn /usr/local/sbin/adcli create-user -D $domain --unix-home=/home/$username --unix-shell=/bin/bash $username
 
 expect "Password for *"
-send -- "$bindpwr"
+send -- "$bindpw\r"
 expect eof
 
 spawn /usr/local/sbin/adcli passwd-user $username -D $domain
 match_max 100000
 expect "Password for *"
-send -- "$bindpwr"
-expect -exact "r
+send -- "$bindpw\r"
+expect -exact "\r
 Password for $username: "
-send -- "$passwordr"
+send -- "$password\r"
 expect eof
+
 

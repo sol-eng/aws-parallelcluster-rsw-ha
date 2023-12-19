@@ -8,6 +8,7 @@ set groupname [lindex $argv 0]
 spawn /usr/local/sbin/adcli create-group -D $domain $groupname
 
 expect "Password for *"
-send -- "$bindpwr"
+send -- "$bindpw\r"
 expect eof
+
 
