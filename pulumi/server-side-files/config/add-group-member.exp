@@ -3,12 +3,12 @@
 
 set domain {{domain_name}} 
 set bindpw {{domain_passwd}} 
-set groupname [lindex \$argv 0]
-set username [lindex \$argv 1]
+set groupname [lindex $argv 0]
+set username [lindex $argv 1]
 
-spawn /usr/local/sbin/adcli add-member -D \$domain \$groupname \$username
+spawn /usr/local/sbin/adcli add-member -D $domain $groupname $username
 
-expect \"Password for *\"
-send -- \"\$bindpw\\r\"
+expect "Password for *"
+send -- "$bindpwr"
 expect eof
 

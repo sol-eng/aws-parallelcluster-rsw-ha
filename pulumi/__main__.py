@@ -361,10 +361,11 @@ def main():
     command_copy_config_files = []
     for f in server_side_files:
             if True:
+                pulumi.export("cmd",f.template_render_command)
                 command_copy_config_files.append(
                     local.Command(
                         f"copy {f.file_out} to server",
-                        create=pulumi.Output.concat(ssh_wrapper,"<<-EOF\n",f"cat <<-EOE > {f.file_out}\n", f.template_render_command,"\nEOE","\nEOF"),
+                        create=pulumi.Output.concat(ssh_wrapper,"<<-'EOF'\n",f"cat <<-'EOE' > {f.file_out}\n", f.template_render_command,"\nEOE","\nEOF"),
                         interpreter=interpreter,
                         opts=pulumi.ResourceOptions(depends_on=[server_wait])
                     )

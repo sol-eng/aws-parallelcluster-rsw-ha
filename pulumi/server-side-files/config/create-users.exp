@@ -3,21 +3,21 @@
 
 set domain {{domain_name}} 
 set bindpw {{domain_passwd}} 
-set username [lindex \$argv 0]
-set password [lindex \$argv 1]
+set username [lindex $argv 0]
+set password [lindex $argv 1]
 
-spawn /usr/local/sbin/adcli create-user -D \$domain --unix-home=/home/\$username --unix-shell=/bin/bash \$username
+spawn /usr/local/sbin/adcli create-user -D $domain --unix-home=/home/$username --unix-shell=/bin/bash $username
 
-expect \"Password for *\"
-send -- \"\$bindpw\\r\"
+expect "Password for *"
+send -- "$bindpwr"
 expect eof
 
-spawn /usr/local/sbin/adcli passwd-user \$username -D \$domain
+spawn /usr/local/sbin/adcli passwd-user $username -D $domain
 match_max 100000
-expect \"Password for *\"
-send -- \"\$bindpw\\r\"
-expect -exact \"\r
-Password for \$username: \"
-send -- \"\$password\\r\"
+expect "Password for *"
+send -- "$bindpwr"
+expect -exact "r
+Password for $username: "
+send -- "$passwordr"
 expect eof
 

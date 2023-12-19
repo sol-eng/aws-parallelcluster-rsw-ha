@@ -3,11 +3,11 @@
 
 set domain {{domain_name}} 
 set bindpw {{domain_passwd}} 
-set groupname [lindex \$argv 0]
+set groupname [lindex $argv 0]
 
-spawn /usr/local/sbin/adcli create-group -D \$domain \$groupname
+spawn /usr/local/sbin/adcli create-group -D $domain $groupname
 
-expect \"Password for *\"
-send -- \"\$bindpw\\r\"
+expect "Password for *"
+send -- "$bindpwr"
 expect eof
 
