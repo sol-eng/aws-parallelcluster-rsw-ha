@@ -85,7 +85,7 @@ fi
 EOF
 chmod 700 /usr/local/etc/pwb.script
 
-(crontab -l ; echo "0-59/1 * * * * /opt/parallelcluster/shared/rstudio/scripts/rc.pwb")| crontab -
+(crontab -l ; echo "0-59/1 * * * * /opt/parallelcluster/shared_login_nodes/rstudio/scripts/rc.pwb")| crontab -
 
 
 ## replace launcher with 2.15.x pre-release if not using 2023.12.0 daily
