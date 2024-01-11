@@ -72,6 +72,19 @@ chmod a+rx /usr/local/rstudio/code-server
 rm -f /etc/rstudio
 
 #add crontab entry
+cat << EOF > /usr/local/etc/pwb.script
+#!/bin/bash
+
+# This is a bash script that checks if on a login nodes 
+# and then executes all the setup tasks for Posit Workbench
+
+script=/opt/parallelcluster/shared_login_nodes/rstudio/scripts/rc.pwb 
+if [ -f \$script ]; then
+    \$script
+fi
+EOF
+chmod 700 /usr/local/etc/pwb.script
+
 (crontab -l ; echo "0-59/1 * * * * /opt/parallelcluster/shared/rstudio/scripts/rc.pwb")| crontab -
 
 

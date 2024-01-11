@@ -1,6 +1,16 @@
 #!/bin/bash
 
-PWB_BASE_DIR="/opt/parallelcluster/shared/rstudio/"
+# This script is run on the head node, we temporarily need to mount the shared directory 
+# for the shared_login_nodes in order to populate the rstudio config
+
+SHARED_DIR=/opt/parallelcluster/shared_login_nodes
+
+mount `mount  | grep slurm | awk '{print $1}' | \
+        sed "s#/opt/slurm#$SHARED_DIR#"`\
+        $SHARED_DIR
+
+
+PWB_BASE_DIR=$SHARED_DIR/rstudio/
 
 PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
 
@@ -9,9 +19,6 @@ mkdir -p $PWB_BASE_DIR/{etc/rstudio,shared-storage,scripts,apptainer}
 
 # Add SLURM integration 
 myip=`curl http://checkip.amazonaws.com`
-
-# Make sure node is detectable as head node
-touch /etc/head-node
 
 # generate launcher ssl keys
 openssl genpkey -algorithm RSA \
@@ -239,24 +246,24 @@ if [ \$pwb_version -lt 2023120 ] && \
         sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
 fi
 
-if (mount | grep login_node >&/dev/null) && [ ! -f /etc/head-node ]; then
+if (mount | grep login_nodes >&/dev/null); then
     # we are on a login node and need to start the workbench processes 
     # but we need to make sure the config files are all there
-    while true ; do if [ -f /opt/parallelcluster/shared/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
+    while true ; do if [ -f /opt/parallelcluster/shared_login_nodes/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
     if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
         # systemctl overrides
         for i in server launcher 
         do 
             mkdir -p /etc/systemd/system/rstudio-\$i.service.d
-            echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=/opt/parallelcluster/shared/rstudio/etc/rstudio\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
+            echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=/opt/parallelcluster/shared_login_nodes/rstudio/etc/rstudio\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
         done
         # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
         systemctl daemon-reload
         systemctl enable rstudio-server
         systemctl enable rstudio-launcher
         #rm -f /var/lib/rstudio-server/secure-cookie-key
-        #rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pub
-        #rm -f /opt/parallelcluster/shared/rstudio/etc/rstudio/launcher.pem
+        #rm -f /opt/parallelcluster/shared_login_nodes/rstudio/etc/rstudio/launcher.pub
+        #rm -f /opt/parallelcluster/shared_login_nodes/rstudio/etc/rstudio/launcher.pem
         systemctl start rstudio-launcher
         systemctl start rstudio-server
         #rm -f /var/lib/rstudio-server/secure-cookie-key
@@ -311,3 +318,5 @@ SINGULARITY_BIND=/sys,/opt/slurm,/var/run/munge,/var/spool/slurmd,/etc/munge,/ru
 EOF
 
 fi
+
+umount $SHARED_DIR
