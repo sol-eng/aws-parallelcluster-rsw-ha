@@ -1,6 +1,7 @@
 set shell := ["bash"]
 
 key-pair-new:
+    just key-pair-new-script
     chmod 400 key.pem
     cat key.pem.pub | pulumi config set public_key
 
