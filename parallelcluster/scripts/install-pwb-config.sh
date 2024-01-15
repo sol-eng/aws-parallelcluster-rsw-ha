@@ -227,7 +227,11 @@ EOF
 
 chmod 0600 $PWB_CONFIG_DIR/database.conf
 
-
+# Setup crash handler
+cat << EOF > $PWB_CONFIG_DIR/crash-handler.conf
+crash-handling-enabled=1
+crash-db-path=/opt/parallelcluster/shared_login_nodes/rstudio/shared-storage/crash-dumps
+EOF
 
 cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb 
 #!/bin/bash
