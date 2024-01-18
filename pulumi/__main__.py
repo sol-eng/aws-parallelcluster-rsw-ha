@@ -31,10 +31,12 @@ class ConfigValues:
         self.ami = self.config.require("ami")
         self.domain_name = self.config.require("domain_name")
         self.domain_password = self.config.require("domain_password")
-        self.db_password = self.config.require("db_password")
+        self.rsw_db_password = self.config.require("rsw_db_password")
+        self.slurm_db_password = self.config.require("slurm_db_password")
         self.user_password = self.config.require("user_password")
         self.aws_region = self.config.require("region")
-        self.db_username = self.config.require("db_username")
+        self.rsw_db_username = self.config.require("rsw_db_username")
+        self.slurm_db_username = self.config.require("slurm_db_username")
         self.secure_cookie_key = self.config.require("secure_cookie_key")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
         self.billing_code = self.config.require("billing_code")
@@ -138,9 +140,9 @@ def main():
     # Make security groups
     # --------------------------------------------------------------------------
 
-    security_group_db = ec2.SecurityGroup(
+    rsw_security_group_db = ec2.SecurityGroup(
         "postgres",
-        description="SLURM security group for PostgreSQL access",
+        description="Security group for PostgreSQL access",
         ingress=[
             {"protocol": "TCP", "from_port": 5432, "to_port": 5432, 
                 'cidr_blocks': [vpc_subnet.cidr_block], "description": "PostgreSQL DB"},
@@ -154,7 +156,25 @@ def main():
         tags=tags,
         vpc_id=vpc.id
     )
-    pulumi.export("security_group_db", security_group_db.id)
+    pulumi.export("rsw_security_group_db", rsw_security_group_db.id)
+
+    slurm_security_group_db = ec2.SecurityGroup(
+        "mysql",
+        description="Security group for MySQL access",
+        ingress=[
+            {"protocol": "TCP", "from_port": 3306, "to_port": 3306, 
+                'cidr_blocks': [vpc_subnet.cidr_block], "description": "MySQL DB"},
+	    {"protocol": "TCP", "from_port": 3306, "to_port": 3306,
+                'cidr_blocks': [vpc_subnet2.cidr_block], "description": "MySQL DB"},
+	],
+        egress=[
+            {"protocol": "All", "from_port": 0, "to_port": 0, 
+                'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+        ],
+        tags=tags,
+        vpc_id=vpc.id
+    )
+    pulumi.export("slurm_security_group_db", slurm_security_group_db.id)
 
     security_group_ssh = ec2.SecurityGroup(
         "ssh",
@@ -181,26 +201,56 @@ def main():
             "Name": "Postgres subnet group",
         })
     
-    db = rds.Instance(
+    rsw_db = rds.Instance(
         "rsw-db",
         instance_class="db.t3.micro",
         allocated_storage=5,
-        username=config.db_username,
-        password=config.db_password,
+        username=config.rsw_db_username,
+        password=config.rsw_db_password,
         db_name="pwb",
         engine="postgres",
         publicly_accessible=True,
         skip_final_snapshot=True,
         tags=tags | {"Name": "pwb-db"},
-	    vpc_security_group_ids=[security_group_db.id],
+	    vpc_security_group_ids=[rsw_security_group_db.id],
         db_subnet_group_name=subnetgroup 
     )
-    pulumi.export("db_port", db.port)
-    pulumi.export("db_address", db.address)
-    pulumi.export("db_endpoint", db.endpoint)
-    pulumi.export("db_name", db.name)
-    pulumi.export("db_user", config.db_username)
-    pulumi.export("db_pass", config.db_password)
+    pulumi.export("rsw_db_port", rsw_db.port)
+    pulumi.export("rsw_db_address", rsw_db.address)
+    pulumi.export("rsw_db_endpoint", rsw_db.endpoint)
+    pulumi.export("rsw_db_name", rsw_db.db_name)
+    pulumi.export("rsw_db_user", config.rsw_db_username)
+    pulumi.export("rsw_db_pass", config.rsw_db_password)
+
+    slurm_db = rds.Instance(
+        "slurm-db",
+        instance_class="db.t3.micro",
+        allocated_storage=5,
+        username=config.slurm_db_username,
+        password=config.slurm_db_password,
+        db_name="slurm",
+        engine="mysql",
+        publicly_accessible=True,
+        skip_final_snapshot=True,
+        tags=tags | {"Name": "slurm-db"},
+	    vpc_security_group_ids=[slurm_security_group_db.id],
+        db_subnet_group_name=subnetgroup 
+    )
+
+    secret = secretsmanager.Secret("SlurmDBPassword")
+
+    example = secretsmanager.SecretVersion("SlurmDBPassword",
+        secret_id=secret.id,
+        secret_string=config.slurm_db_password)
+    
+    pulumi.export("slurm_db_pass_arn", example.arn)
+
+    pulumi.export("slurm_db_port", slurm_db.port)
+    pulumi.export("slurm_db_address", slurm_db.address)
+    pulumi.export("slurm_db_endpoint", slurm_db.endpoint)
+    pulumi.export("slurm_db_name", slurm_db.db_name)
+    pulumi.export("slurm_db_user", config.slurm_db_username)
+    pulumi.export("slurm_db_pass", config.slurm_db_password)
 
 
 
@@ -212,6 +262,9 @@ def main():
     
     pulumi.export("domain_password_arn", example.arn)
     pulumi.export("domain_password", config.domain_password)
+
+    
+  
 
 
     # --------------------------------------------------------------------------

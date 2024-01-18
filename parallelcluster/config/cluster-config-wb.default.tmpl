@@ -23,7 +23,12 @@ Region: REGION
 Scheduling: 
   Scheduler: slurm
   SlurmSettings:
-     EnableMemoryBasedScheduling: true
+    EnableMemoryBasedScheduling: true
+    Database:
+      Uri: SLURM_DB_HOST
+      UserName: SLURM_DB_USER
+      PasswordSecretArn: SLURM_DB_PASS_ARN
+      DatabaseName: SLURM_DB_NAME    
   SlurmQueues: 
     - Name: all 
       ComputeResources:
@@ -81,8 +86,8 @@ LoginNodes:
 
 DevSettings:
   Timeouts:
-    HeadNodeBootstrapTimeout: 5400  # timeout in seconds
-    ComputeNodeBootstrapTimeout: 5400  # timeout in seconds
+    HeadNodeBootstrapTimeout: 7200  # timeout in seconds
+    ComputeNodeBootstrapTimeout: 7200  # timeout in seconds
 
 SharedStorage:
   - MountDir: /home

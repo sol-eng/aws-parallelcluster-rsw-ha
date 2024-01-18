@@ -1,12 +1,12 @@
 #!/bin/bash
 
-CLUSTERNAME="full"
-S3_BUCKETNAME="hpc-scripts1234a"
-SECURITYGROUP_RSW="sg-02f5bac286a0df0b8"
-AMI="ami-087ccbe156d606047"
+CLUSTERNAME="demo"
+S3_BUCKETNAME="hpc-scripts-demo"
+SECURITYGROUP_RSW="sg-09ca531e5331195f1"
+AMI="ami-003cb006c1b93dd98"
 REGION="eu-west-1"
-SINGULARITY_SUPPORT=false
-CONFIG="benchmark"
+SINGULARITY_SUPPORT=true
+CONFIG="default"
 
 echo "Extracting values from pulumi setup"
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2` 
@@ -15,9 +15,13 @@ DOMAINPWSecret=` cd ../pulumi && pulumi stack output "domain_password_arn" `
 CERT="${KEY}.pem"
 EMAIL=`echo $KEY | cut -d "-" -f 1`
 AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1`
-DB_HOST=`cd ../pulumi && pulumi stack output db_address`
-DB_USER=`cd ../pulumi && pulumi stack output db_user`
-DB_PASS=`cd ../pulumi && pulumi stack output db_pass`
+RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address`
+RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user`
+RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass`
+SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint`
+SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name`
+SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user`
+SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn`
 SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key`
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code`
 
@@ -29,9 +33,9 @@ cp -Rf scripts/* tmp
 
 cat scripts/install-pwb-config.sh | \
         sed "s#AD_DNS#${AD_DNS}#g" | \
-        sed "s#DB_HOST#${DB_HOST}#g" | \
-        sed "s#DB_USER#${DB_USER}#g" | \
-       	sed "s#DB_PASS#${DB_PASS}#g" | \
+        sed "s#RSW_DB_HOST#${RSW_DB_HOST}#g" | \
+        sed "s#RSW_DB_USER#${RSW_DB_USER}#g" | \
+       	sed "s#RSW_DB_PASS#${RSW_DB_PASS}#g" | \
         sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
         sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
@@ -45,6 +49,10 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#SUBNETID#${SUBNETID}#g" | \
         sed "s#REGION#${REGION}#g" | \
         sed "s#AMI#${AMI}#g" | \
+        sed "s#SLURM_DB_HOST#${SLURM_DB_HOST}#g" | \
+        sed "s#SLURM_DB_NAME#${SLURM_DB_NAME}#g" | \
+        sed "s#SLURM_DB_USER#${SLURM_DB_USER}#g" | \
+       	sed "s#SLURM_DB_PASS_ARN#${SLURM_DB_PASS_ARN}#g" | \
 	sed "s#DOMAINPWSecret#${DOMAINPWSecret}#g" | \
         sed "s#KEY#${KEY}#g" | \
 	sed "s#EMAIL#${EMAIL}#g" | \
