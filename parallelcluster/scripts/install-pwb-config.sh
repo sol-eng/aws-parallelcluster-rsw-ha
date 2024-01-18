@@ -3,12 +3,12 @@
 # This script is run on the head node, we temporarily need to mount the shared directory 
 # for the shared_login_nodes in order to populate the rstudio config
 
+set -x 
+
+exec > /var/log/install-pwb-config.log
+exec 2>&1
+
 SHARED_DIR=/opt
-
-mount `mount  | grep slurm | awk '{print $1}' | \
-        sed "s#/opt/slurm#$SHARED_DIR#"`\
-        $SHARED_DIR
-
 
 PWB_BASE_DIR=$SHARED_DIR/rstudio/
 
@@ -294,8 +294,6 @@ EOF
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
 
 if (SINGULARITY_SUPPORT); then
-        # we're building singularity containers here 
-        # since PPM sometimes behaves rather funny (package download failure) we run the build until it succeeds. 
         cd /tmp && \
                 git clone https://github.com/sol-eng/singularity-rstudio.git && \
                 cd singularity-rstudio/data/r-session-complete &&
@@ -303,11 +301,13 @@ if (SINGULARITY_SUPPORT); then
                 export pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
                 sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
                 sed -i "s/PWB_VERSION.*/PWB_VERSION=$pwb_version/" build.env &&
-                for i in `ls | grep -v build.env`; do \
-		        pushd $i && \
-			ctr=0
-		        while true ; do ctr=$(( $ctr+1 )) singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef ; if [ $? -eq 0 ] || [ $ctr -gt 3 ]; then break; fi; done
-                        popd
+                for i in `ls -d */ | sed 's#/##'`; do \
+		        ( pushd $i && \
+			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
+                        popd ) & 
+                        if [[ $(jobs -r -p | wc -l) -ge 2 ]]; then
+                                wait -n
+                        fi
                 done
 
         # We also need to build the SPANK plugin for singularity
@@ -326,4 +326,3 @@ EOF
 
 fi
 
-umount $SHARED_DIR
