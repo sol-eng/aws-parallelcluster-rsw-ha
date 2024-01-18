@@ -9,7 +9,7 @@ SINGULARITY_SUPPORT=false
 CONFIG="benchmark"
 
 echo "Extracting values from pulumi setup"
-SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet` 
+SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2` 
 KEY=`cd ../pulumi && pulumi stack output "key_pair id" `
 DOMAINPWSecret=` cd ../pulumi && pulumi stack output "domain_password_arn" `
 CERT="${KEY}.pem"
