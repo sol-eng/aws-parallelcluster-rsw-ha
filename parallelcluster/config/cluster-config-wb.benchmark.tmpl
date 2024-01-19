@@ -23,7 +23,12 @@ Region: REGION
 Scheduling: 
   Scheduler: slurm
   SlurmSettings:
-     EnableMemoryBasedScheduling: true
+    EnableMemoryBasedScheduling: true
+    Database:
+      Uri: SLURM_DB_HOST
+      UserName: SLURM_DB_USER
+      PasswordSecretArn: SLURM_DB_PASS_ARN
+      DatabaseName: SLURM_DB_NAME    
   SlurmQueues: 
     - Name: all 
       ComputeResources:
@@ -48,7 +53,7 @@ Scheduling:
 LoginNodes:
   Pools:
     - Name: login
-      Count: 4 
+      Count: 6 
       InstanceType: t2.xlarge
       Networking:
         AdditionalSecurityGroups: 

@@ -29,7 +29,7 @@ create-secrets:
     export email=`pulumi config get email`
     export keyname="${email}-keypair-for-pulumi"
     aws ec2 describe-key-pairs --key-names=$keyname
-    if [ $? -ne 0 ]; then aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --output text > ${keyname}.pem ; fi
+    if [ $? -ne 0 ]; then aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem ; fi
 
 up: 
     pulumi up -y

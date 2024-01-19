@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CLUSTERNAME="demo"
-S3_BUCKETNAME="hpc-scripts-demo"
+S3_BUCKETNAME="hpc-scripts-$CLUSTERNAME"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
 AMI="ami-003cb006c1b93dd98"
 REGION="eu-west-1"
@@ -9,21 +9,21 @@ SINGULARITY_SUPPORT=true
 CONFIG="default"
 
 echo "Extracting values from pulumi setup"
-SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2` 
-KEY=`cd ../pulumi && pulumi stack output "key_pair id" `
-DOMAINPWSecret=` cd ../pulumi && pulumi stack output "domain_password_arn" `
+SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $CLUSTERNAME` 
+KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $CLUSTERNAME`
+DOMAINPWSecret=` cd ../pulumi && pulumi stack output "domain_password_arn" -s $CLUSTERNAME `
 CERT="${KEY}.pem"
 EMAIL=`echo $KEY | cut -d "-" -f 1`
-AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1`
-RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address`
-RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user`
-RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass`
-SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint`
-SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name`
-SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user`
-SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn`
-SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key`
-BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code`
+AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $CLUSTERNAME`
+RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $CLUSTERNAME`
+RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $CLUSTERNAME`
+RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $CLUSTERNAME`
+SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $CLUSTERNAME`
+SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $CLUSTERNAME`
+SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $CLUSTERNAME`
+SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $CLUSTERNAME`
+SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLUSTERNAME`
+BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $CLUSTERNAME`
 
 
 echo "preparing scripts" 
@@ -58,6 +58,8 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
 	sed "s#EMAIL#${EMAIL}#g" | \
 	sed "s#BILLING_CODE#${BILLING_CODE}#g" \
 	> config/cluster-config-wb.yaml
+
+aws s3 cp config/cluster-config-wb.yaml s3://${S3_BUCKETNAME}
 
 echo "Starting deployment"
 pcluster create-cluster --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 

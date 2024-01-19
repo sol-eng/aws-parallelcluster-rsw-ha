@@ -14,7 +14,11 @@ PWB_BASE_DIR=$SHARED_DIR/rstudio/
 
 PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
 
-mkdir -p $PWB_BASE_DIR/{etc/rstudio,shared-storage,scripts,apptainer}
+mkdir -p $PWB_BASE_DIR/{etc/rstudio,scripts,apptainer}
+
+mkdir -p /home/rstudio/shared-storage
+
+SHARED_DATA="/home/rstudio/shared-storage"
 
 
 # Add SLURM integration 
@@ -45,7 +49,7 @@ EOF
  
 cat > $PWB_CONFIG_DIR/rserver.conf << EOF
 # Shared storage
-server-shared-storage-path=${PWB_BASE_DIR}/shared-storage
+server-shared-storage-path=$SHARED_DATA
 
 # prevent singularity to attempt creating a user in the container (admin rights)
 launcher-sessions-create-container-user=0
@@ -69,7 +73,7 @@ launcher-sessions-callback-address=http://${myip}:8787
 #r-versions-scan=0
 
 # Location of r-versions JSON file 
-r-versions-path=${PWB_BASE_DIR}/shared-storage/r-versions
+r-versions-path=$SHARED_DATA/r-versions
 
 auth-pam-sessions-enabled=1
 #auth-pam-sessions-use-password=1
@@ -85,20 +89,20 @@ audit-r-console-user-limit-months=3
 # Enable Auditing
 audit-r-console=all
 audit-r-sessions=1
-audit-data-path=${PWB_BASE_DIR}/shared-data/head-node/audit-data
+audit-data-path=$SHARED_DATA/head-node/audit-data
 audit-r-sessions-limit-mb=512
 audit-r-sessions-limit-months=6
 
 
 # Enable Monitoring
-monitor-data-path=${PWB_BASE_DIR}/shared-data/head-node/monitor-data
+monitor-data-path=$SHARED_DATA/head-node/monitor-data
 
 # secure cookie key
 secure-cookie-key-file=${PWB_CONFIG_DIR}/secure-cookie-key
 EOF
 
-mkdir -p ${PWB_BASE_DIR}/shared-data/head-node/{audit-data,monitor-data}
-chown -R rstudio-server ${PWB_BASE_DIR}/shared-data/head-node/
+mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
+chown -R rstudio-server $SHARED_DATA/head-node/
 
 
 # Add stuff for increased performance 
@@ -217,11 +221,11 @@ rm -rf $tmpfile
 
 cat << EOF > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
-host=DB_HOST
+host=RSW_DB_HOST
 database=pwb
 port=5432
-username=DB_USER
-password=DB_PASS
+username=RSW_DB_USER
+password=RSW_DB_PASS
 connection-timeout-seconds=10
 EOF
 
@@ -230,11 +234,11 @@ chmod 0600 $PWB_CONFIG_DIR/database.conf
 # Setup crash handler
 cat << EOF > $PWB_CONFIG_DIR/crash-handler.conf
 crash-handling-enabled=1
-crash-db-path=$PWB_BASE_DIR/shared-storage/crash-dumps
+crash-db-path=$SHARED_DATA/crash-dumps
 EOF
 
-mkdir -p $PWB_BASE_DIR/shared-storage/crash-dumps
-chmod 777 $PWB_BASE_DIR/shared-storage/crash-dumps
+mkdir -p $SHARED_DATA/crash-dumps
+chmod 777 $SHARED_DATA/crash-dumps
 
 cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb 
 #!/bin/bash
