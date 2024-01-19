@@ -1,11 +1,11 @@
 #!/bin/bash
 
-CLUSTERNAME="demo"
+CLUSTERNAME="test"
 S3_BUCKETNAME="hpc-scripts-$CLUSTERNAME"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
 AMI="ami-003cb006c1b93dd98"
 REGION="eu-west-1"
-SINGULARITY_SUPPORT=true
+SINGULARITY_SUPPORT=false
 CONFIG="default"
 
 echo "Extracting values from pulumi setup"
@@ -60,6 +60,8 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
 	> config/cluster-config-wb.yaml
 
 aws s3 cp config/cluster-config-wb.yaml s3://${S3_BUCKETNAME}
-
+if ( ! aws iam get-policy --policy-arn arn:aws:iam::637485797898:policy/elb > /dev/null); then
+aws iam create-policy --policy-name elb --policy-document file://scripts/elb-policy.json
+fi 
 echo "Starting deployment"
 pcluster create-cluster --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 

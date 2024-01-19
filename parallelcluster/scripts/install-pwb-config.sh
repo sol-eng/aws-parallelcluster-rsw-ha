@@ -22,7 +22,25 @@ SHARED_DATA="/home/rstudio/shared-storage"
 
 
 # Add SLURM integration 
-myip=`curl http://checkip.amazonaws.com`
+
+# wait until ELB is available and then set this to make sure workbench jobs are working
+
+export AWS_DEFAULT_REGION=`cat /opt/parallelcluster/shared/cluster-config.yaml  | grep ^Region | awk '{print $2}'`
+cluster_name=`cat /opt/parallelcluster/shared/cluster-config.yaml | awk '/.*cluster.name/{getline; print}' | awk '{print $2}'`
+
+function find_elb_url() {
+    elb=""
+    while true
+        do
+            elb=`cluster_name=$1; for i in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[].LoadBalancerArn'); do if ( aws elbv2 describe-tags --resource-arns "\$i" | jq --arg cluster_name "$1" -ce '.TagDescriptions[].Tags[] | select( .Key == "parallelcluster:cluster-name" and .Value==$cluster_name)' > /dev/null); then echo $i; fi; done `
+            if [ ! -z $elb ]; then break; fi
+            sleep 2
+        done
+    aws elbv2 describe-load-balancers --load-balancer-arns=$elb | jq -r '.[] | .[] | .DNSName'
+}
+
+elb_url=$(find_elb_url $cluster_name)
+
 
 # generate launcher ssl keys
 openssl genpkey -algorithm RSA \
@@ -67,7 +85,7 @@ launcher-address=127.0.0.1
 launcher-port=5559
 launcher-sessions-enabled=1
 launcher-default-cluster=Slurm
-launcher-sessions-callback-address=http://${myip}:8787
+launcher-sessions-callback-address=http://${elb_url}:8787
 
 # Disable R Versions scanning
 #r-versions-scan=0
