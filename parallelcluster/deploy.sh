@@ -24,7 +24,7 @@ SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $CLUSTERNAME
 SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $CLUSTERNAME`
 SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLUSTERNAME`
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $CLUSTERNAME`
-
+ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $CLUSTERNAME`
 
 echo "preparing scripts" 
 rm -rf tmp
@@ -56,12 +56,11 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
 	sed "s#DOMAINPWSecret#${DOMAINPWSecret}#g" | \
         sed "s#KEY#${KEY}#g" | \
 	sed "s#EMAIL#${EMAIL}#g" | \
-	sed "s#BILLING_CODE#${BILLING_CODE}#g" \
+	sed "s#BILLING_CODE#${BILLING_CODE}#g" | \
+        sed "s#ELB_ACCESS#${ELB_ACCESS}#g" \
 	> config/cluster-config-wb.yaml
 
 aws s3 cp config/cluster-config-wb.yaml s3://${S3_BUCKETNAME}
-if ( ! aws iam get-policy --policy-arn arn:aws:iam::637485797898:policy/elb > /dev/null); then
-aws iam create-policy --policy-name elb --policy-document file://scripts/elb-policy.json
-fi 
+
 echo "Starting deployment"
 pcluster create-cluster --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 

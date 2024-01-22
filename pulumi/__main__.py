@@ -11,7 +11,8 @@ import random,string
 
 import jinja2
 import pulumi
-from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager
+import json
+from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager, iam
 from pulumi_command import remote
 
 # ------------------------------------------------------------------------------
@@ -136,6 +137,28 @@ def main():
     pulumi.export("vpc_subnet2", vpc_subnet2.id)
 
  
+    # --------------------------------------------------------------------------
+    # ELB access from within AWS ParallelCluster
+    # --------------------------------------------------------------------------
+
+    policy = iam.Policy("elbaccess",
+    path="/",
+    description="ELB Access from head node of parallelcluster",
+    policy=json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": [
+                "elasticloadbalancing:DescribeTags",
+                "elasticloadbalancing:DescribeTargetGroups",
+                "elasticloadbalancing:DescribeLoadBalancers"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+        }],
+    }))
+
+    pulumi.export("elb_access", policy.arn)
+
     # --------------------------------------------------------------------------
     # Make security groups
     # --------------------------------------------------------------------------

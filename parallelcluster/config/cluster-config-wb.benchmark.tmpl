@@ -7,7 +7,7 @@ HeadNode:
       - BucketName: S3_BUCKETNAME
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      - Policy: arn:aws:iam::aws:policy/elb
+      - Policy: ELB_ACCESS
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: SUBNETID
