@@ -310,6 +310,11 @@ if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then
 fi
 
 
+if ( ! grep rstudio-server /etc/security/limits.conf ); then 
+	echo "rstudio-server  soft    nofile          32768" >> /etc/security/limits.conf
+	echo "rstudio-server  hard    nofile          32768" >> /etc/security/limits.conf
+fi
+
 
 EOF
 
