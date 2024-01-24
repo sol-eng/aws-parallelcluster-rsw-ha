@@ -1,12 +1,13 @@
 #!/bin/bash
 
-CLUSTERNAME="test"
+CLUSTERNAME="benchmark"
 S3_BUCKETNAME="hpc-scripts-$CLUSTERNAME"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
-AMI="ami-003cb006c1b93dd98"
+AMI="ami-0fbfbe3c206a631d2"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
-CONFIG="default"
+BENCHMARK_SUPPORT=true
+CONFIG="benchmark"
 
 echo "Extracting values from pulumi setup"
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $CLUSTERNAME` 
@@ -38,8 +39,13 @@ cat scripts/install-pwb-config.sh | \
        	sed "s#RSW_DB_PASS#${RSW_DB_PASS}#g" | \
         sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
         sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
+	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
 	> tmp/install-pwb-config.sh 
+
+cat scripts/config-compute.sh | \
+	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" \
+	> tmp/config-compute.sh 
 
 aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
 

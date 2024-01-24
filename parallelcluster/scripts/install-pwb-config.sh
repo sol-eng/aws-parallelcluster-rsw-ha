@@ -20,6 +20,18 @@ mkdir -p /home/rstudio/shared-storage
 
 SHARED_DATA="/home/rstudio/shared-storage"
 
+# Label this node as head-node so we can detect it later
+touch /etc/head-node
+
+if (BENCHMARK_SUPPORT); then 
+    # sync /usr/lib/rstudio-server into /opt/rstudio and link it back to original location
+    # so that an upgrade to workbench automatically updates files in /opt/rstudio 
+    # the idea is to then symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server 
+    # on all other nodes (login as well as compute nodes)
+    rsync -a /usr/lib/rstudio-server /opt/rstudio
+    rm -rf /usr/lib/rstudio-server
+    ln -s /opt/rstudio/rstudio-server /usr/lib 
+fi
 
 # Add SLURM integration 
 
@@ -275,10 +287,15 @@ if [ \$pwb_version -lt 2023120 ] && \
         sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
 fi
 
-if (mount | grep login_nodes >&/dev/null); then
+if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
     # we are on a login node and need to start the workbench processes 
     # but we need to make sure the config files are all there
     while true ; do if [ -f /opt/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
+    if (BENCHMARK_SUPPORT); then 
+        # symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server 
+        rm -rf /usr/lib/rstudio-server
+        ln -s /opt/rstudio/rstudio-server /usr/lib 
+    fi
     if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
         # systemctl overrides
         for i in server launcher 
@@ -297,7 +314,17 @@ if (mount | grep login_nodes >&/dev/null); then
         systemctl start rstudio-server
         #rm -f /var/lib/rstudio-server/secure-cookie-key
         #systemctl restart rstudio-server 
+        # Touch a file in /opt/rstudio to signal that workbench is running on this server
+        touch /opt/rstudio/workbench-\`hostname\`.state
     fi    
+
+    if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then 
+        systemctl stop rstudio-server 
+        systemctl stop rstudio-launcher
+        systemctl start rstudio-launcher
+        systemctl start rstudio-server 
+        touch /opt/rstudio/workbench-\`hostname\`.state
+    fi
     
 fi
 

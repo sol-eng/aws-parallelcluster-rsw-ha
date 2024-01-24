@@ -15,3 +15,9 @@ if ( lspci | grep NVIDIA ); then
 fi
 
 echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
+
+if (BENCHMARK_SUPPORT); then 
+   # symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server 
+   rm -rf /usr/lib/rstudio-server
+   ln -s /opt/rstudio/rstudio-server /usr/lib 
+fi
