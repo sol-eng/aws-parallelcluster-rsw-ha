@@ -12,7 +12,7 @@ import random,string
 import jinja2
 import pulumi
 import json
-from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager, iam
+from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager, iam, s3
 from pulumi_command import remote
 
 # ------------------------------------------------------------------------------
@@ -99,12 +99,13 @@ def main():
 
     pulumi.export("billing_code", config.billing_code)
 
+
     # --------------------------------------------------------------------------
     # Print Pulumi stack name for better visibility
     # --------------------------------------------------------------------------
 
-    pulumistack = pulumi.get_stack()
-    pulumi.export("Pulumi Stack NAME", pulumistack)
+    stack_name = pulumi.get_stack()
+    pulumi.export("stack_name", stack_name)
     pulumi.export("user_password", config.user_password)
     pulumi.export("secure_cookie_key", config.secure_cookie_key)
     # --------------------------------------------------------------------------
@@ -118,6 +119,20 @@ def main():
     key_pair = ec2.get_key_pair(key_name=key_pair_name)
 
     pulumi.export("key_pair id", key_pair.key_name)
+
+
+    # --------------------------------------------------------------------------
+    # Set up S3 bucket to store scripts for parallelcluster
+    # --------------------------------------------------------------------------
+
+    s3bucket = s3.Bucket("hpc-scripts-"+stack_name,
+    acl="private",
+    tags=tags | {
+        "AWS Parallelcluster Name": stack_name,
+        "Name": "hpc-scripts-"+stack_name,
+    })
+
+    pulumi.export("s3_bucket_id", s3bucket.id)
 
     # --------------------------------------------------------------------------
     # Get VPC information.

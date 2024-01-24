@@ -1,7 +1,6 @@
 #!/bin/bash
 
 CLUSTERNAME="benchmark"
-S3_BUCKETNAME="hpc-scripts-$CLUSTERNAME"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
 AMI="ami-0fbfbe3c206a631d2"
 REGION="eu-west-1"
@@ -26,6 +25,7 @@ SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $CLU
 SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLUSTERNAME`
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $CLUSTERNAME`
 ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $CLUSTERNAME`
+S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $CLUSTERNAME`
 
 echo "preparing scripts" 
 rm -rf tmp
