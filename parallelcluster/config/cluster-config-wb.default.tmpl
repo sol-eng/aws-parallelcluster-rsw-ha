@@ -11,6 +11,8 @@ HeadNode:
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: SUBNETID
+    AdditionalSecurityGroups: 
+      - SECURITYGROUP_SSH
   LocalStorage:
     RootVolume:
       Size: 120 

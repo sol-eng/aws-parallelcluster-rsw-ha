@@ -26,7 +26,7 @@ SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLU
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $CLUSTERNAME`
 ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $CLUSTERNAME`
 S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $CLUSTERNAME`
-
+SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output security_group_ssh -s $CLUSTERNAME`
 echo "preparing scripts" 
 rm -rf tmp
 mkdir -p tmp
@@ -63,6 +63,7 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#KEY#${KEY}#g" | \
 	sed "s#EMAIL#${EMAIL}#g" | \
 	sed "s#BILLING_CODE#${BILLING_CODE}#g" | \
+        sed "s#SECURITYGROUP_SSH#${SECURITYGROUP_SSH}#g" | \
         sed "s#ELB_ACCESS#${ELB_ACCESS}#g" \
 	> config/cluster-config-wb.yaml
 
