@@ -131,6 +131,15 @@ monitor-data-path=$SHARED_DATA/head-node/monitor-data
 secure-cookie-key-file=${PWB_CONFIG_DIR}/secure-cookie-key
 EOF
 
+if (MULTIPLE_LAUNCHERS); then 
+cat >> $PWB_CONFIG_DIR/rserver.conf << EOF
+
+# multiple launcher support
+launcher-sessions-clusters=slurminteractive
+launcher-adhoc-clusters=slurmbatch
+EOF
+fi
+
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
 chown -R rstudio-server $SHARED_DATA/head-node/
 
@@ -149,6 +158,30 @@ events {
 EOF
 fi
 
+
+
+if (MULTIPLE_LAUNCHERS); then 
+cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
+[server]
+address=127.0.0.1
+port=5559
+server-user=rstudio-server
+admin-group=rstudio-server
+authorization-enabled=1
+thread-pool-size=4
+enable-debug-logging=1
+
+[cluster]
+name=slurminteractive
+type=Slurm
+
+[cluster]
+name=slurmbatch
+type=Slurm
+EOF
+
+else
+
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
 [server]
 address=127.0.0.1
@@ -162,14 +195,103 @@ enable-debug-logging=1
 [cluster]
 name=Slurm
 type=Slurm
-
-#[cluster]
-#name=Local
-#type=Local
-
 EOF
 
+fi
+
 mkdir -p $PWB_CONFIG_DIR/apptainer
+
+if (MULTIPLE_LAUNCHERS); then
+
+cat > $PWB_CONFIG_DIR/launcher.slurm.slurminteractive.conf << EOF 
+# Enable debugging
+enable-debug-logging=1
+
+# Basic configuration
+slurm-service-user=slurm
+slurm-bin-path=/opt/slurm/bin
+
+# GPU specifics
+enable-gpus=1
+gpu-types=v100
+
+# User/group and resource profiles
+profile-config=${PWB_CONFIG_DIR}/launcher.slurminteractive.profiles.conf
+resource-profile-config=${PWB_CONFIG_DIR}/launcher.slurminteractive.resources.conf
+EOF
+
+cat > ${PWB_CONFIG_DIR}/launcher.slurminteractive.profiles.conf << EOF
+[*]
+allowed-partitions=interactive
+#singularity-image-directory=${PWB_BASE_DIR}/apptainer
+#default-mem-mb=512
+#default-cpus=4
+#max-cpus=2
+#max-mem-mb=1024
+EOF
+
+cat > ${PWB_CONFIG_DIR}/launcher.slurminteractive.resources.conf << EOF
+[small]
+name = "Small (1 cpu, 2 GB mem)"
+cpus=1
+mem-mb=1936
+#name = "Medium (2 cpu, 4 GB mem)"
+#[medium]
+#mem-mb=3873
+#[large]
+#cpus=2
+#name = "Large (4 cpu, 8 GB mem)"
+#cpus=4
+#mem-mb=7746
+#[xlarge]
+#name = "Extra Large (8 cpu, 16 GB mem)"
+#cpus=8
+#mem-mb=15493
+EOF
+
+cat > ${PWB_CONFIG_DIR}/launcher.slurmbatch.profiles.conf << EOF
+[*]
+allowed-partitions=all
+#singularity-image-directory=${PWB_BASE_DIR}/apptainer
+#default-mem-mb=512
+#default-cpus=4
+#max-cpus=2
+#max-mem-mb=1024
+EOF
+
+cat > ${PWB_CONFIG_DIR}/launcher.slurmbatch.resources.conf << EOF
+[small]
+name = "Small (1 cpu, 2 GB mem)"
+cpus=1
+mem-mb=1936
+#name = "Medium (2 cpu, 4 GB mem)"
+#[medium]
+#mem-mb=3873
+#[large]
+#cpus=2
+#name = "Large (4 cpu, 8 GB mem)"
+#cpus=4
+#mem-mb=7746
+#[xlarge]
+#name = "Extra Large (8 cpu, 16 GB mem)"
+#cpus=8
+#mem-mb=15493
+EOF
+
+else
+
+cat > $PWB_CONFIG_DIR/launcher.slurm.conf << EOF 
+# Enable debugging
+enable-debug-logging=1
+
+# Basic configuration
+slurm-service-user=slurm
+slurm-bin-path=/opt/slurm/bin
+
+# GPU specifics
+enable-gpus=1
+gpu-types=v100
+EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurm.profiles.conf<<EOF 
 [*]
@@ -199,20 +321,7 @@ mem-mb=1936
 #mem-mb=15493
 EOF
 
-
-cat > $PWB_CONFIG_DIR/launcher.slurm.conf << EOF 
-# Enable debugging
-enable-debug-logging=1
-
-# Basic configuration
-slurm-service-user=slurm
-slurm-bin-path=/opt/slurm/bin
-
-# GPU specifics
-enable-gpus=1
-gpu-types=v100
-
-EOF
+fi
 
 cat > $PWB_CONFIG_DIR/jupyter.conf << EOF
 jupyter-exe=/usr/local/bin/jupyter

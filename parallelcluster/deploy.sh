@@ -1,12 +1,14 @@
 #!/bin/bash
 
-CLUSTERNAME="benchmark"
+CLUSTERNAME="demo-msp"
 SECURITYGROUP_RSW="sg-09ca531e5331195f1"
-AMI="ami-0fbfbe3c206a631d2"
+AMI="ami-003cb006c1b93dd98"
+#AMI="ami-0fbfbe3c206a631d2"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
-BENCHMARK_SUPPORT=true
-CONFIG="benchmark"
+BENCHMARK_SUPPORT=false
+MULTIPLE_LAUNCHERS=true
+CONFIG="default"
 
 echo "Extracting values from pulumi setup"
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $CLUSTERNAME` 
@@ -40,6 +42,7 @@ cat scripts/install-pwb-config.sh | \
         sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
         sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
+	sed "s#MULTIPLE_LAUNCHERS#${MULTIPLE_LAUNCHERS}#g" | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
 	> tmp/install-pwb-config.sh 
 

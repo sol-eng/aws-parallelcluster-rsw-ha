@@ -33,7 +33,29 @@ Scheduling:
       PasswordSecretArn: SLURM_DB_PASS_ARN
       DatabaseName: SLURM_DB_NAME    
   SlurmQueues: 
-    - Name: all 
+    - Name: interactive
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: c5.24xlarge 
+          MaxCount: 53 
+          MinCount: 0
+          Efa:
+            Enabled: FALSE
+          CustomSlurmSettings:
+            OverSubscribe: FORCE
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
+    - Name: all
       ComputeResources:
         - Name: rstudio 
           InstanceType: c5.24xlarge 
