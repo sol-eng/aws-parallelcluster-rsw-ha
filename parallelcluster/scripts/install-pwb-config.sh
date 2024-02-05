@@ -70,7 +70,7 @@ openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
 
 # generate secure-cookie-key as a simple UUID
 sh -c "echo SECURE_COOKIE_KEY > $PWB_CONFIG_DIR/secure-cookie-key"
-chmod 0600 $PWB_CONFIG_DIR/etc/rstudio/secure-cookie-key
+chmod 0600 $PWB_CONFIG_DIR/secure-cookie-key
 
 cat > $PWB_CONFIG_DIR/launcher-env << EOF
 RSTUDIO_DISABLE_PACKAGE_INSTALL_PROMPT=yes
@@ -145,7 +145,7 @@ chown -R rstudio-server $SHARED_DATA/head-node/
 
 
 # Add stuff for increased performance 
-export pwb_version=`rstudio-server version | cut -d "-" -f 1 | sed 's/\.//g'`
+export pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
 if [ $pwb_version -ge 2023120 ]; then 
         cat > $PWB_CONFIG_DIR/nginx.worker.conf << EOF
 worker_processes 1;
@@ -174,10 +174,12 @@ enable-debug-logging=1
 [cluster]
 name=slurminteractive
 type=Slurm
+config-file=$PWB_CONFIG_DIR/launcher.slurminteractive.conf
 
 [cluster]
 name=slurmbatch
 type=Slurm
+config-file=$PWB_CONFIG_DIR/launcher.slurmbatch.conf
 EOF
 
 else
@@ -203,7 +205,7 @@ mkdir -p $PWB_CONFIG_DIR/apptainer
 
 if (MULTIPLE_LAUNCHERS); then
 
-cat > $PWB_CONFIG_DIR/launcher.slurm.slurminteractive.conf << EOF 
+cat > $PWB_CONFIG_DIR/launcher.slurminteractive.conf << EOF 
 # Enable debugging
 enable-debug-logging=1
 
@@ -247,6 +249,23 @@ mem-mb=1936
 #name = "Extra Large (8 cpu, 16 GB mem)"
 #cpus=8
 #mem-mb=15493
+EOF
+
+cat > $PWB_CONFIG_DIR/launcher.slurmbatch.conf << EOF 
+# Enable debugging
+enable-debug-logging=1
+
+# Basic configuration
+slurm-service-user=slurm
+slurm-bin-path=/opt/slurm/bin
+
+# GPU specifics
+enable-gpus=1
+gpu-types=v100
+
+# User/group and resource profiles
+profile-config=${PWB_CONFIG_DIR}/launcher.slurmbatch.profiles.conf
+resource-profile-config=${PWB_CONFIG_DIR}/launcher.slurmbatch.resources.conf
 EOF
 
 cat > ${PWB_CONFIG_DIR}/launcher.slurmbatch.profiles.conf << EOF
