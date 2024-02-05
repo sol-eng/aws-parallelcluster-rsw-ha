@@ -27,9 +27,9 @@ create-secrets:
     pulumi config set slurm_db_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
     pulumi config set secure_cookie_key --secret `python -c "import uuid;print(str(uuid.uuid4()))"`
     export email=`pulumi config get email`
-    export keyname="${email}-keypair-for-pulumi"
+    export keyname="${email}-keypair-for-pulumi-macbook"
     aws ec2 describe-key-pairs --key-names=$keyname
-    if [ $? -ne 0 ]; then aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem ; fi
+    if [ $? -ne 0 ]; then aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem ; chmod 0600 ${keyname}.pem ; fi
 
 up: 
     pulumi up -y
