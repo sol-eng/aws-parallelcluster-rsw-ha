@@ -129,6 +129,10 @@ monitor-data-path=$SHARED_DATA/head-node/monitor-data
 
 # secure cookie key
 secure-cookie-key-file=${PWB_CONFIG_DIR}/secure-cookie-key
+
+# scalability 
+auth-timeout-minutes=120
+www-thread-pool-size=8
 EOF
 
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
@@ -304,6 +308,10 @@ if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
             echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=/opt/rstudio/etc/rstudio\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
         done
         # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
+
+        # scalability
+        sysctl -w net.unix.max_dgram_qlen=8192
+        
         systemctl daemon-reload
         systemctl enable rstudio-server
         systemctl enable rstudio-launcher
