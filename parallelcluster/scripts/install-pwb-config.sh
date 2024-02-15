@@ -311,7 +311,8 @@ if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
 
         # scalability
         sysctl -w net.unix.max_dgram_qlen=8192
-        
+        sysctl -w net.core.netdev_max_backlog=65535 
+
         systemctl daemon-reload
         systemctl enable rstudio-server
         systemctl enable rstudio-launcher
