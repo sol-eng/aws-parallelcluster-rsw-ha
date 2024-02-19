@@ -223,7 +223,7 @@ allowed-partitions=interactive
 #max-mem-mb=1024
 EOF
 
-cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF 
+cat > $PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf<<EOF 
 [*]
 allowed-partitions=all
 #singularity-image-directory=${PWB_BASE_DIR}/apptainer
