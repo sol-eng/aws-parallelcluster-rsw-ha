@@ -187,7 +187,6 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
-default-gpu-brand=nvidia
 gpu-types=v100
 
 # User/group and resource profiles
@@ -206,7 +205,6 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
-default-gpu-brand=nvidia
 gpu-types=v100
 
 # User/group and resource profiles
@@ -214,6 +212,19 @@ profile-config=$PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf
 resource-profile-config=$PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf
 
 EOF
+
+if (SINGULARITY_SUPPORT); then 
+        my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
+
+        if [[ $my_pwb_version =~ "daily" ]]; then 
+        my_pwb_version=${my_pwb_version/-daily/}
+        fi
+
+        if [ $my_pwb_version -gt 2024000 ]; then
+                echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurmbatch.conf
+                echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurminteractive.conf
+        fi
+fi
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF 
 [*]
