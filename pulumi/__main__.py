@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
 
-import random,string
+import random,string,uuid
 
 import jinja2
 import pulumi
@@ -31,14 +31,9 @@ class ConfigValues:
         self.email = self.config.require("email")
         self.ami = self.config.require("ami")
         self.domain_name = self.config.require("domain_name")
-        self.domain_password = self.config.require("domain_password")
-        self.rsw_db_password = self.config.require("rsw_db_password")
-        self.slurm_db_password = self.config.require("slurm_db_password")
-        self.user_password = self.config.require("user_password")
         self.aws_region = self.config.require("region")
         self.rsw_db_username = self.config.require("rsw_db_username")
         self.slurm_db_username = self.config.require("slurm_db_username")
-        self.secure_cookie_key = self.config.require("secure_cookie_key")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
         self.billing_code = self.config.require("billing_code")
 
@@ -55,6 +50,21 @@ def hash_file(path: str) -> pulumi.Output:
     return pulumi.Output.concat(hash_str)
 
 
+def get_password():
+    return ''.join(random.choices(string.ascii_uppercase
+                                               + string.ascii_lowercase 
+                                               + string.digits, k=12
+                                               )
+                    )
+
+def get_complex_password():
+    return ''.join(random.choices(string.digits)
+                               +random.choices(string.ascii_uppercase)
+                               +random.choices(string.ascii_lowercase)
+                               +random.choices(string.ascii_uppercase 
+                                               + string.ascii_lowercase + string.digits, k=12
+                                               )
+                    )
 
 def make_server(
     name: str, 
@@ -98,7 +108,7 @@ def main():
     }
 
     pulumi.export("billing_code", config.billing_code)
-
+    
 
     # --------------------------------------------------------------------------
     # Print Pulumi stack name for better visibility
@@ -106,8 +116,26 @@ def main():
 
     stack_name = pulumi.get_stack()
     pulumi.export("stack_name", stack_name)
-    pulumi.export("user_password", config.user_password)
-    pulumi.export("secure_cookie_key", config.secure_cookie_key)
+
+
+    # --------------------------------------------------------------------------
+    # Pulumi secrets
+    # --------------------------------------------------------------------------
+
+    
+    ad_password=get_complex_password()
+    pulumi.export("ad_password", pulumi.Output.secret(ad_password))
+    user_pass=get_password()
+    pulumi.export("user_pass", pulumi.Output.secret(user_pass))
+    rsw_db_pass=get_password()
+    pulumi.export("rsw_db_pass", pulumi.Output.secret(rsw_db_pass))
+    slurm_db_pass=get_password()
+    pulumi.export("slurm_db_pass", pulumi.Output.secret(slurm_db_pass))
+    secure_cookie_key=str(uuid.uuid4())
+    pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key))
+
+
+
     # --------------------------------------------------------------------------
     # Set up keys.
     # --------------------------------------------------------------------------
@@ -244,7 +272,7 @@ def main():
         instance_class="db.t3.micro",
         allocated_storage=5,
         username=config.rsw_db_username,
-        password=config.rsw_db_password,
+        password=rsw_db_pass,
         db_name="pwb",
         engine="postgres",
         publicly_accessible=True,
@@ -258,14 +286,13 @@ def main():
     pulumi.export("rsw_db_endpoint", rsw_db.endpoint)
     pulumi.export("rsw_db_name", rsw_db.db_name)
     pulumi.export("rsw_db_user", config.rsw_db_username)
-    pulumi.export("rsw_db_pass", config.rsw_db_password)
 
     slurm_db = rds.Instance(
         "slurm-db",
         instance_class="db.t3.micro",
         allocated_storage=5,
         username=config.slurm_db_username,
-        password=config.slurm_db_password,
+        password=slurm_db_pass,
         db_name="slurm",
         engine="mysql",
         publicly_accessible=True,
@@ -279,7 +306,7 @@ def main():
 
     example = secretsmanager.SecretVersion("SlurmDBPassword",
         secret_id=secret.id,
-        secret_string=config.slurm_db_password)
+        secret_string=slurm_db_pass)
     
     pulumi.export("slurm_db_pass_arn", example.arn)
 
@@ -288,7 +315,6 @@ def main():
     pulumi.export("slurm_db_endpoint", slurm_db.endpoint)
     pulumi.export("slurm_db_name", slurm_db.db_name)
     pulumi.export("slurm_db_user", config.slurm_db_username)
-    pulumi.export("slurm_db_pass", config.slurm_db_password)
 
 
 
@@ -296,10 +322,9 @@ def main():
 
     example = secretsmanager.SecretVersion("SimpleADPassword",
         secret_id=secret.id,
-        secret_string=config.domain_password)
+        secret_string=ad_password)
     
-    pulumi.export("domain_password_arn", example.arn)
-    pulumi.export("domain_password", config.domain_password)
+    pulumi.export("ad_password_arn", example.arn)
 
     
   
@@ -311,7 +336,7 @@ def main():
 
     ad = directoryservice.Directory("pwb_directory",
         name=config.domain_name,
-        password=config.domain_password,
+        password=ad_password,
         #edition="Standard",
         type="SimpleAD",
         size="Small",
@@ -328,7 +353,6 @@ def main():
     pulumi.export('ad_dns_1', ad.dns_ip_addresses[0])
     pulumi.export('ad_dns_2', ad.dns_ip_addresses[1])
     pulumi.export('ad_access_url', ad.access_url) 
-    pulumi.export('ad_password',config.domain_password) 
 
     jump_host=make_server(
             "jump_host", 
@@ -352,7 +376,7 @@ def main():
     command_set_environment_variables = remote.Command(
             f"set-env", 
             create=pulumi.Output.concat(
-                'echo "export AD_PASSWD=',         config.domain_password,   '" >> .env;\n',
+                'echo "export AD_PASSWD=',         ad_password,   '" >> .env;\n',
                 'echo "export AD_DOMAIN=',         config.domain_name,   '" >> .env;\n',
             ), 
             connection=connection,
@@ -401,22 +425,22 @@ def main():
             serverSideFile(
                 "server-side-files/config/create-users.exp",
                 "~/create-users.exp",
-                pulumi.Output.all(config.domain_name,config.domain_password).apply(lambda x: create_template("server-side-files/config/create-users.exp").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,ad_password).apply(lambda x: create_template("server-side-files/config/create-users.exp").render(domain_name=x[0],ad_password=x[1]))
             ),
             serverSideFile(
                 "server-side-files/config/create-group.exp",
                 "~/create-group.exp",
-                pulumi.Output.all(config.domain_name,config.domain_password).apply(lambda x: create_template("server-side-files/config/create-group.exp").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,ad_password).apply(lambda x: create_template("server-side-files/config/create-group.exp").render(domain_name=x[0],ad_password=x[1]))
             ),
             serverSideFile(
                 "server-side-files/config/add-group-member.exp",
                 "~/add-group-member.exp",
-                pulumi.Output.all(config.domain_name,config.domain_password).apply(lambda x: create_template("server-side-files/config/add-group-member.exp").render(domain_name=x[0],domain_passwd=x[1]))
+                pulumi.Output.all(config.domain_name,ad_password).apply(lambda x: create_template("server-side-files/config/add-group-member.exp").render(domain_name=x[0],ad_password=x[1]))
             ),
             serverSideFile(
                 "server-side-files/config/useradd.sh",
                 "~/useradd.sh",
-                pulumi.Output.all(config.domain_name,config.domain_password,config.user_password).apply(lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],domain_passwd=x[1],user_password=x[2]))
+                pulumi.Output.all(config.domain_name,ad_password,user_pass).apply(lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],ad_password=x[1],user_pass=x[2]))
             ),
         ]
 

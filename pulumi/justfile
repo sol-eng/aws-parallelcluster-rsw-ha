@@ -21,11 +21,6 @@ create-users num="10":
 
 create-secrets:
     #!/bin/bash
-    pulumi config set domain_password --secret `python -c "import random,string; x=''.join(random.choices(string.digits)+random.choices(string.ascii_uppercase)+random.choices(string.ascii_lowercase)+random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
-    pulumi config set user_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
-    pulumi config set rsw_db_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
-    pulumi config set slurm_db_password --secret `python -c "import random,string; x=''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=12));print(x)"`
-    pulumi config set secure_cookie_key --secret `python -c "import uuid;print(str(uuid.uuid4()))"`
     export email=`pulumi config get email`
     export keyname="${email}-keypair-for-pulumi"
     aws ec2 describe-key-pairs --key-names=$keyname
