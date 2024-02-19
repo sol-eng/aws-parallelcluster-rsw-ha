@@ -155,6 +155,7 @@ def main():
 
     s3bucket = s3.Bucket("hpc-scripts-"+stack_name,
     acl="private",
+    force_destroy=True,
     tags=tags | {
         "AWS Parallelcluster Name": stack_name,
         "Name": "hpc-scripts-"+stack_name,
