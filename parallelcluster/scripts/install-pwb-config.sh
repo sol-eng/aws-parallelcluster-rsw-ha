@@ -234,44 +234,38 @@ allowed-partitions=all
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf<<EOF
+# memory limits calculated based on 90% of total t2.xlarge memory
 [small]
-name = "Small (1 cpu, 2 GB mem)"
+name = "Small (1 cpu, 1 GB mem)"
 cpus=1
-mem-mb=1936
-#name = "Medium (2 cpu, 4 GB mem)"
-#[medium]
-#mem-mb=3873
-#[large]
-#cpus=2
-#name = "Large (4 cpu, 8 GB mem)"
-#cpus=4
-#mem-mb=7746
-#[xlarge]
-#name = "Extra Large (8 cpu, 16 GB mem)"
-#cpus=8
-#mem-mb=15493
+mem-mb=899
+[medium]
+name = "Medium (2 cpu, 2 GB mem)"
+cpus=2
+mem-mb=3873
+[large]
+name = "Large (4 cpu, 4 GB mem)"
+cpus=4
+mem-mb=7746
+
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf<<EOF
+# memory limits calculated based on 90% of total t2.xlarge memory
 [small]
-name = "Small (1 cpu, 2 GB mem)"
+name = "Small (1 cpu, 4 GB mem)"
 cpus=1
-mem-mb=1936
-#name = "Medium (2 cpu, 4 GB mem)"
-#[medium]
-#mem-mb=3873
-#[large]
-#cpus=2
-#name = "Large (4 cpu, 8 GB mem)"
-#cpus=4
-#mem-mb=7746
-#[xlarge]
-#name = "Extra Large (8 cpu, 16 GB mem)"
-#cpus=8
-#mem-mb=15493
+mem-mb=3596
+[medium]
+name = "Medium (2 cpu, 8 GB mem)"
+cpus=2
+mem-mb=7194
+[large]
+name = "Large (4 cpu, 16 GB mem)"
+cpus=4
+mem-mb=14386
+
 EOF
-
-
 
 cat > $PWB_CONFIG_DIR/jupyter.conf << EOF
 jupyter-exe=/usr/local/bin/jupyter
