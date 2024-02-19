@@ -433,7 +433,8 @@ if (SINGULARITY_SUPPORT); then
         sed -i -r '/^#sing/ s/.(.*)/\1/' $PWB_CONFIG_DIR/launcher.*.profiles.conf
 
         cat << EOF >> $PWB_CONFIG_DIR/launcher-env
-SINGULARITY_BIND=/sys,/opt/slurm,/var/run/munge,/var/spool/slurmd,/etc/munge,/run/munge
+APPTAINER_BIND=/scratch,/opt/slurm/etc,/opt/slurm/libexec,/var/spool/slurmd,/var/run/munge
+SINGULARITY_BIND=/scratch,/opt/slurm/etc,/opt/slurm/libexec,/var/spool/slurmd,/var/run/munge
 EOF
 
 fi
