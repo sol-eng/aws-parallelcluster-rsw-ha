@@ -187,6 +187,7 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
+default-gpu-brand=nvidia
 gpu-types=v100
 
 # User/group and resource profiles
@@ -205,6 +206,7 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
+default-gpu-brand=nvidia
 gpu-types=v100
 
 # User/group and resource profiles
