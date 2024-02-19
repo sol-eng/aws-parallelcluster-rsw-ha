@@ -56,7 +56,7 @@ Scheduling:
         SubnetIds:
           - SUBNETID
 
-      - Name: all 
+    - Name: all 
       ComputeResources:
         - Name: rstudio 
           InstanceType: t2.xlarge 
@@ -124,9 +124,6 @@ SharedStorage:
       DeploymentType: SCRATCH_2
   - MountDir: /opt/rstudio
     Name: rstudio
-    StorageType: Efs
-  - MountDir: /scratch
-    Name: scratch
     StorageType: Efs
 
 DirectoryService:
