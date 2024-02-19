@@ -413,6 +413,12 @@ if ( ! grep rstudio-server /etc/security/limits.conf ); then
 	echo "rstudio-server  hard    nofile          32768" >> /etc/security/limits.conf
 fi
 
+if ( ! mount | grep \/scratch ); then 
+        # create scratch folder as part of EFS fs
+        mkdir -p /scratch /opt/rstudio/scratch 
+        efsmount=`cat /etc/fstab  | grep rstudio | awk '{print $1}'`
+        mount ${efsmount}scratch /scratch
+fi
 
 EOF
 
