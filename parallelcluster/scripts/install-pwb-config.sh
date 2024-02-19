@@ -133,6 +133,10 @@ secure-cookie-key-file=${PWB_CONFIG_DIR}/secure-cookie-key
 # scalability 
 auth-timeout-minutes=120
 www-thread-pool-size=8
+
+# multiple launchers
+launcher-sessions-clusters=slurminteractive
+launcher-adhoc-clusters=slurmbatch
 EOF
 
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
@@ -446,6 +450,10 @@ if (SINGULARITY_SUPPORT); then
         cd /tmp/singularity-rstudio/slurm-singularity-exec/ && \
                 cmake -S . -B build -D CMAKE_INSTALL_PREFIX=/opt/slurm -DINSTALL_PLUGSTACK_CONF=ON && \
                 cmake --build build --target install
+
+        cat << EOF > /opt/slurm/etc/plugstack.conf
+include /opt/slurm/etc/plugstack.conf.d/*.conf
+EOF
 
         # Uncomment singularity-image-directory
 
