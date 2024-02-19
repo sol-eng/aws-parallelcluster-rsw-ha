@@ -425,8 +425,8 @@ if (SINGULARITY_SUPPORT); then
         # We also need to build the SPANK plugin for singularity
 
         cd /tmp/singularity-rstudio/slurm-singularity-exec/ && \
-                sed -i "s#CONTAINER_PATH#$PWB_BASE_DIR/apptainer#" singularity-exec.conf.tmpl && \
-                make && make install 
+                cmake -S . -B build -D CMAKE_INSTALL_PREFIX=/opt/slurm -DINSTALL_PLUGSTACK_CONF=ON && \
+                cmake --build build --target install
 
         # Uncomment singularity-image-directory
 
