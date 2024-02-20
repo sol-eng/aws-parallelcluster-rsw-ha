@@ -15,7 +15,7 @@ do
 			expect create-users.exp \$username {{user_password}} >& /dev/null 
 		fi
 		sleep 5 
-		if ( echo {{user_password}} | pamtester login \$username authenticate ); then  
+		if ( echo {{user_pass}} | pamtester login \$username authenticate ); then  
                     break 
                 fi
             done
