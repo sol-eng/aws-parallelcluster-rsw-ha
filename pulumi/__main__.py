@@ -14,6 +14,7 @@ import pulumi
 import json
 from pulumi_aws import ec2, efs, rds, lb, directoryservice, secretsmanager, iam, s3
 from pulumi_command import remote
+from pulumi_random import RandomPassword,RandomUuid
 
 # ------------------------------------------------------------------------------
 # Helper functions
@@ -50,21 +51,16 @@ def hash_file(path: str) -> pulumi.Output:
     return pulumi.Output.concat(hash_str)
 
 
-def get_password():
-    return ''.join(random.choices(string.ascii_uppercase
-                                               + string.ascii_lowercase 
-                                               + string.digits, k=12
-                                               )
-                    )
-
-def get_complex_password():
-    return ''.join(random.choices(string.digits)
-                               +random.choices(string.ascii_uppercase)
-                               +random.choices(string.ascii_lowercase)
-                               +random.choices(string.ascii_uppercase 
-                                               + string.ascii_lowercase + string.digits, k=12
-                                               )
-                    )
+def get_password(
+        name: str
+):
+    return RandomPassword(name,
+    length=16,
+    special=False,
+    min_lower=1,
+    min_numeric=1,
+    min_upper=1
+    ).result
 
 def make_server(
     name: str, 
@@ -123,15 +119,15 @@ def main():
     # --------------------------------------------------------------------------
 
     
-    ad_password=get_complex_password()
+    ad_password=get_password("ad_password")
     pulumi.export("ad_password", pulumi.Output.secret(ad_password))
-    user_pass=get_password()
+    user_pass=get_password("user_pass")
     pulumi.export("user_pass", pulumi.Output.secret(user_pass))
-    rsw_db_pass=get_password()
+    rsw_db_pass=get_password("rsw_db_pass")
     pulumi.export("rsw_db_pass", pulumi.Output.secret(rsw_db_pass))
-    slurm_db_pass=get_password()
+    slurm_db_pass=get_password("slurm_db_pass")
     pulumi.export("slurm_db_pass", pulumi.Output.secret(slurm_db_pass))
-    secure_cookie_key=str(uuid.uuid4())
+    secure_cookie_key=RandomUuid("secure_cookie_key")
     pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key))
 
 
