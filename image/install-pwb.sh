@@ -83,14 +83,14 @@ if [[ $my_pwb_version =~ "daily" ]]; then
 fi
 
 if [ $my_pwb_version -lt 2023120 ]; then
-    pushd /tmp && \ 
+    pushd /tmp && \
     curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.1-5.tar.gz && \
     tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
     rm -f launcher-* && popd 
 fi
 
 if [ $my_pwb_version -gt 2024000 ]; then
-    pushd /tmp && \ 
+    pushd /tmp && \
     curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.16.0-136.tar.gz && \
     tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
     rm -f launcher-* && popd 
