@@ -2,7 +2,7 @@
 # example call: ./script.exp testuser testpasswd  
 
 set domain {{domain_name}} 
-set bindpw {{domain_passwd}} 
+set bindpw {{ad_password}} 
 set username [lindex \$argv 0]
 set password [lindex \$argv 1]
 

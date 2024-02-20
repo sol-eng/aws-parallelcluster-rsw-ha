@@ -2,7 +2,7 @@
 # example call: ./script.exp testgroup  
 
 set domain {{domain_name}} 
-set bindpw {{domain_passwd}} 
+set bindpw {{ad_password}} 
 set groupname [lindex \$argv 0]
 
 spawn /usr/local/sbin/adcli create-group -D \$domain \$groupname

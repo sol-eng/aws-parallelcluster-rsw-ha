@@ -12,7 +12,7 @@ do
 		sleep \`echo 2*\$(( \$i % \$N ))/\$N | bc -l\`
                 echo creating user \$username
 		if ( ! id \$username >& /dev/null ); then 
-			expect create-users.exp \$username {{user_password}} >& /dev/null 
+			expect create-users.exp \$username {{user_pass}} >& /dev/null 
 		fi
 		sleep 5 
 		if ( echo {{user_pass}} | pamtester login \$username authenticate ); then  
