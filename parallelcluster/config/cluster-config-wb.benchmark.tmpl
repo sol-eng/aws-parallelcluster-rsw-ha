@@ -53,6 +53,26 @@ Scheduling:
         SubnetIds:
           - SUBNETID
 
+    - Name: interactive 
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: c5.24xlarge 
+          MaxCount: 53 
+          MinCount: 0
+          Efa:
+            Enabled: FALSE
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
 LoginNodes:
   Pools:
     - Name: login
@@ -88,7 +108,7 @@ SharedStorage:
 DirectoryService:
   DomainName: pwb.posit.co
   DomainAddr: ldap://pwb.posit.co
-  PasswordSecretArn: DOMAINPWSecret 
+  PasswordSecretArn: ADPWSecret 
   DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
   GenerateSshKeysForUsers: true
   AdditionalSssdConfigs: 
