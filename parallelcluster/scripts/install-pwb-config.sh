@@ -23,16 +23,6 @@ SHARED_DATA="/home/rstudio/shared-storage"
 # Label this node as head-node so we can detect it later
 touch /etc/head-node
 
-if (BENCHMARK_SUPPORT); then 
-    # sync /usr/lib/rstudio-server into /opt/rstudio and link it back to original location
-    # so that an upgrade to workbench automatically updates files in /opt/rstudio 
-    # the idea is to then symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server 
-    # on all other nodes (login as well as compute nodes)
-    rsync -a /usr/lib/rstudio-server /opt/rstudio
-    rm -rf /usr/lib/rstudio-server
-    ln -s /opt/rstudio/rstudio-server /usr/lib 
-fi
-
 # Add SLURM integration 
 
 # wait until ELB is available and then set this to make sure workbench jobs are working
@@ -284,6 +274,26 @@ mem-mb=14386
 
 EOF
 
+if (BENCHMARK_SUPPORT); then 
+cat > $PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf<<EOF
+[small]
+name = "Small (1 cpu, 1 GB mem)"
+cpus=1
+mem-mb=968
+
+EOF
+
+cat > $PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf<<EOF
+[small]
+name = "Small (1 cpu, 1 GB mem)"
+cpus=1
+mem-mb=968
+
+EOF
+fi
+
+
+
 cat > $PWB_CONFIG_DIR/jupyter.conf << EOF
 jupyter-exe=/usr/local/bin/jupyter
 notebooks-enabled=1
@@ -361,11 +371,6 @@ if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
     # we are on a login node and need to start the workbench processes 
     # but we need to make sure the config files are all there
     while true ; do if [ -f /opt/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
-    if (BENCHMARK_SUPPORT); then 
-        # symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server 
-        rm -rf /usr/lib/rstudio-server
-        ln -s /opt/rstudio/rstudio-server /usr/lib 
-    fi
     if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
         # systemctl overrides
         for i in server launcher 
