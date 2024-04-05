@@ -1,12 +1,23 @@
 #!/bin/bash
 source globals.sh
 
-for i in install*.sh *.R
+S3_URL="s3://hpc-scripts1234/image/$OS-$OSNUM"
+
+mkdir -p tmp
+cp install*.sh globals.sh *.R tmp
+sed "s#S3_URL#${S3_URL}#" install-image.sh > tmp/install-image.sh
+
+pushd tmp
+for i in install*.sh globals.sh *.R
 do
 aws s3 cp $i $S3_URL/$i
 done
 
-sed "s/XXXAMIXXX/$AMI/" image-config.yaml > image-config-${OSVER}.yaml
+popd
 
-pcluster build-image -c image-config-${OSVER}.yaml -i workbench-${PWB_VERSION//\./-}-$OS-$OSNUM  
+sed "s/XXXAMIXXX/$AMI/" image-config.yaml | \
+    sed "s#S3_URL#${S3_URL}#" > tmp/image-config.yaml 
 
+pcluster build-image -c tmp/image-config.yaml -i workbench-${PWB_VERSION//\./-}-$OS-$OSNUM  
+
+#rm -rf tmp 
