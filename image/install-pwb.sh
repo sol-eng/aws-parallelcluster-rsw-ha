@@ -8,20 +8,25 @@ useradd -s /bin/bash -m --system --gid rstudio-server --uid 900 rstudio-server
 
 # Install software
 
-if ( ! dpkg -l curl >& /dev/null); then 
-apt-get update 
-apt-get install -y curl
+if [ $OS == "ubuntu " ]; then 
+    if ( ! dpkg -l curl >& /dev/null); then 
+    apt-get update 
+    apt-get install -y curl
+    fi
+
+    if ( ! dpkg -l gdebi-core >& /dev/null); then 
+    apt-get update 
+    apt-get install -y gdebi
+    fi
 fi
 
-if ( ! dpkg -l gdebi-core >& /dev/null); then 
-apt-get update 
-apt-get install -y gdebi
+if [ $OS == "ubuntu " ]; then 
+    curl -O https://s3.amazonaws.com/rstudio-ide-build/server/${OS}/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+    gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
+    rm -f rstudio-workbench-${PWB_VERSION}-amd64.deb
+else   
+    yum -y install https://s3.amazonaws.com/rstudio-ide-build/server/rhel${OSNUM}/x86_64/rstudio-workbench-rhel-${PWB_VERSION}-x86_64.rpm
 fi
-
-curl -O https://s3.amazonaws.com/rstudio-ide-build/server/focal/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
-gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
-rm -f rstudio-workbench-${PWB_VERSION}-amd64.deb
-
 
 # Add sample user and groups, make rstudio part of admins and superuseradmin
 
@@ -72,26 +77,3 @@ chmod a+rx /usr/local/rstudio/code-server
 rm -f /etc/rstudio
 
 (crontab -l ; echo "0-59/1 * * * * /opt/rstudio/scripts/rc.pwb")| crontab -
-
-
-## replace launcher with 2.15.x pre-release if not using 2023.12.0 daily
-
-my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
-
-if [[ $my_pwb_version =~ "daily" ]]; then 
-    my_pwb_version=${my_pwb_version/-daily/}
-fi
-
-if [ $my_pwb_version -lt 2023120 ]; then
-    pushd /tmp && \
-    curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.1-5.tar.gz && \
-    tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
-    rm -f launcher-* && popd 
-fi
-
-if [ $my_pwb_version -gt 2024000 ]; then
-    pushd /tmp && \
-    curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.16.0-136.tar.gz && \
-    tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
-    rm -f launcher-* && popd 
-fi

@@ -13,19 +13,26 @@ PYTHON_VERSION_DEFAULT=${@: 1:1}
 echo "PYTHON_VERSION_LIST": $PYTHON_VERSION_LIST
 echo "PYTHON_VERSION_DEFAULT": $PYTHON_VERSION_DEFAULT
 
-if ( ! dpkg -l curl >& /dev/null); then 
-apt-get update 
-apt-get install -y curl
-fi
+if [ $OS == "ubuntu" ]; then 
+  if ( ! dpkg -l curl >& /dev/null); then 
+  apt-get update 
+  apt-get install -y curl
+  fi
 
-if ( ! dpkg -l gdebi-core >& /dev/null); then 
-apt-get update 
-apt-get install -y gdebi
+  if ( ! dpkg -l gdebi-core >& /dev/null); then 
+  apt-get update 
+  apt-get install -y gdebi
+  fi
+else
+  if ( ! rpm -qi epel-release >& /dev/null); then)
+    yum -y install epel-release
+    crb enable
+  fi
 fi
 
 for PYTHON_VERSION in ${PYTHON_VERSION_LIST}
 do
-  curl -O https://cdn.rstudio.com/python/ubuntu-2004/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
+  curl -O https://cdn.rstudio.com/python/ubuntu-$OSNUM/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
   gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
   rm -f python-${PYTHON_VERSION}_1_amd64.deb
 done

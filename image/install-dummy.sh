@@ -7,14 +7,23 @@ usermod -G rstudio-admins,rstudio-superuser-admins rstudio
  
 echo -e "rstudio\nrstudio" | passwd rstudio
 
-apt-get update
-apt install libpam-runtime 
+if ( $OS == "ubuntu" ); then 
+    apt-get update
+    apt install -y libpam-runtime 
+    apt install -y git automake libtool libkrb5-dev libldap2-dev libsasl2-dev net-tools\
+                    make expect sssd realmd krb5-user samba-common packagekit pamtester
+
+    pam-auth-update --enable mkhomedir
+else
+    yum install -y  git automake libtool make expect sssd realmd krb5-devel pamtester \
+                    samba-common cyrus-sasl-devel openldap-devel authconfig
+    authconfig --enablemkhomedir --update
+fi
+
 # automatically create home-directories with directories strictly only accessible by user. 
 #echo "session required	pam_mkhomedir.so skel=/etc/skel umask=0077" >> /etc/pam.d/common-session
 pam-auth-update --enable mkhomedir
 
-apt install -y git automake libtool libkrb5-dev libldap2-dev libsasl2-dev net-tools\
-                make expect sssd realmd krb5-user samba-common packagekit pamtester
 git clone -b 0.9.2 https://gitlab.freedesktop.org/realmd/adcli.git && \
     pushd adcli && \
     ./autogen.sh --disable-doc && \

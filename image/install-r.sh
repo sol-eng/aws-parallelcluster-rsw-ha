@@ -14,29 +14,47 @@ R_VERSION_DEFAULT=${@: 1:1}
 echo "R_VERSION_LIST": $R_VERSION_LIST
 echo "R_VERSION_DEFAULT": $R_VERSION_DEFAULT
 
-# Remove OS provided R 
-apt remove -y r-base r-base-core r-base-dev r-base-html r-doc-html
+if [ $OS == "ubuntu" ]; then
+  # Remove OS provided R 
+  apt remove -y r-base r-base-core r-base-dev r-base-html r-doc-html
 
-if ( ! dpkg -l curl >& /dev/null); then 
-apt-get update 
-apt-get install -y curl
-fi
+  if ( ! dpkg -l curl >& /dev/null); then 
+  apt-get update 
+  apt-get install -y curl
+  fi
 
-if ( ! dpkg -l gdebi-core >& /dev/null); then 
-apt-get update 
-apt-get install -y gdebi-core
-fi
+  if ( ! dpkg -l gdebi-core >& /dev/null); then 
+  apt-get update 
+  apt-get install -y gdebi-core
+  fi
 
-if ( ! dpkg -l openjdk-11-jdk >& /dev/null); then
-apt-get update
-apt-get install -y openjdk-11-jdk
+  if ( ! dpkg -l openjdk-11-jdk >& /dev/null); then
+  apt-get update
+  apt-get install -y openjdk-11-jdk
+  fi
+else 
+  if ( ! rpm -qi epel-release >& /dev/null); then)
+    yum -y install epel-release
+    crb enable
+  fi
+  if ( ! rpm -qi java-11-openjdk-devel >& /dev/null); then)
+    yum -y install java-11-openjdk-devel
+  fi
 fi
 
 for R_VERSION in $R_VERSION_LIST
 do
-  curl -O https://cdn.rstudio.com/r/ubuntu-2004/pkgs/r-${R_VERSION}_1_amd64.deb
-  gdebi -n r-${R_VERSION}_1_amd64.deb
-  rm -f r-${R_VERSION}_1_amd64.deb
+  if [ $OS == "ubuntu" ]; then
+    curl -O https://cdn.rstudio.com/r/ubuntu-$OSNUM/pkgs/r-${R_VERSION}_1_amd64.deb
+    gdebi -n r-${R_VERSION}_1_amd64.deb
+    rm -f r-${R_VERSION}_1_amd64.deb
+  else
+    if [ $OSNUM == "8" ]; then 
+      URL=https://cdn.rstudio.com/r/centos-$OSNUM/pkgs/R-${R_VERSION}-1-1.x86_64.rpm
+    else
+      URL=https://cdn.rstudio.com/r/rhel-$OSNUM/pkgs/R-${R_VERSION}-1-1.x86_64.rpm
+    fi
+    yum -y install $URL
 done
 
 # Configure R versions to have 
@@ -53,9 +71,13 @@ PATH_NOW=$PATH
 for R_VERSION in $R_VERSION_LIST
 do
   export PATH=/opt/R/${R_VERSION}/bin:$PATH
-  /opt/R/${R_VERSION}/bin/Rscript /tmp/run.R && \
-	JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/ \
-	  /opt/R/${R_VERSION}/bin/R CMD javareconf 
+  /opt/R/${R_VERSION}/bin/Rscript /tmp/run.R 
+	if ( $OS == "ubuntu" ); then 
+    export JAVA_HOME=/jvm/java-11-openjdk-amd64/ 
+  else
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk/
+  fi
+	/opt/R/${R_VERSION}/bin/R CMD javareconf 
 done
 
 # Defining system default version
@@ -106,22 +128,5 @@ cat > /etc/skel/slurm.tmpl << EOF
 
 export OMP_NUM_THREADS={{ cores | 1 }}
 CMQ_AUTH={{ auth }} \${R_HOME}/bin/R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
-EOF
-
-# git clone course material
-cd /tmp
-git clone https://github.com/luwidmer/fastR-website.git
-cd fastR-website/
-git checkout 8799116e06d943e605216eb689662486e70eaa53
-cd "materials/2023-09-03 CEN 2023"
-mkdir -p /usr/local/course-material
-cp -Rf * /usr/local/course-material
-
-# deploy it when user logs in the first time 
-cat >> /etc/skel/.profile << EOF
-# set PATH so it includes user's private bin if it exists
-if [ ! -d "\$HOME/course-material" ] ; then
-    cp -Rf /usr/local/course-material \$HOME
-fi
 EOF
 

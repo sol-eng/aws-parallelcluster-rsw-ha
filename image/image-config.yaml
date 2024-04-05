@@ -1,6 +1,6 @@
 Build:
   InstanceType: t2.2xlarge 
-  ParentImage: ami-08031206a0ff5a6ac 
+  ParentImage: XXXAMIXXX
   UpdateOsPackages:
     Enabled: true
   Iam:
