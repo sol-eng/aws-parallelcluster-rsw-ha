@@ -1,5 +1,6 @@
 #!/bin/bash
 
+aws s3 cp S3_URL/globals.sh /tmp
 source globals.sh 
 
 R_VERSION_LIST="4.3.3 4.2.3 4.1.3 4.0.5"
@@ -16,9 +17,11 @@ APPTAINER_VERSION="1.3.0"
 function setup_something() {
 # $1 - script to be run
 # $2 - parameters
-aws s3 cp $S3_URL/$1 /tmp
+aws s3 cp S3_URL/$1 /tmp
+pushd /tmp
 bash /tmp/$1 ${@: 2:$#-1}
 rm -f /tmp/$1
+popd
 }
 
 # Fill package cache 

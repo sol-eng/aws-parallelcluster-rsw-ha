@@ -7,7 +7,7 @@ usermod -G rstudio-admins,rstudio-superuser-admins rstudio
  
 echo -e "rstudio\nrstudio" | passwd rstudio
 
-if ( $OS == "ubuntu" ); then 
+if ( $OS=="ubuntu" ); then 
     apt-get update
     apt install -y libpam-runtime 
     apt install -y git automake libtool libkrb5-dev libldap2-dev libsasl2-dev net-tools\

@@ -8,4 +8,4 @@ Build:
       - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
   Components:
     - Type: script
-      Value: s3://hpc-scripts1234/image/install-image.sh
+      Value: S3_URL/install-image.sh

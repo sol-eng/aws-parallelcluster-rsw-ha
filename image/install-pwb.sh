@@ -8,7 +8,7 @@ useradd -s /bin/bash -m --system --gid rstudio-server --uid 900 rstudio-server
 
 # Install software
 
-if [ $OS == "ubuntu " ]; then 
+if [ $OS=="ubuntu" ]; then 
     if ( ! dpkg -l curl >& /dev/null); then 
     apt-get update 
     apt-get install -y curl
@@ -20,7 +20,7 @@ if [ $OS == "ubuntu " ]; then
     fi
 fi
 
-if [ $OS == "ubuntu " ]; then 
+if [ $OS=="ubuntu" ]; then 
     curl -O https://s3.amazonaws.com/rstudio-ide-build/server/${OS}/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
     gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
     rm -f rstudio-workbench-${PWB_VERSION}-amd64.deb

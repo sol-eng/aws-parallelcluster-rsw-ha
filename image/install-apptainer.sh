@@ -3,7 +3,7 @@ source globals.sh
 
 APPTAINER_VER=$1
 
-if [ $OS == "ubuntu" ]; then 
+if [ $OS=="ubuntu" ]; then 
         if ( ! dpkg -l curl >& /dev/null); then 
         apt-get update 
         apt-get install -y curl
@@ -21,7 +21,7 @@ if [ $OS == "ubuntu" ]; then
                 rm -f ${name}_${APPTAINER_VER}_amd64.deb*
         done
 else
-        if ( ! rpm -qi epel-release >& /dev/null); then)
+        if ( ! rpm -qi epel-release >& /dev/null ); then
                 yum -y install epel-release
                 crb-enable
         fi

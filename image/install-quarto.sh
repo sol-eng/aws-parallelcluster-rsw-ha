@@ -2,10 +2,13 @@
 
 # cf. 
 
-if ( ! dpkg -l curl >& /dev/null); then
-apt-get update
-apt-get install -y curl
-fi
+if [ $os=="ubuntu" ]; then
+    if ( ! dpkg -l curl >& /dev/null); then
+    apt-get update
+    apt-get install -y curl
+    fi
+else
+
 
 QUARTO_VERSION=$1
 

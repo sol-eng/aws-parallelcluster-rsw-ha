@@ -13,7 +13,7 @@ PYTHON_VERSION_DEFAULT=${@: 1:1}
 echo "PYTHON_VERSION_LIST": $PYTHON_VERSION_LIST
 echo "PYTHON_VERSION_DEFAULT": $PYTHON_VERSION_DEFAULT
 
-if [ $OS == "ubuntu" ]; then 
+if [ $OS=="ubuntu" ]; then 
   if ( ! dpkg -l curl >& /dev/null); then 
   apt-get update 
   apt-get install -y curl
@@ -32,9 +32,17 @@ fi
 
 for PYTHON_VERSION in ${PYTHON_VERSION_LIST}
 do
-  curl -O https://cdn.rstudio.com/python/ubuntu-$OSNUM/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
-  gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
-  rm -f python-${PYTHON_VERSION}_1_amd64.deb
+  if [ $OS=="ubuntu" ]; then 
+    curl -O https://cdn.rstudio.com/python/ubuntu-$OSNUM/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
+    gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
+    rm -f python-${PYTHON_VERSION}_1_amd64.deb
+  else
+    if [ $OSNUM=="8" ]; then 
+      URL=https://cdn.rstudio.com/python/centos-$OSNUM/pkgs/python-${PYTHON_VERSION}-1-1.x86_64.rpm
+    else
+      URL=https://cdn.rstudio.com/python/rhel-$OSNUM/pkgs/python-${PYTHON_VERSION}-1-1.x86_64.rpm
+    fi
+    yum -y install $URL
 done
 
 # Configure Python versions to have 

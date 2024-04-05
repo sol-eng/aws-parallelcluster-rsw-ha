@@ -14,7 +14,7 @@ R_VERSION_DEFAULT=${@: 1:1}
 echo "R_VERSION_LIST": $R_VERSION_LIST
 echo "R_VERSION_DEFAULT": $R_VERSION_DEFAULT
 
-if [ $OS == "ubuntu" ]; then
+if [ $OS=="ubuntu" ]; then
   # Remove OS provided R 
   apt remove -y r-base r-base-core r-base-dev r-base-html r-doc-html
 
@@ -44,12 +44,12 @@ fi
 
 for R_VERSION in $R_VERSION_LIST
 do
-  if [ $OS == "ubuntu" ]; then
+  if [ $OS=="ubuntu" ]; then
     curl -O https://cdn.rstudio.com/r/ubuntu-$OSNUM/pkgs/r-${R_VERSION}_1_amd64.deb
     gdebi -n r-${R_VERSION}_1_amd64.deb
     rm -f r-${R_VERSION}_1_amd64.deb
   else
-    if [ $OSNUM == "8" ]; then 
+    if [ $OSNUM=="8" ]; then 
       URL=https://cdn.rstudio.com/r/centos-$OSNUM/pkgs/R-${R_VERSION}-1-1.x86_64.rpm
     else
       URL=https://cdn.rstudio.com/r/rhel-$OSNUM/pkgs/R-${R_VERSION}-1-1.x86_64.rpm
@@ -72,7 +72,7 @@ for R_VERSION in $R_VERSION_LIST
 do
   export PATH=/opt/R/${R_VERSION}/bin:$PATH
   /opt/R/${R_VERSION}/bin/Rscript /tmp/run.R 
-	if ( $OS == "ubuntu" ); then 
+	if ( $OS=="ubuntu" ); then 
     export JAVA_HOME=/jvm/java-11-openjdk-amd64/ 
   else
     export JAVA_HOME=/usr/lib/jvm/java-11-openjdk/
