@@ -127,6 +127,9 @@ www-thread-pool-size=8
 # multiple launchers
 launcher-sessions-clusters=slurminteractive
 launcher-adhoc-clusters=slurmbatch
+
+# performance optimisations
+rsession-proxy-max-wait-secs=30
 EOF
 
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
