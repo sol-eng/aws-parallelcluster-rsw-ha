@@ -244,7 +244,7 @@ allowed-partitions=all
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf<<EOF
-# memory limits calculated based on 90% of total t2.xlarge memory
+# memory limits calculated based on 90% of total t3.xlarge memory
 [small]
 name = "Small (1 cpu, 1 GB mem)"
 cpus=1
@@ -261,7 +261,7 @@ mem-mb=7746
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf<<EOF
-# memory limits calculated based on 90% of total t2.xlarge memory
+# memory limits calculated based on 90% of total t3.xlarge memory
 [small]
 name = "Small (1 cpu, 4 GB mem)"
 cpus=1
