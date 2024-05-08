@@ -277,7 +277,7 @@ The default value in the cluster template `config/cluster-config-wb.tmpl`\` are 
 
 -   One Head Node
 
-    -   Instance `t2.xlarge`
+    -   Instance `t3.xlarge`
 
     -   100 GB of local EBS storage
 
@@ -289,7 +289,7 @@ The default value in the cluster template `config/cluster-config-wb.tmpl`\` are 
 
     -   Partition `all`
 
-        -   Instance `t2.xlarge`
+        -   Instance `t3.xlarge`
 
         -   minimum/maximum number of instances: 1/10
 
@@ -301,7 +301,7 @@ The default value in the cluster template `config/cluster-config-wb.tmpl`\` are 
 
 -   2 Login Nodes with
 
-    -   Instance `t2.xlarge`
+    -   Instance `t3.xlarge`
     -   ELB in front
 
 -   Shared storage for `/home` - FsX for Lustre with capacity of 1.2 TB and deployment type `SCRATCH_2`

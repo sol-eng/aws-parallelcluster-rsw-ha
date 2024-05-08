@@ -8,7 +8,7 @@ HeadNode:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       - Policy: ELB_ACCESS
-  InstanceType: t2.xlarge
+  InstanceType: t3.xlarge
   Networking: 
     SubnetId: SUBNETID
     AdditionalSecurityGroups: 
@@ -79,7 +79,7 @@ LoginNodes:
   Pools:
     - Name: login
       Count: 6 
-      InstanceType: t2.xlarge
+      InstanceType: t3.xlarge
       Networking:
         AdditionalSecurityGroups: 
           - SECURITYGROUP_RSW

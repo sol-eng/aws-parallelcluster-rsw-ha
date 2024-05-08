@@ -8,7 +8,7 @@ HeadNode:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       - Policy: ELB_ACCESS
-  InstanceType: t2.xlarge
+  InstanceType: t3.xlarge
   Networking: 
     SubnetId: SUBNETID
     AdditionalSecurityGroups: 
@@ -37,7 +37,7 @@ Scheduling:
     - Name: interactive
       ComputeResources:
         - Name: rstudio 
-          InstanceType: t2.xlarge 
+          InstanceType: t3.xlarge
           MaxCount: 5
           MinCount: 1
           Efa:
@@ -61,7 +61,7 @@ Scheduling:
     - Name: all 
       ComputeResources:
         - Name: rstudio 
-          InstanceType: t2.xlarge 
+          InstanceType: t3.xlarge
           MaxCount: 10
           MinCount: 0
           Efa:
@@ -103,7 +103,7 @@ LoginNodes:
   Pools:
     - Name: login
       Count: 2 
-      InstanceType: t2.xlarge
+      InstanceType: t3.xlarge
       Networking:
         AdditionalSecurityGroups: 
           - SECURITYGROUP_RSW
