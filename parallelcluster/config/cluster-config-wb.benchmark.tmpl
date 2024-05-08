@@ -7,13 +7,16 @@ HeadNode:
       - BucketName: S3_BUCKETNAME
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - Policy: ELB_ACCESS
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: SUBNETID
+    AdditionalSecurityGroups: 
+      - SECURITYGROUP_SSH
   LocalStorage:
     RootVolume:
       Size: 120 
-  InternalSharedStorageType: Efs
+  SharedStorageType: Efs
   Ssh:
     KeyName: KEY 
 Image: 
@@ -23,7 +26,12 @@ Region: REGION
 Scheduling: 
   Scheduler: slurm
   SlurmSettings:
-     EnableMemoryBasedScheduling: true
+    EnableMemoryBasedScheduling: true
+    Database:
+      Uri: SLURM_DB_HOST
+      UserName: SLURM_DB_USER
+      PasswordSecretArn: SLURM_DB_PASS_ARN
+      DatabaseName: SLURM_DB_NAME    
   SlurmQueues: 
     - Name: all 
       ComputeResources:
@@ -45,10 +53,32 @@ Scheduling:
         SubnetIds:
           - SUBNETID
 
+    - Name: interactive 
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: c5.24xlarge 
+          MaxCount: 27 
+          MinCount: 0
+          Efa:
+            Enabled: FALSE
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+      CustomSlurmSettings:
+        OverSubscribe: FORCE:2
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
 LoginNodes:
   Pools:
     - Name: login
-      Count: 4 
+      Count: 6 
       InstanceType: t2.xlarge
       Networking:
         AdditionalSecurityGroups: 
@@ -70,11 +100,17 @@ SharedStorage:
     FsxLustreSettings:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
+  - MountDir: /opt/rstudio
+    Name: rstudio
+    StorageType: Efs
+  - MountDir: /scratch
+    Name: scratch
+    StorageType: Efs
 
 DirectoryService:
   DomainName: pwb.posit.co
   DomainAddr: ldap://pwb.posit.co
-  PasswordSecretArn: DOMAINPWSecret 
+  PasswordSecretArn: ADPWSecret 
   DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
   GenerateSshKeysForUsers: true
   AdditionalSssdConfigs: 
@@ -89,4 +125,6 @@ Tags:
   - Key: rs:owner
     Value: EMAIL 
   - Key: rs:project
-    Value: solutions 
+    Value: solutions
+  - Key: rs:subsystem
+    Value: BILLING_CODE

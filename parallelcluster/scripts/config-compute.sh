@@ -15,3 +15,14 @@ if ( lspci | grep NVIDIA ); then
 fi
 
 echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
+
+if (BENCHMARK_SUPPORT); then 
+   # symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server 
+   rm -rf /usr/lib/rstudio-server
+   ln -s /opt/rstudio/rstudio-server /usr/lib 
+fi
+
+# create scratch folder as part of EFS fs
+mkdir -p /scratch /opt/rstudio/scratch 
+efsmount=`cat /etc/fstab  | grep rstudio | awk '{print $1}'`
+mount ${efsmount}scratch /scratch

@@ -28,7 +28,12 @@ config:
     type: string
     description: Name of Domain to be used for AD 
     default: pwb.posit.co
-  db_username:
+  rsw_db_username:
     type: string
     description: Username for the PostgreSQL db
     default: pwb_db_admin 
+  slurm_db_username:
+    type: string
+    description: Username for the MySQL db
+    default: slurm_db_admin 
+

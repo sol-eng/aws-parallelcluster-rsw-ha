@@ -71,15 +71,27 @@ chmod a+rx /usr/local/rstudio/code-server
 
 rm -f /etc/rstudio
 
-#add crontab entry
-(crontab -l ; echo "0-59/1 * * * * /opt/parallelcluster/shared/rstudio/scripts/rc.pwb")| crontab -
+(crontab -l ; echo "0-59/1 * * * * /opt/rstudio/scripts/rc.pwb")| crontab -
 
 
 ## replace launcher with 2.15.x pre-release if not using 2023.12.0 daily
 
-if [ `rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'` -lt 2023120 ]; then
-    pushd /tmp && \ 
+my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
+
+if [[ $my_pwb_version =~ "daily" ]]; then 
+    my_pwb_version=${my_pwb_version/-daily/}
+fi
+
+if [ $my_pwb_version -lt 2023120 ]; then
+    pushd /tmp && \
     curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.15.1-5.tar.gz && \
+    tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
+    rm -f launcher-* && popd 
+fi
+
+if [ $my_pwb_version -gt 2024000 ]; then
+    pushd /tmp && \
+    curl -O https://cdn.rstudio.com/launcher/releases/bionic/launcher-bionic-amd64-2.16.0-136.tar.gz && \
     tar xvfz launcher-* -C /usr/lib/rstudio-server/bin  --strip-components=1 && \
     rm -f launcher-* && popd 
 fi

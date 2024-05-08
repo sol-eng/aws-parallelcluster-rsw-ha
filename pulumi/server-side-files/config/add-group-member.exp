@@ -2,7 +2,7 @@
 # example call: ./script.exp testgroup testuser 
 
 set domain {{domain_name}} 
-set bindpw {{domain_passwd}} 
+set bindpw {{ad_password}} 
 set groupname [lindex \$argv 0]
 set username [lindex \$argv 1]
 

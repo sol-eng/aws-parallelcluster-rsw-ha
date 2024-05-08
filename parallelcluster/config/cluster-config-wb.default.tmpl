@@ -7,13 +7,16 @@ HeadNode:
       - BucketName: S3_BUCKETNAME
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - Policy: ELB_ACCESS
   InstanceType: t2.xlarge
   Networking: 
     SubnetId: SUBNETID
+    AdditionalSecurityGroups: 
+      - SECURITYGROUP_SSH
   LocalStorage:
     RootVolume:
       Size: 120 
-  InternalSharedStorageType: Efs
+  SharedStorageType: Efs
   Ssh:
     KeyName: KEY 
 Image: 
@@ -23,14 +26,44 @@ Region: REGION
 Scheduling: 
   Scheduler: slurm
   SlurmSettings:
-     EnableMemoryBasedScheduling: true
+    EnableMemoryBasedScheduling: true
+    Database:
+      Uri: SLURM_DB_HOST
+      UserName: SLURM_DB_USER
+      PasswordSecretArn: SLURM_DB_PASS_ARN
+      DatabaseName: SLURM_DB_NAME    
   SlurmQueues: 
+
+    - Name: interactive
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: t2.xlarge 
+          MaxCount: 5
+          MinCount: 1
+          Efa:
+            Enabled: FALSE
+      CustomSlurmSettings:
+        OverSubscribe: FORCE:2
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+      CustomSlurmSettings:
+        OverSubscribe: FORCE
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
     - Name: all 
       ComputeResources:
         - Name: rstudio 
           InstanceType: t2.xlarge 
           MaxCount: 10
-          MinCount: 1
+          MinCount: 0
           Efa:
             Enabled: FALSE
       CustomActions:
@@ -81,8 +114,8 @@ LoginNodes:
 
 DevSettings:
   Timeouts:
-    HeadNodeBootstrapTimeout: 5400  # timeout in seconds
-    ComputeNodeBootstrapTimeout: 5400  # timeout in seconds
+    HeadNodeBootstrapTimeout: 7200  # timeout in seconds
+    ComputeNodeBootstrapTimeout: 7200  # timeout in seconds
 
 SharedStorage:
   - MountDir: /home
@@ -91,11 +124,14 @@ SharedStorage:
     FsxLustreSettings:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
+  - MountDir: /opt/rstudio
+    Name: rstudio
+    StorageType: Efs
 
 DirectoryService:
   DomainName: pwb.posit.co
   DomainAddr: ldap://pwb.posit.co
-  PasswordSecretArn: DOMAINPWSecret 
+  PasswordSecretArn: ADPWSecret 
   DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
   GenerateSshKeysForUsers: true
   AdditionalSssdConfigs: 
@@ -110,4 +146,6 @@ Tags:
   - Key: rs:owner
     Value: EMAIL 
   - Key: rs:project
-    Value: solutions 
+    Value: solutions
+  - Key: rs:subsystem
+    Value: BILLING_CODE
