@@ -1,5 +1,5 @@
 Build:
-  InstanceType: t2.2xlarge 
+  InstanceType: p2.xlarge 
   ParentImage: ami-08031206a0ff5a6ac 
   UpdateOsPackages:
     Enabled: true
@@ -9,3 +9,9 @@ Build:
   Components:
     - Type: script
       Value: s3://hpc-scripts1234/image/install-image.sh
+  Imds:
+    ImdsSupport: v2.0
+DevSettings:
+  Cookbook:
+    ExtraChefAttributes: |
+      {"cluster": {"nvidia": {"enabled": true, "driver_version": "550.54.15", "kernel_open": true }}}
