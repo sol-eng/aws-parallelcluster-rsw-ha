@@ -1,16 +1,5 @@
 set shell := ["bash"]
 
-key-pair-new:
-    just key-pair-new-script
-    chmod 400 key.pem
-    cat key.pem.pub | pulumi config set public_key
-
-key-pair-delete:
-    rm -f key.pem key.pem.pub
-
-key-pair-new-script:
-   echo "" | ssh-keygen -t rsa -f key.pem
-
 create-users num="10":
     #!/bin/bash
     ssh \
@@ -24,7 +13,18 @@ create-secrets:
     export email=`pulumi config get email`
     export keyname="${email}-keypair-for-pulumi"
     aws ec2 describe-key-pairs --key-names=$keyname
-    if [ $? -ne 0 ]; then aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem ; fi
+    if [ $? -ne 0 ]; then 
+        aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem
+        chmod 0600 ${keyname}.pem
+    else
+        echo $keyname already exists in your AWS account.  
+        if [ ! -f ${keyname}.pem ]; then 
+            echo Please copy ${keyname}.pem into this folder to ensure full functionality of pulumi. 
+        fi
+    fi
+    if [ ! -f ${keyname}.pub ]; then 
+        ssh-keygen -y -f ${keyname}.pem > ${keyname}.pub
+    fi
 
 up: 
     pulumi up -y
