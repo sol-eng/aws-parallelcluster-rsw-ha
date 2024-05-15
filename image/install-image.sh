@@ -1,17 +1,16 @@
 #!/bin/bash
 
-R_VERSION_LIST="4.3.2 4.2.3 4.1.3 4.0.5"
-R_VERSION_DEFAULT=4.3.2
+R_VERSION_LIST="4.4.0 4.3.3 4.2.3 4.1.3 4.0.5"
+R_VERSION_DEFAULT=4.4.0
 
-PYTHON_VERSION_LIST="3.11.6 3.10.13 3.9.18"
-PYTHON_VERSION_DEFAULT=3.11.6
+PYTHON_VERSION_LIST="3.11.9 3.10.14 3.9.19"
+PYTHON_VERSION_DEFAULT=3.11.9
 
-QUARTO_VERSION=1.4.449
+QUARTO_VERSION=1.4.455
 
-PWB_VERSION=2023.09.1-494.pro2
-#PWB_VERSION=2023.12.0-daily-322.pro4
+PWB_VERSION=2024.04.1-748.pro2
 
-APPTAINER_VERSION="1.2.5"
+APPTAINER_VERSION="1.3.1"
 
 
 function setup_something() {
@@ -31,7 +30,6 @@ apt-get upgrade -y
 systemctl stop apparmor && systemctl disable apparmor
 
 # Setup LDAP auth
-#setup_something setup-sssd.sh
 setup_something install-dummy.sh
 
 # Install R version(s)
