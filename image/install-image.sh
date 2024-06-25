@@ -10,6 +10,9 @@ QUARTO_VERSION=1.6.34
 
 APPTAINER_VERSION="1.3.5"
 
+QUARTO_VERSION=1.4.555
+
+PWB_VERSION=2024.04.2-764.pro1
 
 function setup_something() {
 # $1 - script to be run
