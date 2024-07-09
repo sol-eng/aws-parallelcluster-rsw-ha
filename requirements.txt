@@ -55,7 +55,7 @@ aws-parallelcluster==3.9.1
 boto3==1.34.105
 botocore==1.34.105
 cattrs==23.1.2
-certifi==2024.2.2
+certifi==2024.7.4
 charset-normalizer==3.3.2
 click==8.1.7
 clickclick==20.10.2
