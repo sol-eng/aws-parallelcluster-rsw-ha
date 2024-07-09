@@ -78,7 +78,7 @@ publication==0.0.3
 python-dateutil==2.9.0.post0
 pyyaml==6.0.1
 referencing==0.35.1
-requests==2.31.0
+requests==2.32.2
 rpds-py==0.18.1
 s3transfer==0.10.1
 setuptools==69.5.1
