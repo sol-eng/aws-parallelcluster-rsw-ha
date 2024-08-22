@@ -12,6 +12,8 @@ if ( lspci | grep NVIDIA ); then
    rmmod gdrdrv
    rmmod nvidia
    modprobe nvidia
+   apt clean
+   apt install -y nvidia-dkms-560 nvidia-kernel-source-560
 fi
 
 echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
@@ -25,4 +27,13 @@ fi
 # create scratch folder as part of EFS fs
 mkdir -p /scratch /opt/rstudio/scratch 
 efsmount=`cat /etc/fstab  | grep rstudio | awk '{print $1}'`
-mount ${efsmount}scratch /scratch
+#mount ${efsmount}scratch /scratch
+
+if (EASYBUILD_SUPPORT); then 
+    apt-get update && apt-get install -y lmod 
+    cat << EOF > /etc/profile.d/modulepath.sh
+#!/bin/bash
+
+export MODULEPATH=/opt/apps/easybuild/modules/all
+EOF
+fi  
