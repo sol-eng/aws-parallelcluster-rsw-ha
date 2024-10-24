@@ -1,28 +1,30 @@
 #!/bin/bash
 
-CLUSTERNAME="benchmark"
-SECURITYGROUP_RSW="sg-09ca531e5331195f1"
-AMI="ami-0fbfbe3c206a631d2"
-REGION="eu-west-1"
+CLUSTERNAME="ide-team"
+SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
+AMI="ami-07dab254a15f31131"
+REGION="us-west-2"
 SINGULARITY_SUPPORT=false
 BENCHMARK_SUPPORT=true
-CONFIG="benchmark"
+CONFIG="sjctestconfig"
+SUBNETID='subnet-09b6f37b84b847fe8'
 
 echo "Extracting values from pulumi setup"
-SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $CLUSTERNAME` 
+#SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $CLUSTERNAME`
 KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $CLUSTERNAME`
-DOMAINPWSecret=` cd ../pulumi && pulumi stack output "domain_password_arn" -s $CLUSTERNAME `
+DOMAINPWSecret=` cd ../pulumi && pulumi stack output "ad_password_arn" -s $CLUSTERNAME `
+echo $DOMAINPWSecret
 CERT="${KEY}.pem"
 EMAIL=`echo $KEY | cut -d "-" -f 1`
 AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $CLUSTERNAME`
 RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $CLUSTERNAME`
 RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $CLUSTERNAME`
-RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $CLUSTERNAME`
+RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $CLUSTERNAME --show-secrets`
 SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $CLUSTERNAME`
 SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $CLUSTERNAME`
 SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $CLUSTERNAME`
 SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $CLUSTERNAME`
-SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLUSTERNAME`
+SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLUSTERNAME --show-secrets | jq ".id" | tr -d \"`
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $CLUSTERNAME`
 ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $CLUSTERNAME`
 S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $CLUSTERNAME`

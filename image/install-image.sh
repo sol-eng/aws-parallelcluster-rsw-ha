@@ -16,7 +16,7 @@ APPTAINER_VERSION="1.3.1"
 function setup_something() {
 # $1 - script to be run
 # $2 - parameters
-aws s3 cp s3://hpc-scripts1234/image/$1 /tmp
+aws s3 cp s3://hpc-scripts-ide-team-556a5ad/image/$1 /tmp
 bash /tmp/$1 ${@: 2:$#-1}
 rm -f /tmp/$1
 }

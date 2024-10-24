@@ -208,7 +208,7 @@ def main():
     # --------------------------------------------------------------------------
     # Make security groups
     # --------------------------------------------------------------------------
-
+    #TODO: Create Workbench security group
     rsw_security_group_db = ec2.SecurityGroup(
         "postgres",
         description="Security group for PostgreSQL access",
@@ -353,6 +353,8 @@ def main():
         ami=config.ami,
         key_name=key_pair.key_name
     )
+
+    pulumi.export("vpc_subnet2", vpc.private_subnet_ids.apply(lambda ids: ids[0]))
 
     pulumi.export("jump_host_dns", jump_host.public_dns)
 
