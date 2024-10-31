@@ -12,16 +12,27 @@ SHARED_DIR=/opt
 
 PWB_BASE_DIR=$SHARED_DIR/rstudio/
 
-PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
+PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio.tmpl
 
-mkdir -p $PWB_BASE_DIR/{etc/rstudio,scripts,apptainer}
+mkdir -p $PWB_BASE_DIR/{scripts,apptainer}
+
+mkdir -p $PWB_CONFIG_DIR
 
 mkdir -p /home/rstudio/shared-storage
 
 SHARED_DATA="/home/rstudio/shared-storage"
 
+PWB_VERSION=$1
+
 # Label this node as head-node so we can detect it later
 touch /etc/head-node
+
+# Download session components and store them in $PWB_BASE_DIR/scripts
+
+pushd $PWB_BASE_DIR/scripts
+curl -O https://s3.amazonaws.com/rstudio-ide-build/session/focal/amd64/rsp-session-focal-${PWB_VERSION}-amd64.tar.gz
+curl -O https://s3.amazonaws.com/rstudio-ide-build/server/focal/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+popd
 
 # Add SLURM integration 
 
@@ -30,32 +41,58 @@ touch /etc/head-node
 export AWS_DEFAULT_REGION=`cat /opt/parallelcluster/shared/cluster-config.yaml  | grep ^Region | awk '{print $2}'`
 cluster_name=`cat /opt/parallelcluster/shared/cluster-config.yaml | awk '/.*cluster.name/{getline; print}' | awk '{print $2}'`
 
-function find_elb_url() {
-    elb=""
-    while true
-        do
-            elb=`cluster_name=$1; for i in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[].LoadBalancerArn'); do if ( aws elbv2 describe-tags --resource-arns "\$i" | jq --arg cluster_name "$1" -ce '.TagDescriptions[].Tags[] | select( .Key == "parallelcluster:cluster-name" and .Value==$cluster_name)' > /dev/null); then echo $i; fi; done `
-            if [ ! -z $elb ]; then break; fi
-            sleep 2
+#First, let's get the ELB ARN
+elb=""
+while true
+do
+        elb=`for i in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[].LoadBalancerArn'); do if ( aws elbv2 describe-tags --resource-arns "\$i" | jq --arg cluster_name "$cluster_name" -ce '.TagDescriptions[].Tags[] | select( .Key == "parallelcluster:cluster-name" and .Value==$cluster_name)' > /dev/null); then echo $i; fi; done `
+        if [ ! -z $elb ]; then break; fi
+        sleep 2
+done
+
+# ELB URL 
+elb_url=`aws elbv2 describe-load-balancers --load-balancer-arns=$elb | jq -r '.[] | .[] | .DNSName'`
+
+# Targer Group ARN
+target_arn=`aws elbv2 describe-target-groups --load-balancer-arn=$elb --query TargetGroups[].TargetGroupArn | jq -r '.[]'`
+
+# EC2 IDs attached to Target Group 
+ec2_ids=""
+while true
+do
+        ec2_ids=`aws elbv2 describe-target-health --target-group-arn $target_arn --query 'TargetHealthDescriptions[*].Target.Id' | jq -r '.[]'`
+        nr_ids=`set -- $ec2_ids && echo $#`
+        if [ $nr_ids == "2" ]; then break; fi
+        sleep 2
+done
+
+# Resolve EC2 IDs into ip addresses and add them as HPC_DOMAIN hostnames into nodes file 
+ctr=0
+echo "#---do not modify below ---" > $PWB_CONFIG_DIR/nodes
+for i in $ec2_ids; 
+        do 
+                ctr=$(($ctr+1))
+                ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
+                echo "$ip node${ctr}.HPC_DOMAIN" >> $PWB_CONFIG_DIR/nodes
         done
-    aws elbv2 describe-load-balancers --load-balancer-arns=$elb | jq -r '.[] | .[] | .DNSName'
-}
 
-elb_url=$(find_elb_url $cluster_name)
+# Append nodes file to /etc/hosts
+cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
 
 
-# generate launcher ssl keys
-openssl genpkey -algorithm RSA \
-            -out $PWB_CONFIG_DIR/launcher.pem \
-            -pkeyopt rsa_keygen_bits:2048 && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pem && \
-    chmod 0600 $PWB_CONFIG_DIR/launcher.pem
 
-openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
-            -pubout > $PWB_CONFIG_DIR/launcher.pub && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pub
+# # generate launcher ssl keys
+# openssl genpkey -algorithm RSA \
+#             -out $PWB_CONFIG_DIR/launcher.pem \
+#             -pkeyopt rsa_keygen_bits:2048 && \
+#     chown rstudio-server:rstudio-server \
+#             $PWB_CONFIG_DIR/launcher.pem && \
+#     chmod 0600 $PWB_CONFIG_DIR/launcher.pem
+
+# openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
+#             -pubout > $PWB_CONFIG_DIR/launcher.pub && \
+#     chown rstudio-server:rstudio-server \
+#             $PWB_CONFIG_DIR/launcher.pub
 
 
 # generate secure-cookie-key as a simple UUID
@@ -132,23 +169,48 @@ launcher-adhoc-clusters=slurmbatch
 rsession-proxy-max-wait-secs=30
 EOF
 
+if (SSL_SUPPORT); then 
+        cat << EOF >> $PWB_CONFIG_DIR/rserver.conf
+
+# SSL Certificate
+ssl-enabled=1
+ssl-certificate=$PWB_BASE_DIR/etc/ssl.crt
+ssl-certificate-key=$PWB_BASE_DIR/etc/ssl.key  
+EOF
+
+        aws s3 cp s3://S3_BUCKETNAME/ssl.crt $PWB_BASE_DIR/etc
+        aws s3 cp s3://S3_BUCKETNAME/ssl.key $PWB_BASE_DIR/etc
+fi
+
+if (EASYBUILD_SUPPORT); then 
+
+    # get rid of modules.sh (left-over from environment-modules)
+    rm -rf /etc/profile.d/modules.sh 
+    
+    #disable r-versions-scan
+    sed -i 's/#r-versions-scan=.*/r-versions-scan=0/' $PWB_CONFIG_DIR/rserver.conf
+    
+    # add modules-bin-path
+    echo "modules-bin-path=$PWB_CONFIG_DIR/modules.sh" >> $PWB_CONFIG_DIR/rserver.conf
+
+    # create wrapper script to be used as modules-bin-path
+    cat << EOF > $PWB_CONFIG_DIR/modules.sh
+#!/bin/bash
+. /usr/share/lmod/lmod/init/sh
+export MODULEPATH=/opt/apps/easybuild/modules/all
+EOF
+
+    # add entries for each version to r-versions 
+    for i in 4.0.5 4.1.2 4.2.1
+    do
+        echo "Module: R/$i-foss-2022a" >> $PWB_CONFIG_DIR/r-versions
+        echo "Label: EasyBuild R $i" >> $PWB_CONFIG_DIR/r-versions
+        echo "" >> $PWB_CONFIG_DIR/r-versions
+   done
+fi
+
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
 chown -R rstudio-server $SHARED_DATA/head-node/
-
-
-# Add stuff for increased performance 
-export pwb_version=`rstudio-server version | cut -d "-" -f 1 | sed 's/\.//g'`
-if [ $pwb_version -ge 2023120 ]; then 
-        cat > $PWB_CONFIG_DIR/nginx.worker.conf << EOF
-worker_processes 1;
-
-worker_rlimit_nofile 8192;
-
-events {
-    worker_connections  4096;
-}
-EOF
-fi
 
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
 [server]
@@ -184,7 +246,7 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
-gpu-types=v100
+gpu-types=a10g
 
 # User/group and resource profiles
 profile-config=$PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf
@@ -225,7 +287,7 @@ fi
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF 
 [*]
-allowed-partitions=interactive
+allowed-partitions=interactive,gpu
 #singularity-image-directory=${PWB_BASE_DIR}/apptainer
 #default-mem-mb=512
 #default-cpus=4
@@ -235,7 +297,7 @@ EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf<<EOF 
 [*]
-allowed-partitions=all
+allowed-partitions=all,gpu
 #singularity-image-directory=${PWB_BASE_DIR}/apptainer
 #default-mem-mb=512
 #default-cpus=4
@@ -353,85 +415,37 @@ EOF
 mkdir -p $SHARED_DATA/crash-dumps
 chmod 777 $SHARED_DATA/crash-dumps
 
+
+aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
+chmod +x $PWB_BASE_DIR/scripts/config-login.sh
+
 cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb 
 #!/bin/bash
 
 set -x 
 
-exec > /var/log/rc.pwb.log
+exec >> /var/log/rc.pwb.log
 exec 2>&1
 
-# Add stuff for increased performance 
-export pwb_version=\`rstudio-server version | cut -d "-" -f 1 | sed 's/\.//g'\`
+if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then 
+        # yay - we are on a login node 
+        if [ ! -f /etc/login-node-is-setup ]; then
+                #  we have not set up workbench so let's do it
+                touch /etc/login-node-is-setup
+                $PWB_BASE_DIR/scripts/config-login.sh $PWB_CONFIG_DIR $PWB_VERSION
+        fi
 
-if [ \$pwb_version -lt 2023120 ] && \
-        !( grep "worker_rlimit_nofile 4096" /usr/lib/rstudio-server/conf/rserver-http.conf >& /dev/null); then 
-        sed -i 's/worker_connections.*/worker_connections   2048;/' /usr/lib/rstudio-server/conf/rserver-http.conf
-        sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
+        if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then 
+                # Something wants us to restart so let's do it
+                systemctl stop rstudio-server 
+                systemctl stop rstudio-launcher
+                killall apache2
+                rm -rf /var/log/rstudio
+                systemctl start rstudio-launcher
+                systemctl start rstudio-server 
+                touch /opt/rstudio/workbench-\`hostname\`.state
+        fi
 fi
-
-if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
-    # we are on a login node and need to start the workbench processes 
-    # but we need to make sure the config files are all there
-    while true ; do if [ -f /opt/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
-    if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
-        # systemctl overrides
-        for i in server launcher 
-        do 
-            mkdir -p /etc/systemd/system/rstudio-\$i.service.d
-            echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=/opt/rstudio/etc/rstudio\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
-        done
-        # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
-
-        # scalability
-        sysctl -w net.unix.max_dgram_qlen=8192
-        sysctl -w net.core.netdev_max_backlog=65535 
-
-        systemctl daemon-reload
-        systemctl enable rstudio-server
-        systemctl enable rstudio-launcher
-        #rm -f /var/lib/rstudio-server/secure-cookie-key
-        #rm -f /opt/rstudio/etc/rstudio/launcher.pub
-        #rm -f /opt/rstudio/etc/rstudio/launcher.pem
-        systemctl start rstudio-launcher
-        systemctl start rstudio-server
-        #rm -f /var/lib/rstudio-server/secure-cookie-key
-        #systemctl restart rstudio-server 
-        # Touch a file in /opt/rstudio to signal that workbench is running on this server
-        touch /opt/rstudio/workbench-\`hostname\`.state
-    fi    
-
-    if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then 
-        systemctl stop rstudio-server 
-        systemctl stop rstudio-launcher
-        systemctl start rstudio-launcher
-        systemctl start rstudio-server 
-        touch /opt/rstudio/workbench-\`hostname\`.state
-    fi
-    
-fi
-
-if ( ! grep AD_DNS /etc/hosts >& /dev/null ); then 
-        echo "AD_DNS pwb.posit.co" >> /etc/hosts
-fi
-
-if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then 
-        echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
-fi
-
-
-if ( ! grep rstudio-server /etc/security/limits.conf ); then 
-	echo "rstudio-server  soft    nofile          32768" >> /etc/security/limits.conf
-	echo "rstudio-server  hard    nofile          32768" >> /etc/security/limits.conf
-fi
-
-if ( ! mount | grep \/scratch ); then 
-        # create scratch folder as part of EFS fs
-        mkdir -p /scratch /opt/rstudio/scratch 
-        efsmount=`cat /etc/fstab  | grep rstudio | awk '{print $1}'`
-        mount ${efsmount}scratch /scratch
-fi
-
 EOF
 
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
@@ -444,11 +458,11 @@ if (SINGULARITY_SUPPORT); then
                 export pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
                 sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
                 sed -i "s/PWB_VERSION.*/PWB_VERSION=$pwb_version/" build.env &&
-                for i in `ls -d */ | sed 's#/##'`; do \
+                for i in `ls -d */ | sed 's#/##' | grep -v rhel`; do \
 		        ( pushd $i && \
 			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
                         popd ) & 
-                        if [[ $(jobs -r -p | wc -l) -ge 2 ]]; then
+                        if [[ $(jobs -r -p | wc -l) -ge 3 ]]; then
                                 wait -n
                         fi
                 done
@@ -473,4 +487,5 @@ SINGULARITY_BIND=/scratch,/opt/slurm/etc,/opt/slurm/libexec,/var/spool/slurmd,/v
 EOF
 
 fi
+
 
