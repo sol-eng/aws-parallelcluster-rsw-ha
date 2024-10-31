@@ -172,9 +172,10 @@ def main():
         name="vpc-id",
         values=[vpc.id])])
     vpc_subnet = ec2.get_subnet(id=vpc_subnets.ids[0])
-    vpc_subnet2 = ec2.get_subnet(id=vpc_subnets.ids[4]) 
+    vpc_subnet2 = ec2.get_subnet(id=vpc_subnets.ids[1]) 
     pulumi.export("vpc_subnet", vpc_subnet.id)
     pulumi.export("vpc_subnet2", vpc_subnet2.id)
+
 
  
     # --------------------------------------------------------------------------
@@ -190,7 +191,8 @@ def main():
             "Action": [
                 "elasticloadbalancing:DescribeTags",
                 "elasticloadbalancing:DescribeTargetGroups",
-                "elasticloadbalancing:DescribeLoadBalancers"
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeTargetHealth",
             ],
             "Effect": "Allow",
             "Resource": "*",
