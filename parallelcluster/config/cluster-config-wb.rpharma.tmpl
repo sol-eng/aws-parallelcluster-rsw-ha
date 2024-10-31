@@ -1,0 +1,181 @@
+HeadNode: 
+  CustomActions: 
+    OnNodeConfigured: 
+      Script: "s3://S3_BUCKETNAME/install-pwb-config.sh"
+      Args:
+        - "PWB_VERSION"
+  Iam: 
+    S3Access: 
+      - BucketName: S3_BUCKETNAME
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - Policy: ELB_ACCESS
+  InstanceType: t3.xlarge
+  Networking: 
+    SubnetId: SUBNETID
+    AdditionalSecurityGroups: 
+      - SECURITYGROUP_SSH
+  LocalStorage:
+    RootVolume:
+      Size: 120 
+  SharedStorageType: Efs
+  Ssh:
+    KeyName: KEY 
+Image: 
+  Os: ubuntu2004
+  CustomAmi: AMI
+Region: REGION
+Scheduling: 
+  Scheduler: slurm
+  SlurmSettings:
+    EnableMemoryBasedScheduling: true
+    Database:
+      Uri: SLURM_DB_HOST
+      UserName: SLURM_DB_USER
+      PasswordSecretArn: SLURM_DB_PASS_ARN
+      DatabaseName: SLURM_DB_NAME    
+  SlurmQueues: 
+
+    - Name: interactive
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: t3.xlarge
+          MaxCount: 5
+          MinCount: 1
+          Efa:
+            Enabled: FALSE
+      CustomSlurmSettings:
+        OverSubscribe: FORCE:4
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Args:
+            - "PWB_VERSION"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      ComputeSettings:
+        LocalStorage:
+          RootVolume:
+            Size: 100
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
+    - Name: all 
+      ComputeResources:
+        - Name: rstudio 
+          InstanceType: c5a.4xlarge
+          MaxCount: 25 
+          MinCount: 0
+          Efa:
+            Enabled: FALSE
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Args:
+            - "PWB_VERSION"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      ComputeSettings:
+        LocalStorage:
+          RootVolume:
+            Size: 100
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds:
+          - SUBNETID
+
+    - Name: gpu 
+      ComputeResources:
+        - Name: large
+          InstanceType: g5.xlarge 
+          MaxCount: 1
+          MinCount: 0
+          Efa:
+            Enabled: FALSE
+      ComputeSettings:
+        LocalStorage:
+          RootVolume:
+            Size: 100
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Args:
+            - "PWB_VERSION"
+      Iam:
+        S3Access:
+          - BucketName: S3_BUCKETNAME
+      Networking:
+        PlacementGroup:
+          Enabled: FALSE
+        SubnetIds: 
+          - SUBNETID
+
+
+LoginNodes:
+  Pools:
+    - Name: login
+      Count: 2 
+      InstanceType: t3.xlarge
+      #CustomActions:
+      #  OnNodeConfigured:
+      #    Script: "s3://S3_BUCKETNAME/config-login.sh"
+      #    Args:
+      #      - "PWB_VERSION"
+      Iam: 
+        #S3Access: 
+        #  - BucketName: S3_BUCKETNAME
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+          - Policy: ELB_ACCESS
+      Networking:
+        AdditionalSecurityGroups: 
+          - SECURITYGROUP_RSW
+          - SECURITYGROUP_SSH
+        SubnetIds: 
+          - SUBNETID
+      Ssh:
+        KeyName: KEY 
+
+#DevSettings:
+#  Timeouts:
+#    HeadNodeBootstrapTimeout: 7200  # timeout in seconds
+#    ComputeNodeBootstrapTimeout: 7200  # timeout in seconds
+
+SharedStorage:
+  - MountDir: /home
+    Name: home
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+  - MountDir: /opt/rstudio
+    Name: rstudio
+    StorageType: Efs
+
+DirectoryService:
+  DomainName: pwb.posit.co
+  DomainAddr: ldap://pwb.posit.co
+  PasswordSecretArn: ADPWSecret 
+  DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
+  GenerateSshKeysForUsers: true
+  AdditionalSssdConfigs: 
+    override_homedir : /home/%u
+    ldap_id_use_start_tls : false
+    ldap_tls_reqcert : never
+    ldap_auth_disable_tls_never_use_in_production : true
+
+Tags:
+  - Key: rs:environment
+    Value: development
+  - Key: rs:owner
+    Value: EMAIL 
+  - Key: rs:project
+    Value: solutions
+  - Key: rs:subsystem
+    Value: BILLING_CODE
