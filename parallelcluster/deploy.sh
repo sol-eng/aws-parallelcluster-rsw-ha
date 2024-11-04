@@ -1,34 +1,36 @@
 #!/bin/bash
 
 CLUSTERNAME="ide-team"
-SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
-AMI="ami-07dab254a15f31131"
+STACKNAME="rstudio/ide-team"
+#SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
+AMI="ami-0f44837ba2e027629"
 REGION="us-west-2"
 SINGULARITY_SUPPORT=false
 BENCHMARK_SUPPORT=true
-CONFIG="sjctestconfig"
-SUBNETID='subnet-09b6f37b84b847fe8'
+CONFIG="ide-team"
 
 echo "Extracting values from pulumi setup"
-#SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $CLUSTERNAME`
-KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $CLUSTERNAME`
-DOMAINPWSecret=` cd ../pulumi && pulumi stack output "ad_password_arn" -s $CLUSTERNAME `
+#SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $STACKNAME`
+KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $STACKNAME`
+DOMAINPWSecret=` cd ../pulumi && pulumi stack output "ad_password_arn" -s $STACKNAME `
 echo $DOMAINPWSecret
 CERT="${KEY}.pem"
 EMAIL=`echo $KEY | cut -d "-" -f 1`
-AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $CLUSTERNAME`
-RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $CLUSTERNAME`
-RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $CLUSTERNAME`
-RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $CLUSTERNAME --show-secrets`
-SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $CLUSTERNAME`
-SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $CLUSTERNAME`
-SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $CLUSTERNAME`
-SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $CLUSTERNAME`
-SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $CLUSTERNAME --show-secrets | jq ".id" | tr -d \"`
-BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $CLUSTERNAME`
-ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $CLUSTERNAME`
-S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $CLUSTERNAME`
-SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output security_group_ssh -s $CLUSTERNAME`
+AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $STACKNAME`
+RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $STACKNAME`
+RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $STACKNAME`
+RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $STACKNAME --show-secrets`
+SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group -s $STACKNAME`
+SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $STACKNAME`
+SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $STACKNAME`
+SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $STACKNAME`
+SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $STACKNAME`
+SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $STACKNAME --show-secrets | jq ".id" | tr -d \"`
+BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $STACKNAME`
+ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $STACKNAME`
+S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $STACKNAME`
+SUBNETID=`cd ../pulumi && pulumi stack output vpc_public_subnet -s $STACKNAME`
+SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output security_group_ssh -s $STACKNAME`
 echo "preparing scripts" 
 rm -rf tmp
 mkdir -p tmp
