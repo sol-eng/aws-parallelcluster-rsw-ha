@@ -24,14 +24,20 @@ SHARED_DATA="/home/rstudio/shared-storage"
 
 PWB_VERSION=$1
 
+HPC_DOMAIN=$2
+
+HPC_HOST=$3
+
 # Label this node as head-node so we can detect it later
 touch /etc/head-node
 
 # Download session components and store them in $PWB_BASE_DIR/scripts
 
 pushd $PWB_BASE_DIR/scripts
-curl -O https://s3.amazonaws.com/rstudio-ide-build/session/focal/amd64/rsp-session-focal-${PWB_VERSION}-amd64.tar.gz
-curl -O https://s3.amazonaws.com/rstudio-ide-build/server/focal/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+#curl -O https://s3.amazonaws.com/rstudio-ide-build/session/focal/amd64/rsp-session-focal-${PWB_VERSION}-amd64.tar.gz
+#curl -O https://s3.amazonaws.com/rstudio-ide-build/server/focal/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+curl -O https://s3.amazonaws.com/rstudio-ide-build/session/jammy/amd64/rsp-session-jammy-${PWB_VERSION}-amd64.tar.gz
+curl -O https://s3.amazonaws.com/rstudio-ide-build/server/jammy/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
 popd
 
 # Add SLURM integration 
@@ -73,7 +79,7 @@ for i in $ec2_ids;
         do 
                 ctr=$(($ctr+1))
                 ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
-                echo "$ip node${ctr}.HPC_DOMAIN" >> $PWB_CONFIG_DIR/nodes
+                echo "$ip node${ctr} node${ctr}.$HPC_DOMAIN" >> $PWB_CONFIG_DIR/nodes
         done
 
 # Append nodes file to /etc/hosts
@@ -124,7 +130,7 @@ launcher-address=127.0.0.1
 launcher-port=5559
 launcher-sessions-enabled=1
 launcher-default-cluster=Slurm
-launcher-sessions-callback-address=http://${elb_url}:8787
+launcher-sessions-callback-address=https://$HPC_HOST.$HPC_DOMAIN
 
 # Disable R Versions scanning
 #r-versions-scan=0
@@ -167,6 +173,37 @@ launcher-adhoc-clusters=slurmbatch
 
 # performance optimisations
 rsession-proxy-max-wait-secs=30
+
+# Enable user level tokens
+workbench-api-enabled=1
+
+# Enable admin level tokens
+workbench-api-admin-enabled=1
+
+# Enable super-admin level tokens
+workbench-api-super-admin-enabled=1
+EOF
+
+cat << EOF > $PWB_CONFIG_DIR/positron.conf
+enabled=1
+exe=/usr/lib/rstudio-server/bin/positron-server/bin/positron-server
+EOF
+
+cat << EOF > $PWB_CONFIG_DIR/positron.extensions.conf
+posit.shiny
+posit.publisher
+EOF
+
+cat << EOF > $PWB_CONFIG_DIR/vscode.conf
+enabled=1
+exe=/usr/lib/rstudio-server/bin/code-server/bin/code-server
+args=--verbose --host=0.0.0.0 --extensions-dir=/usr/local/rstudio/code-server
+EOF
+
+cat << EOF > $PWB_CONFIG_DIR/vscode.extensions.conf
+quarto.quarto
+posit.shiny
+posit.publisher
 EOF
 
 if (SSL_SUPPORT); then 
@@ -214,13 +251,14 @@ chown -R rstudio-server $SHARED_DATA/head-node/
 
 cat > $PWB_CONFIG_DIR/launcher.conf<<EOF
 [server]
-address=127.0.0.1
+address=0.0.0.0
 port=5559
 server-user=rstudio-server
 admin-group=rstudio-server
 authorization-enabled=1
 thread-pool-size=4
 enable-debug-logging=1
+enable-cgroups=1
 
 [cluster]
 name=slurminteractive
@@ -232,6 +270,9 @@ name=slurmbatch
 type=Slurm
 config-file=$PWB_CONFIG_DIR/launcher.slurmbatch.conf
 
+[cluster]
+name=Local
+type=Local
 EOF
 
 mkdir -p $PWB_CONFIG_DIR/apptainer
@@ -271,6 +312,18 @@ profile-config=$PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf
 resource-profile-config=$PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf
 
 EOF
+
+cat > $PWB_CONFIG_DIR/launcher.local.conf << EOF 
+scratch-path=/home/rstudio/shared-storage/Local
+load-balancer-preference=nfs
+EOF
+
+cat > $PWB_CONFIG_DIR/launcher.local.profiles.conf << EOF 
+[*]
+max-cpus=2
+max-mem-mb=1024
+EOF
+
 
 if (SINGULARITY_SUPPORT); then 
         my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`

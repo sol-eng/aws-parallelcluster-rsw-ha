@@ -37,7 +37,7 @@ fi
 apt-get update -y
 apt-get install -y curl libcurl4-gnutls-dev libssl-dev libpq5 rrdtool
 mkdir -p /usr/lib/rstudio-server
-tar xf /opt/rstudio/scripts/rsp-session-focal-$1-amd64.tar.gz -C /usr/lib/rstudio-server --strip-components=1
+tar xf /opt/rstudio/scripts/rsp-session-jammy-$1-amd64.tar.gz -C /usr/lib/rstudio-server --strip-components=1
 
 
 if ( ! grep AD_DNS /etc/hosts >& /dev/null ); then 

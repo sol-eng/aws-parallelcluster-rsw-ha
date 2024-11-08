@@ -43,12 +43,10 @@ Scheduling:
           Efa:
             Enabled: FALSE
       CustomSlurmSettings:
-        OverSubscribe: FORCE:2
+        OverSubscribe: FORCE:4
       CustomActions:
         OnNodeConfigured:
           Script: "s3://S3_BUCKETNAME/config-compute.sh"
-      CustomSlurmSettings:
-        OverSubscribe: FORCE
       Iam:
         S3Access:
           - BucketName: S3_BUCKETNAME
@@ -62,7 +60,7 @@ Scheduling:
       ComputeResources:
         - Name: rstudio 
           InstanceType: t3.xlarge
-          MaxCount: 10
+          MaxCount: 25 
           MinCount: 0
           Efa:
             Enabled: FALSE
@@ -81,7 +79,7 @@ Scheduling:
     - Name: gpu 
       ComputeResources:
         - Name: large
-          InstanceType: p3.2xlarge
+          InstanceType: g5.xlarge 
           MaxCount: 1
           MinCount: 0
           Efa:

@@ -88,7 +88,8 @@ sysctl -w net.core.netdev_max_backlog=65535
 systemctl daemon-reload
 systemctl stop rstudio-server
 systemctl stop rstudio-launcher
-
+killall apache2 
+rm -rf /var/log/rstudio
 systemctl start rstudio-launcher
 systemctl start rstudio-server
 

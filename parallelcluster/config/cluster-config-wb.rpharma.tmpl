@@ -4,6 +4,8 @@ HeadNode:
       Script: "s3://S3_BUCKETNAME/install-pwb-config.sh"
       Args:
         - "PWB_VERSION"
+        - "HPC_DOMAIN"
+        - "HPC_HOST"
   Iam: 
     S3Access: 
       - BucketName: S3_BUCKETNAME
