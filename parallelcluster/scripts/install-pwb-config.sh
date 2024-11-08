@@ -13,6 +13,7 @@ SHARED_DIR=/opt
 PWB_BASE_DIR=$SHARED_DIR/rstudio/
 
 PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio.tmpl
+FINAL_PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
 
 mkdir -p $PWB_BASE_DIR/{scripts,apptainer}
 
@@ -161,7 +162,7 @@ audit-r-sessions-limit-months=6
 monitor-data-path=$SHARED_DATA/head-node/monitor-data
 
 # secure cookie key
-secure-cookie-key-file=${PWB_CONFIG_DIR}/secure-cookie-key
+secure-cookie-key-file=${FINAL_PWB_CONFIG_DIR}/secure-cookie-key
 
 # scalability 
 auth-timeout-minutes=120
@@ -263,12 +264,12 @@ enable-cgroups=1
 [cluster]
 name=slurminteractive
 type=Slurm
-config-file=$PWB_CONFIG_DIR/launcher.slurminteractive.conf
+config-file=$FINAL_PWB_CONFIG_DIR/launcher.slurminteractive.conf
 
 [cluster]
 name=slurmbatch
 type=Slurm
-config-file=$PWB_CONFIG_DIR/launcher.slurmbatch.conf
+config-file=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.conf
 
 [cluster]
 name=Local
@@ -290,8 +291,8 @@ enable-gpus=1
 gpu-types=a10g
 
 # User/group and resource profiles
-profile-config=$PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf
-resource-profile-config=$PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf
+profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf
+resource-profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf
 
 EOF
 
@@ -308,8 +309,8 @@ enable-gpus=1
 gpu-types=v100
 
 # User/group and resource profiles
-profile-config=$PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf
-resource-profile-config=$PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf
+profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf
+resource-profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf
 
 EOF
 
@@ -321,21 +322,13 @@ EOF
 cat > $PWB_CONFIG_DIR/launcher.local.profiles.conf << EOF 
 [*]
 max-cpus=2
-max-mem-mb=1024
+max-mem-mb=4096
 EOF
 
 
 if (SINGULARITY_SUPPORT); then 
-        my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
-
-        if [[ $my_pwb_version =~ "daily" ]]; then 
-        my_pwb_version=${my_pwb_version/-daily/}
-        fi
-
-        if [ $my_pwb_version -gt 2024000 ]; then
-                echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurmbatch.conf
-                echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurminteractive.conf
-        fi
+        echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurmbatch.conf
+        echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurminteractive.conf
 fi
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF 

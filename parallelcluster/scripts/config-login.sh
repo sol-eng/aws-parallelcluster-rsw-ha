@@ -65,7 +65,7 @@ cp -dpRf $PWB_CONFIG_DIR/* $REAL_PWB_CONFIG_DIR
 # add DNS entries for LB nodes 
 cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
 
-my_hostname=`grep $my_ip /etc/hosts | tail -1  | awk '{print $2}'`
+my_hostname=`grep $my_ip /etc/hosts | tail -1  | awk '{print $3}'`
 
 echo "www-host-name=$my_hostname" > $REAL_PWB_CONFIG_DIR/load-balancer
 
