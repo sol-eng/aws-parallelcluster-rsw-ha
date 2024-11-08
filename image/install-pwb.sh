@@ -18,7 +18,7 @@ apt-get update
 apt-get install -y gdebi
 fi
 
-curl -O https://s3.amazonaws.com/rstudio-ide-build/server/focal/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+curl -O https://s3.amazonaws.com/rstudio-ide-build/server/jammy/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
 gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
 rm -f rstudio-workbench-${PWB_VERSION}-amd64.deb
 

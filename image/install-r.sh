@@ -27,14 +27,14 @@ apt-get update
 apt-get install -y gdebi-core
 fi
 
-if ( ! dpkg -l openjdk-11-jdk >& /dev/null); then
+if ( ! dpkg -l default-jdk >& /dev/null); then
 apt-get update
-apt-get install -y openjdk-11-jdk
+apt-get install -y default-jdk
 fi
 
 for R_VERSION in $R_VERSION_LIST
 do
-  curl -O https://cdn.rstudio.com/r/ubuntu-2004/pkgs/r-${R_VERSION}_1_amd64.deb
+  curl -O https://cdn.rstudio.com/r/ubuntu-2204/pkgs/r-${R_VERSION}_1_amd64.deb
   gdebi -n r-${R_VERSION}_1_amd64.deb
   rm -f r-${R_VERSION}_1_amd64.deb
 done
@@ -97,6 +97,7 @@ cat > /etc/skel/slurm.tmpl << EOF
 # File: slurm.tmpl
 # Template for using clustermq against a SLURM backend
 
+#SBATCH --partition=all
 #SBATCH --job-name={{ job_name }}
 #SBATCH --error={{ log_file | /dev/null }}
 #SBATCH --mem-per-cpu={{ memory | 1024 }}
