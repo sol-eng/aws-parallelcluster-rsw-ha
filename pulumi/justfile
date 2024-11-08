@@ -8,6 +8,31 @@ create-users num="10":
         ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
         "bash useradd.sh {{num}}"
 
+create-groups:
+    #!/bin/bash
+    ssh \
+        -i "$(pulumi stack output 'key_pair id').pem" \
+        -o StrictHostKeyChecking=no \
+        ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
+        "expect -f create-group.exp rstudio-admins"
+    ssh \
+        -i "$(pulumi stack output 'key_pair id').pem" \
+        -o StrictHostKeyChecking=no \
+        ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
+        "expect -f create-group.exp rstudio-super-admins"
+    ssh \
+        -i "$(pulumi stack output 'key_pair id').pem" \
+        -o StrictHostKeyChecking=no \
+        ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
+        "expect -f add-group-member.exp rstudio-admins posit0001"
+    ssh \
+        -i "$(pulumi stack output 'key_pair id').pem" \
+        -o StrictHostKeyChecking=no \
+        ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
+        "expect -f add-group-member.exp rstudio-super-admins posit0001"
+
+
+
 create-secrets:
     #!/bin/bash
     export email=`pulumi config get email`
