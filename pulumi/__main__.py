@@ -83,7 +83,11 @@ def make_server(
         subnet_id=subnet_id,
         key_name=key_name,
         iam_instance_profile="WindowsJoinDomain",
-        associate_public_ip_address=True
+        associate_public_ip_address=True,
+        metadata_options={
+            "http_put_response_hop_limit": 1,
+            "http_tokens": "require",
+        },
     )
 
     # Export final pulumi variables.
@@ -161,7 +165,8 @@ def main():
         number_of_availability_zones=2,
         enable_dns_hostnames=True,
         enable_dns_support=True,
-        tags=tags,
+        tags=tags | {
+        "Name": f"vpc-{stack_name}"},
     ))
 
     # public_subnets = vpc.public_subnet_ids.apply(lambda ids: [ec2.get_subnet_output(id=id) for id in ids])
@@ -208,7 +213,7 @@ def main():
     # --------------------------------------------------------------------------
     # Make security groups
     # --------------------------------------------------------------------------
-    rsw_security_group_db = ec2.SecurityGroup(
+    rsw_security_group = ec2.SecurityGroup(
         "WorkbenchServer",
         description="Security group for WorkbenchServer access",
         ingress=[
@@ -222,7 +227,7 @@ def main():
         tags=tags,
         vpc_id=vpc.vpc_id
     )
-    pulumi.export("rsw_security_group", rsw_security_group_db.id)
+    pulumi.export("rsw_security_group", rsw_security_group.id)
 
     rsw_security_group_db = ec2.SecurityGroup(
         "postgres",
@@ -303,20 +308,17 @@ def main():
     pulumi.export("rsw_db_name", rsw_db.db_name)
     pulumi.export("rsw_db_user", config.rsw_db_username)
 
-    slurm_db_parameter_group = rds.ParameterGroup("default",
-                                     name="rds-pg",
-                                     family="mysql5.6",
-                                     parameters=[
-                                         {
-                                             "name": "character_set_server",
-                                             "value": "utf8",
-                                         },
-                                         {
-                                             "name": "character_set_client",
-                                             "value": "utf8",
-                                         },
-                                     ])
-
+    slurm_db_parameter_group = rds.ParameterGroup(
+        "SlurmdbParameterGroup",
+        family="mysql8.0",
+        parameters=[
+            {
+                "name": "performance_schema",
+                "value": "1"
+            }
+        ],
+        description="Custom parameter group with Performance Insights enabled",
+    )
     slurm_db = rds.Instance(
         "slurm-db",
         instance_class="db.t3.micro",
@@ -326,19 +328,22 @@ def main():
         password=slurm_db_pass,
         db_name="slurm",
         engine="mysql",
+        parameter_group_name=slurm_db_parameter_group.name,
         publicly_accessible=False,
         skip_final_snapshot=True,
         tags=tags | {"Name": "slurm-db"},
         vpc_security_group_ids=[slurm_security_group_db.id],
         db_subnet_group_name=subnetgroup,
+        performance_insights_enabled=True,
+        performance_insights_retention_period=7,
         storage_encrypted=True
         # performance_insights_enabled=True,
         # opts=pulumi.ResourceOptions(replace_on_changes=["*"])
     )
 
-    secret = secretsmanager.Secret("SlurmDBPassword")
+    secret = secretsmanager.Secret(f"SlurmDBPassword-{stack_name}")
 
-    example = secretsmanager.SecretVersion("SlurmDBPassword",
+    example = secretsmanager.SecretVersion(f"SlurmDBPassword-{stack_name}",
                                            secret_id=secret.id,
                                            secret_string=slurm_db_pass)
 
@@ -350,18 +355,18 @@ def main():
     pulumi.export("slurm_db_name", slurm_db.db_name)
     pulumi.export("slurm_db_user", config.slurm_db_username)
 
-    secret = secretsmanager.Secret("SimpleADPassword")
+    secret = secretsmanager.Secret(f"SimpleADPassword-{stack_name}")
 
-    example = secretsmanager.SecretVersion("SimpleADPassword",
+    example = secretsmanager.SecretVersion(f"SimpleADPassword-{stack_name}",
                                            secret_id=secret.id,
                                            secret_string=ad_password)
 
     pulumi.export("ad_password_arn", example.arn)
 
 
-    secret = secretsmanager.Secret("PositUserPassword")
+    secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
 
-    secretsmanager.SecretVersion("PositUserPassword",
+    secretsmanager.SecretVersion(f"PositUserPassword-{stack_name}",
                                        secret_id=secret.id,
                                        secret_string=user_pass)
 
@@ -383,7 +388,7 @@ def main():
                                         vpc_id=vpc.vpc_id,
                                         subnet_ids=vpc.private_subnet_ids,
                                     ),
-                                    tags=tags | {"Name": "pwb-directory"},
+                                    tags=tags | {"Name": f"pwb-directory-{stack_name}"},
                                     )
     pulumi.export('ad_dns_1', ad.dns_ip_addresses[0])
     pulumi.export('ad_dns_2', ad.dns_ip_addresses[1])
@@ -392,7 +397,7 @@ def main():
     jump_host = make_server(
         "jump_host",
         "ad",
-        tags=tags | {"Name": "jump-host-ad"},
+        tags=tags | {"Name": f"jump-host-ad-{stack_name}"},
         vpc_group_ids=[security_group_ssh.id],
         instance_type=config.ServerInstanceType,
         subnet_id=vpc.public_subnet_ids.apply(lambda ids: ids[0]),
