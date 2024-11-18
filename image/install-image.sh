@@ -8,7 +8,7 @@ PYTHON_VERSION_DEFAULT=3.11.9
 
 QUARTO_VERSION=1.4.455
 
-PWB_VERSION=2024.04.1-748.pro2
+PWB_VERSION=2024.09.1-394.pro7
 
 APPTAINER_VERSION="1.3.1"
 
@@ -16,7 +16,7 @@ APPTAINER_VERSION="1.3.1"
 function setup_something() {
 # $1 - script to be run
 # $2 - parameters
-aws s3 cp s3://hpc-scripts1234/image/$1 /tmp
+aws s3 cp s3://hpc-scripts-ide-team-556a5ad/image/$1 /tmp
 bash /tmp/$1 ${@: 2:$#-1}
 rm -f /tmp/$1
 }

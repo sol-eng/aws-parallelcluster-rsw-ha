@@ -1,0 +1,4 @@
+config:
+  rsw-ha:billing_code: load-testing
+  rsw-ha:email: sam.cofer@posit.co
+  rsw-ha:region: us-west-2
