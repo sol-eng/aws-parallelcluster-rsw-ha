@@ -6,4 +6,24 @@
 ```
 ./build-image.sh <IMAGENAME>
 ```
-where `<IMAGENAME>` is the desired name of the new AMI. 
+where `<IMAGENAME>` is the desired name of the new AMI.
+
+# Useful for debugging 
+
+## Cleanup 
+
+If you want to get rid of all AVAILABLE images, run
+
+```
+for i in `pcluster list-images --image-status AVAILABLE | grep imageId | awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; do pcluster delete-image -i $i ; done
+```
+
+## Get information about image 
+
+```
+pcluster describe-image -i <IMAGENAME>
+pcluster  list-image-log-streams -i <IMAGENAME>
+pcluster get-image-log-events  -i <IMAGENAME> --log-stream-name <AWSPCVERSION>/1
+```
+
+where `<AWSPCVERSION>` is the version of AWS parallelcluster used (e.g. 3.11.1)  
