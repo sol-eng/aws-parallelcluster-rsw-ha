@@ -4,9 +4,9 @@
 2. Check versions in `install-image.sh`
 3. Finally, run 
 ```
-./build-image.sh <IMAGENAME> <BUCKETNAME>
+./build-image.sh <IMAGENAME> [<BUCKETNAME>]
 ```
-where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`.
+where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`. `<BUCKETNAME>` is an optional argument. If missing, the script will look in `.bucket.default` to read the default bucket name. 
 
 # Useful for debugging 
 

@@ -2,7 +2,7 @@
 
 usage() {
 echo "Usage: "
-echo "  `basename $0` <IMAGENAME> <BUCKETNAME>"  
+echo "  `basename $0` <IMAGENAME> [<BUCKETNAME>]"  
 }
 
 if [ -z $1 ]; then 
@@ -13,6 +13,11 @@ fi
 
 bucketname=$2
 if [ -z $2 ]; then
+   if [ ! -f .bucket.default ]; then 
+      echo "<BUCKETNAME> not specified but no default in .bucket.default configured either !"
+      usage
+      exit
+   fi
    bucketname=`cat .bucket.default` 
    echo "S3 Bucket Name not provided, attempting to use $bucketname as default"
 
