@@ -1,35 +1,45 @@
 ---
-title: "Creating a cutom AMI"
+title: "Custom AMI"
 --- 
 
-The use of a custom AMI is very helpful to reduce the time needed for spinning up additional compute nodes. While the spin-up time cannot be shrunk significantly below 4 minutes, the use of custom AMI prevents the need for adding additional software at spin-up time that would further extend the spin-up time reducing user experience further. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes.
+# Introduction 
 
-In this approach we are using ParallelCluster's image builder capability that is integrated into AWS'  `packer` service.
+While AWS ParallelCluster allows the on-demand provisioning of software during cluster build and compute node spin up, the waiting time especially until a compute node is spun up and provisioned quickly becomes incompatible with a positive user experience. The use of a custom AMI is very helpful to reduce this time. The spin up time however cannot be reduced below approximately 4 to 5 minutes which is the minimum time needed to bring up an EC2 instance and let AWS parallelcluster configure it. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes.
 
-The main configuration file is `image-config.yaml` in the `image` subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script `install-image.sh` that calls a couple of additional scripts that facilitate the installation of Workbench, R, Python, ..... Each individual script is called by the `setup_something()`\` bash function that will download the additional script and run with pre-defined parameters. The variables defined at the start of the script should be self-explanatory.
+Here we are using ParallelCluster's image builder capability that is integrated into AWS'  `packer` service.
 
+The main configuration file is `image-config.yaml` in the `image` subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script `install-image.sh` that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the `setup_something()` bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software. 
 
-# Build custom AMI 
+In `install-image.sh` we also set up a cron job that will run `/opt/rstudio/scripts/rc.pwb`. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start `rstudio-server` as well as `rstudio-launcher`. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf. https://github.com/aws/aws-parallelcluster/issues/5723)
 
-1. Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. Replace occurrence of `s3://hpc-scripts1234` with the actual S3 bucket reference in `install-image.sh`, `image-config.yaml` and `install-r.sh`. 
-2. Check versions in `install-image.sh`
-3. Finally, run 
+# How to build a custom AMI 
+
+## Prerequisites 
+
+You need to have access to a S3 bucket. In can you don't have one available, you can create one using the AWS CLI, for example: 
+
+``` bash
+aws s3api create-bucket --bucket <BUCKETNAME> \
+    --region <REGION> \
+    --create-bucket-configuration LocationConstraint=<REGION>
+```
+
+where `<BUCKETNAME>` is your desired name of the S3 bucket and `<REGION>` the AWS region you would like to deploy this bucket to. 
+
+## Step by step instruction 
+
+1. Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as `<BUCKETNAME>` hereafter. 
+2. Identify the appropriate `pcluster` AMI (cf. @sec:pcluster-ami) and update `ParentImage` in `image-config.yaml`
+3. Check versions in `install-image.sh` (cf. @sec:install-image-sh) and adjust accordingly
+4. Finally, run 
 ``` bash
 ./build-image.sh <IMAGENAME> [<BUCKETNAME>]
 ```
 where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`. `<BUCKETNAME>` is an optional argument. If missing, the script will look in `.bucket.default` to read the default bucket name. 
 
-# Useful for debugging 
+## Useful for debugging 
 
-## Creating your own S3 bucket 
-
-```
-aws s3api create-bucket --bucket <BUCKETNAME> --region <REGION> --create-bucket-configuration LocationConstraint=<REGION>
-```
-
-where `<BUCKETNAME>` is the desired name of the s3 bucket and `<REGION>` the region intended for use. 
-
-## Cleanup 
+### Cleanup 
 
 If you want to get rid of all AVAILABLE images, run
 
@@ -37,15 +47,19 @@ If you want to get rid of all AVAILABLE images, run
 for i in `pcluster list-images --image-status AVAILABLE | grep imageId | awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; do pcluster delete-image -i $i ; done
 ```
 
-## Get information about image 
+### Get information about image 
 
 ```
 pcluster describe-image -i <IMAGENAME>
-pcluster  list-image-log-streams -i <IMAGENAME>
+pcluster list-image-log-streams -i <IMAGENAME>
 pcluster get-image-log-events  -i <IMAGENAME> --log-stream-name <AWSPCVERSION>/1
 ```
 
-where `<AWSPCVERSION>` is the version of AWS parallelcluster used (e.g. 3.11.1)  
+where `<AWSPCVERSION>` is the version of AWS parallelcluster used (e.g. 3.11.1) and `<IMAGENAME>` is the custom name of your AMI. 
+
+### Sample `install-image.sh` script {#sec:install-image-sh}
+
+This is just the start of the script. 
 
 ``` bash
 R_VERSION_LIST="4.4.2 4.3.3 4.2.3 4.1.3 4.0.5"
@@ -59,66 +73,12 @@ QUARTO_VERSION=1.6.34
 APPTAINER_VERSION="1.3.5"
 ```
 
-and can be changed accordingly. Default versions in this context are system default, i.e. these are sym-linked into `/usr/local/bin`
+### Find out the ID of the desired `pcluster` AMI {#sec:pcluster-ami}
 
-`install-pwb.sh` will install Posit Workbench, but then disable both `rstudio-launcher` and `rstudio-server` so that the AMI can be used both on the login nodes (where the installation acts as proper Workbench) and also on the compute nodes (where it acts as the session component). The small differences between a full workbench installation one the session components did not warrant the extra effort of creating and maintaining two different AMIs.
-
-In `install-pwb.sh` we also set up a cron job that will run `/opt/parallelcluster/shared/rstudio/scripts/rc.pwb`. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start `rstudio-server` as well as `rstudio-launcher`. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf. https://github.com/aws/aws-parallelcluster/issues/5723)
-
-### How to build a custom AMI {#sec-how-to-build-a-custom-ami}
-
-1.  Activate the AWS ParallelCluster `venv` (cf. @sec-python-virtual-env)
-
-2.  Make sure that the AMI referenced in `image-config.yaml` exists in your AWS region. `pcluster list-official-images` will give you a list of supported images. For Ubuntu 22.04 LTS (Jammy) you can run 
+You can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via 
 
 ``` bash 
 pcluster list-official-images | \
     jq '.images.[] | 
         select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'
 ```
-
-3.  Check and modify as appropriate the parameters at the start of `install-image.sh`
-
-4.  Adjust the S3 bucket `s3://hpc-scripts1234/` and the image name `master` to your desired values in `install-image.sh`. You will need to specify a S3 bucket where you have write permissions.
-
-5.  Run `install-image.sh`
-
-The script will transfer the shell scripts into the S3 bucket and eventually trigger the build of the custom image.
-
-It may take a moment, but after a few minutes you can trace the build of the image via
-
-``` bash
-pcluster describe-image -i master
-pcluster list-image-log-streams -i master
-```
-
-which will give you the list of log streams from your image. Once you identified the log stream, you can query this via
-
-``` bash
-pcluster get-image-log-events -i master --log-stream-name a.b.c/d
-```
-
-where a.b.c/d is the log stream name you received from the previous command. `master` in all commands refers to the image name.
-
-Once the image is built successfully (will take about an hour or so), `pcluster describe-image -i master` will provide you an output similar to the one below
-
-``` json
-
-{
-  "imageConfiguration": {
-  "imageId": "master",
-  "creationTime": "2023-11-05T11:22:31.000Z",
-  "imageBuildStatus": "BUILD_COMPLETE",
-  "region": "eu-west-1",
-  "ec2AmiInfo": {
-    "amiName": "master 2023-11-05T10-35-49.191Z",
-    "amiId": "ami-09901d00eff671747",
-    "description": "AWS ParallelCluster AMI for ubuntu2004, kernel-5.15.0-1049-aws, lustre-5.15.0.1049.54~20.04.37, efa-2.5.0-1.amzn1, dcv-2023.0.15487-1",
-    "state": "AVAILABLE",
-    "architecture": "x86_64"
-  },
-  "version": "3.8.0b1"
-}
-```
-
-where we removed the `tags` and the `url` section for better readability.
