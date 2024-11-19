@@ -1,17 +1,10 @@
 ---
 title: "Next Generation Workbench integration into AWS ParallelCluster"
 author: "Michael Mayer"
-format: pdf
 toc: true
 number-sections: true
 editor: visual
 highlight-style: github
-documentclass: report
-geometry:
-      - top=30mm
-      - left=20mm
-      - heightrounded
-papersize: a4
 ---
 
 # Introduction
