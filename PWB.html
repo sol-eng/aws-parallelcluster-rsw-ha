@@ -2,22 +2,28 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.0.37">
+<meta name="generator" content="quarto-1.5.57">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Michael Mayer">
 
-<title>today - Next Generation Workbench integration into AWS ParallelCluster</title>
+<title>Next Generation Workbench integration into AWS ParallelCluster – today</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-span.underline{text-decoration: underline;}
-div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -28,7 +34,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -42,43 +48,13 @@ pre.numberSource code > span > a:first-child::before
     -khtml-user-select: none; -moz-user-select: none;
     -ms-user-select: none; user-select: none;
     padding: 0 4px; width: 4em;
-    color: #aaaaaa;
   }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
 div.sourceCode
   {   }
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 </style>
 
 
@@ -104,7 +80,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -113,8 +95,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 
@@ -126,24 +110,32 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <a class="navbar-brand" href="./index.html">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">today</span>
-  </a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./PWB.html" aria-current="page">Home</a>
+    <a class="nav-link active" href="./PWB.html" aria-current="page"> 
+<span class="menu-text">Home</span></a>
   </li>  
-  <li class="dropdown-header">
- about.qmd</li>
+  <li class="nav-item">
+    <span class="nav-link">
+<span class="menu-text">about.qmd</span>
+    </span>
+  </li>  
 </ul>
-              <div id="quarto-search" class="" title="Search"></div>
           </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -152,42 +144,42 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc">
+        <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"> <span class="header-section-number">1</span> Introduction</a></li>
-  <li><a href="#a-new-approach" id="toc-a-new-approach" class="nav-link" data-scroll-target="#a-new-approach"> <span class="header-section-number">2</span> A new approach</a></li>
-  <li><a href="#setup-instructions" id="toc-setup-instructions" class="nav-link" data-scroll-target="#setup-instructions"> <span class="header-section-number">3</span> Setup Instructions</a>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#a-new-approach" id="toc-a-new-approach" class="nav-link" data-scroll-target="#a-new-approach"><span class="header-section-number">2</span> A new approach</a></li>
+  <li><a href="#setup-instructions" id="toc-setup-instructions" class="nav-link" data-scroll-target="#setup-instructions"><span class="header-section-number">3</span> Setup Instructions</a>
   <ul class="collapse">
-  <li><a href="#sec-auxiliary-services" id="toc-sec-auxiliary-services" class="nav-link" data-scroll-target="#sec-auxiliary-services"> <span class="header-section-number">3.1</span> Auxiliary services</a>
+  <li><a href="#sec-auxiliary-services" id="toc-sec-auxiliary-services" class="nav-link" data-scroll-target="#sec-auxiliary-services"><span class="header-section-number">3.1</span> Auxiliary services</a>
   <ul class="collapse">
-  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"> <span class="header-section-number">3.1.1</span> Prerequisites</a></li>
-  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup"> <span class="header-section-number">3.1.2</span> How to setup</a></li>
-  <li><a href="#additional-details" id="toc-additional-details" class="nav-link" data-scroll-target="#additional-details"> <span class="header-section-number">3.1.3</span> Additional details</a></li>
+  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"><span class="header-section-number">3.1.1</span> Prerequisites</a></li>
+  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup"><span class="header-section-number">3.1.2</span> How to setup</a></li>
+  <li><a href="#additional-details" id="toc-additional-details" class="nav-link" data-scroll-target="#additional-details"><span class="header-section-number">3.1.3</span> Additional details</a></li>
   </ul></li>
-  <li><a href="#sec-custom-ami" id="toc-sec-custom-ami" class="nav-link" data-scroll-target="#sec-custom-ami"> <span class="header-section-number">3.2</span> Custom AMI</a>
+  <li><a href="#sec-custom-ami" id="toc-sec-custom-ami" class="nav-link" data-scroll-target="#sec-custom-ami"><span class="header-section-number">3.2</span> Custom AMI</a>
   <ul class="collapse">
-  <li><a href="#sec-how-to-build-a-custom-ami" id="toc-sec-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#sec-how-to-build-a-custom-ami"> <span class="header-section-number">3.2.1</span> How to build a custom AMI</a></li>
+  <li><a href="#sec-how-to-build-a-custom-ami" id="toc-sec-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#sec-how-to-build-a-custom-ami"><span class="header-section-number">3.2.1</span> How to build a custom AMI</a></li>
   </ul></li>
-  <li><a href="#sec-aws-parallelcluster-build" id="toc-sec-aws-parallelcluster-build" class="nav-link" data-scroll-target="#sec-aws-parallelcluster-build"> <span class="header-section-number">3.3</span> AWS ParallelCluster</a>
+  <li><a href="#sec-aws-parallelcluster-build" id="toc-sec-aws-parallelcluster-build" class="nav-link" data-scroll-target="#sec-aws-parallelcluster-build"><span class="header-section-number">3.3</span> AWS ParallelCluster</a>
   <ul class="collapse">
-  <li><a href="#introduction-1" id="toc-introduction-1" class="nav-link" data-scroll-target="#introduction-1"> <span class="header-section-number">3.3.1</span> Introduction</a></li>
-  <li><a href="#sec-python-virtual-env" id="toc-sec-python-virtual-env" class="nav-link" data-scroll-target="#sec-python-virtual-env"> <span class="header-section-number">3.3.2</span> Python Virtual Env</a></li>
-  <li><a href="#sec-prerequisites" id="toc-sec-prerequisites" class="nav-link" data-scroll-target="#sec-prerequisites"> <span class="header-section-number">3.3.3</span> Prerequisites</a></li>
-  <li><a href="#sec-deployment-instructions" id="toc-sec-deployment-instructions" class="nav-link" data-scroll-target="#sec-deployment-instructions"> <span class="header-section-number">3.3.4</span> Deployment instructions</a></li>
-  <li><a href="#default-values-for-cluster-deployment" id="toc-default-values-for-cluster-deployment" class="nav-link" data-scroll-target="#default-values-for-cluster-deployment"> <span class="header-section-number">3.3.5</span> Default values for Cluster deployment</a></li>
-  <li><a href="#sec-notes-on-install-pwb-config.sh" id="toc-sec-notes-on-install-pwb-config.sh" class="nav-link" data-scroll-target="#sec-notes-on-install-pwb-config.sh"> <span class="header-section-number">3.3.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></a></li>
-  <li><a href="#customisations-on-top-of-aws-parallelcluster" id="toc-customisations-on-top-of-aws-parallelcluster" class="nav-link" data-scroll-target="#customisations-on-top-of-aws-parallelcluster"> <span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</a></li>
+  <li><a href="#introduction-1" id="toc-introduction-1" class="nav-link" data-scroll-target="#introduction-1"><span class="header-section-number">3.3.1</span> Introduction</a></li>
+  <li><a href="#sec-python-virtual-env" id="toc-sec-python-virtual-env" class="nav-link" data-scroll-target="#sec-python-virtual-env"><span class="header-section-number">3.3.2</span> Python Virtual Env</a></li>
+  <li><a href="#sec-prerequisites" id="toc-sec-prerequisites" class="nav-link" data-scroll-target="#sec-prerequisites"><span class="header-section-number">3.3.3</span> Prerequisites</a></li>
+  <li><a href="#sec-deployment-instructions" id="toc-sec-deployment-instructions" class="nav-link" data-scroll-target="#sec-deployment-instructions"><span class="header-section-number">3.3.4</span> Deployment instructions</a></li>
+  <li><a href="#default-values-for-cluster-deployment" id="toc-default-values-for-cluster-deployment" class="nav-link" data-scroll-target="#default-values-for-cluster-deployment"><span class="header-section-number">3.3.5</span> Default values for Cluster deployment</a></li>
+  <li><a href="#sec-notes-on-install-pwb-config.sh" id="toc-sec-notes-on-install-pwb-config.sh" class="nav-link" data-scroll-target="#sec-notes-on-install-pwb-config.sh"><span class="header-section-number">3.3.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></a></li>
+  <li><a href="#customisations-on-top-of-aws-parallelcluster" id="toc-customisations-on-top-of-aws-parallelcluster" class="nav-link" data-scroll-target="#customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</a></li>
   </ul></li>
-  <li><a href="#summary-and-conclusions" id="toc-summary-and-conclusions" class="nav-link" data-scroll-target="#summary-and-conclusions"> <span class="header-section-number">3.4</span> Summary and Conclusions</a>
+  <li><a href="#summary-and-conclusions" id="toc-summary-and-conclusions" class="nav-link" data-scroll-target="#summary-and-conclusions"><span class="header-section-number">3.4</span> Summary and Conclusions</a>
   <ul class="collapse">
-  <li><a href="#how-to-reach-full-ha" id="toc-how-to-reach-full-ha" class="nav-link" data-scroll-target="#how-to-reach-full-ha"> <span class="header-section-number">3.4.1</span> How to reach “full” HA</a></li>
+  <li><a href="#how-to-reach-full-ha" id="toc-how-to-reach-full-ha" class="nav-link" data-scroll-target="#how-to-reach-full-ha"><span class="header-section-number">3.4.1</span> How to reach “full” HA</a></li>
   </ul></li>
   </ul></li>
-  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix"> <span class="header-section-number">4</span> Appendix</a>
+  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix"><span class="header-section-number">4</span> Appendix</a>
   <ul class="collapse">
-  <li><a href="#sec-patch-for-elb" id="toc-sec-patch-for-elb" class="nav-link" data-scroll-target="#sec-patch-for-elb"> <span class="header-section-number">4.1</span> Patch for ELB to listen on port 8787 instead of 22</a></li>
+  <li><a href="#sec-patch-for-elb" id="toc-sec-patch-for-elb" class="nav-link" data-scroll-target="#sec-patch-for-elb"><span class="header-section-number">4.1</span> Patch for ELB to listen on port 8787 instead of 22</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -211,11 +203,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           </div>
   </div>
     
+  
     
   </div>
   
 
+
 </header>
+
 
 <section id="introduction" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
@@ -245,9 +240,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1 data-number="3"><span class="header-section-number">3</span> Setup Instructions</h1>
 <p>In order to setup the new integration, 3 steps are needed</p>
 <ul>
-<li><p>Set up auxiliary services (Active Directory, PostgreSQL DB, users) - cf. <a href="#sec-auxiliary-services">Section&nbsp;3.1</a></p></li>
-<li><p>Create a custom AMI (<a href="#sec-custom-ami">Section&nbsp;3.2</a>)</p></li>
-<li><p>Trigger AWS ParallelCluster build (<a href="#sec-aws-parallelcluster-build">Section&nbsp;3.3</a>)</p></li>
+<li><p>Set up auxiliary services (Active Directory, PostgreSQL DB, users) - cf. <a href="#sec-auxiliary-services" class="quarto-xref">Section&nbsp;3.1</a></p></li>
+<li><p>Create a custom AMI (<a href="#sec-custom-ami" class="quarto-xref">Section&nbsp;3.2</a>)</p></li>
+<li><p>Trigger AWS ParallelCluster build (<a href="#sec-aws-parallelcluster-build" class="quarto-xref">Section&nbsp;3.3</a>)</p></li>
 </ul>
 <p>All those three steps are explained in the subsequent sections.</p>
 <section id="sec-auxiliary-services" class="level2" data-number="3.1">
@@ -288,7 +283,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p>You can change the default values for various parameters defined in <code>Pulumi.yaml</code> to your liking as well. Please do NOT change <code>Domain</code> - this is currently hard-coded into the AWS ParallelCluster setup. Anything else can be changed as you see fit.</p></li>
 </ul>
 <p>Current configurable parameters in the pulumi recipe</p>
-<table class="table">
+<table class="caption-top table">
 <caption>Pulumi recipe parameters</caption>
 <colgroup>
 <col style="width: 18%">
@@ -388,7 +383,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="sec-how-to-build-a-custom-ami" class="level3" data-number="3.2.1">
 <h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-how-to-build-a-custom-ami"><span class="header-section-number">3.2.1</span> How to build a custom AMI</h3>
 <ol type="1">
-<li><p>Activate the AWS ParallelCluster <code>venv</code> (cf. <a href="#sec-python-virtual-env">Section&nbsp;3.3.2</a>)</p></li>
+<li><p>Activate the AWS ParallelCluster <code>venv</code> (cf. <a href="#sec-python-virtual-env" class="quarto-xref">Section&nbsp;3.3.2</a>)</p></li>
 <li><p>Make sure that the AMI referenced in <code>image-config.yaml</code> exists in your AWS region.</p></li>
 <li><p>Check and modify as appropriate the parameters at the start of <code>install-image.sh</code></p></li>
 <li><p>Adjust the S3 bucket <code>s3://hpc-scripts1234/</code> and the image name <code>master</code> to your desired values in <code>install-image.sh</code>. You will need to specify a S3 bucket where you have write permissions.</p></li>
@@ -434,14 +429,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .aws-pc-venv/bin/activate </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">deactivate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You may want to add the patch described in <a href="#sec-patch-for-elb">Section&nbsp;4.1</a> to ensure full functionality of workbench.</p>
+<p>You may want to add the patch described in <a href="#sec-patch-for-elb" class="quarto-xref">Section&nbsp;4.1</a> to ensure full functionality of workbench.</p>
 </section>
 <section id="sec-prerequisites" class="level3" data-number="3.3.3">
 <h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-prerequisites"><span class="header-section-number">3.3.3</span> Prerequisites</h3>
 <ul>
-<li><p>Python Virtual Environment set up and activated (cf. <a href="#sec-python-virtual-env">Section&nbsp;3.3.2</a>).</p></li>
-<li><p>Auxiliary Services up and running (cf. <a href="#sec-auxiliary-services">Section&nbsp;3.1</a>)</p></li>
-<li><p>Custom AMI built (cf. <a href="#sec-custom-ami">Section&nbsp;3.2</a>)</p></li>
+<li><p>Python Virtual Environment set up and activated (cf. <a href="#sec-python-virtual-env" class="quarto-xref">Section&nbsp;3.3.2</a>).</p></li>
+<li><p>Auxiliary Services up and running (cf. <a href="#sec-auxiliary-services" class="quarto-xref">Section&nbsp;3.1</a>)</p></li>
+<li><p>Custom AMI built (cf. <a href="#sec-custom-ami" class="quarto-xref">Section&nbsp;3.2</a>)</p></li>
 <li><p>S3 bucket set up for temporarily hosting cluster deployment files and scripts</p></li>
 </ul>
 </section>
@@ -452,16 +447,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p>Review the <code>deploy.sh</code> script and modify accordingly, especially</p>
 <ol type="1">
 <li><p><code>CLUSTERNAME</code> - a human readable name of your cluster</p></li>
-<li><p><code>S3_BUCKETNAME</code> - The name of the S3 bucket you set up in <a href="#sec-prerequisites">Section&nbsp;3.3.3</a></p></li>
+<li><p><code>S3_BUCKETNAME</code> - The name of the S3 bucket you set up in <a href="#sec-prerequisites" class="quarto-xref">Section&nbsp;3.3.3</a></p></li>
 <li><p><code>SECURITYGROUP_RSW</code> - a security group that should allow at least external access to port 443 and 8787 (the latter if no SSL is being used).</p></li>
-<li><p><code>AMI</code> - the AMI created in <a href="#sec-how-to-build-a-custom-ami">Section&nbsp;3.2.1</a></p></li>
+<li><p><code>AMI</code> - the AMI created in <a href="#sec-how-to-build-a-custom-ami" class="quarto-xref">Section&nbsp;3.2.1</a></p></li>
 <li><p><code>SINGULARITY_SUPPORT</code> - if set true, Workbench will be configured for Singularity integration and two <code>r-session-complete</code> containers (Ubuntu Jammy and Cent OS 7 based) will be built. Please note that this significantly extends the spin-up time of the cluster.</p></li>
 </ol></li>
 </ol>
 </section>
 <section id="default-values-for-cluster-deployment" class="level3" data-number="3.3.5">
 <h3 data-number="3.3.5" class="anchored" data-anchor-id="default-values-for-cluster-deployment"><span class="header-section-number">3.3.5</span> Default values for Cluster deployment</h3>
-<p>For the <code>deploy.sh</code> script, unless mentioned in step 2 of the deployment instructions (cf. <a href="#sec-deployment-instructions">Section&nbsp;3.3.4</a>), all relevant parameters are extracted from the pulumi deployment for the auxiliary services.</p>
+<p>For the <code>deploy.sh</code> script, unless mentioned in step 2 of the deployment instructions (cf. <a href="#sec-deployment-instructions" class="quarto-xref">Section&nbsp;3.3.4</a>), all relevant parameters are extracted from the pulumi deployment for the auxiliary services.</p>
 <p>The default value in the cluster template <code>config/cluster-config-wb.tmpl</code>` are as follows</p>
 <ul>
 <li><p>EFS storage used for shared file systems needed by AWS ParallelCluster</p></li>
@@ -502,13 +497,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p>configuration files are deployed in <code>$PWB_BASE_DIR/etc/rstudio</code></p></li>
 <li><p>shared storage is configured in <code>$PWB_BASE_DIR/shared</code></p></li>
 <li><p>R Versions file is configured in <code>$PWB_BASE_DIR/shared/r-versions</code></p></li>
-<li><p>In order to distinguish the head node from the login node, an empty file <code>/etc/head-node</code> is created. This is used in the cron job mentioned in <a href="#sec-custom-ami">Section&nbsp;3.2</a> to help differentiate the login nodes from the head node.</p></li>
+<li><p>In order to distinguish the head node from the login node, an empty file <code>/etc/head-node</code> is created. This is used in the cron job mentioned in <a href="#sec-custom-ami" class="quarto-xref">Section&nbsp;3.2</a> to help differentiate the login nodes from the head node.</p></li>
 </ul>
 <p><code>ìnstall-compute.sh</code> script detects the presence of a GPU and then automatically updates the NVIDIA/CUDA driver and installs the CuDNN library for distributed GPU computing. This is more a nice to have but is rsther useful for distributed tensorflow etc…</p>
 <div id="architecture" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
 <p><img src="Benchmark.drawio.png" class="img-fluid figure-img"></p>
-<p></p><figcaption class="figure-caption">Architecture diagram</figcaption><p></p>
+<figcaption>Architecture diagram</figcaption>
 </figure>
 </div>
 </section>
@@ -516,14 +511,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 data-number="3.3.7" class="anchored" data-anchor-id="customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</h3>
 <section id="elastic-load-balancer" class="level4" data-number="3.3.7.1">
 <h4 data-number="3.3.7.1" class="anchored" data-anchor-id="elastic-load-balancer"><span class="header-section-number">3.3.7.1</span> Elastic Load Balancer</h4>
-<p>AWS ParallelCluster is setting up an ELB for the Login nodes and ensures that the desired number of login nodes is available at any given time. The ELB is by default listening on port 22 (ssh). In order to change that one would need to patch the python scripts a bit (patch supplied in <a href="#sec-patch-for-elb">Section&nbsp;4.1</a>)</p>
+<p>AWS ParallelCluster is setting up an ELB for the Login nodes and ensures that the desired number of login nodes is available at any given time. The ELB is by default listening on port 22 (ssh). In order to change that one would need to patch the python scripts a bit (patch supplied in <a href="#sec-patch-for-elb" class="quarto-xref">Section&nbsp;4.1</a>)</p>
 <p>This change is simple but will effectively disable the ability to ssh into the ELB. Typically however Workbench Users do not need ssh access to login nodes - if needed, they can open a termina within the RStudio IDE, for example.</p>
 <p>An alternative would be to add a second ELB for Workbench but this would imply a significantly larger patch to AWS ParallelCluster.</p>
 </section>
 <section id="the-thing-with-the-login-nodes" class="level4" data-number="3.3.7.2">
 <h4 data-number="3.3.7.2" class="anchored" data-anchor-id="the-thing-with-the-login-nodes"><span class="header-section-number">3.3.7.2</span> The “thing” with the Login Nodes</h4>
 <p>AWS ParallelCluster introduced the ability to define separate login nodes in <a href="https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0">Version 3.7.0</a>. This is great and replaces a rather <a href="https://github.com/aws/aws-parallelcluster/wiki/ParallelCluster:-Launching-a-Login-Node">complicated workaround</a> that was in place until then. Unfortunately the team did not add the same features to the new <a href="https://docs.aws.amazon.com/parallelcluster/latest/ug/LoginNodes-v3.html">Login Nodes</a> such as <code>OnNodeConfigured</code> . We have raise a <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> which was acknowledged and the missing feature will be implemented in an upcoming release.</p>
-<p>As a consequence we have implemented a workaround with a cron job that runs on all ParallelCluster managed nodes (Login, Head and Compute) every minute. A login node is detected if there is a NFS mount that contains the name <code>login_node</code> and if there is no file <code>/etc/head-node</code> (the latter would signal that this is a head node indeed). See <a href="#sec-notes-on-install-pwb-config.sh">Section&nbsp;3.3.6</a> for additional information.</p>
+<p>As a consequence we have implemented a workaround with a cron job that runs on all ParallelCluster managed nodes (Login, Head and Compute) every minute. A login node is detected if there is a NFS mount that contains the name <code>login_node</code> and if there is no file <code>/etc/head-node</code> (the latter would signal that this is a head node indeed). See <a href="#sec-notes-on-install-pwb-config.sh" class="quarto-xref">Section&nbsp;3.3.6</a> for additional information.</p>
 <p>Until the <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> is fixed, we will have to live with this workaround.</p>
 </section>
 </section>
@@ -622,12 +617,15 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     icon: icon
   };
   anchorJS.add('.anchored');
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    target: function(trigger) {
-      return trigger.previousElementSibling;
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
     }
-  });
-  clipboard.on('success', function(e) {
+    return false;
+  }
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -636,17 +634,73 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     button.classList.add('code-copy-button-checked');
     var currentTitle = button.getAttribute("title");
     button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
     setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
       button.setAttribute("title", currentTitle);
       button.classList.remove('code-copy-button-checked');
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
-  function tippyHover(el, contentFn) {
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/sol-eng\.github\.io\/aws-parallelcluster-rsw-ha\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -656,43 +710,308 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
   for (var i=0; i<noterefs.length; i++) {
     const ref = noterefs[i];
     tippyHover(ref, function() {
-      let href = ref.getAttribute('href');
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
     });
   }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
   var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
   for (var i=0; i<bibliorefs.length; i++) {
     const ref = bibliorefs[i];
-    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
-    tippyHover(ref, function() {
-      var popup = window.document.createElement('div');
-      cites.forEach(function(cite) {
-        var citeDiv = window.document.createElement('div');
-        citeDiv.classList.add('hanging-indent');
-        citeDiv.classList.add('csl-entry');
-        var biblioDiv = window.document.getElementById('ref-' + cite);
-        if (biblioDiv) {
-          citeDiv.innerHTML = biblioDiv.innerHTML;
-        }
-        popup.appendChild(citeDiv);
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
       });
-      return popup.innerHTML;
-    });
+    }
   }
 });
 </script>
 </div> <!-- /content -->
+
 
 
 
