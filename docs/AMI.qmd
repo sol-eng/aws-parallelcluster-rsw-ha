@@ -14,7 +14,7 @@ The main configuration file is `image-config.yaml` in the `image` subfolder. The
 1. Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. Replace occurrence of `s3://hpc-scripts1234` with the actual S3 bucket reference in `install-image.sh`, `image-config.yaml` and `install-r.sh`. 
 2. Check versions in `install-image.sh`
 3. Finally, run 
-```
+``` bash
 ./build-image.sh <IMAGENAME> [<BUCKETNAME>]
 ```
 where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`. `<BUCKETNAME>` is an optional argument. If missing, the script will look in `.bucket.default` to read the default bucket name. 
@@ -72,7 +72,10 @@ In `install-pwb.sh` we also set up a cron job that will run `/opt/parallelcluste
 2.  Make sure that the AMI referenced in `image-config.yaml` exists in your AWS region. `pcluster list-official-images` will give you a list of supported images. For Ubuntu 22.04 LTS (Jammy) you can run 
 
 ``` bash 
-pcluster list-official-images | jq '.images.[] | select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'
+pcluster list-official-images | \
+    jq '.images.[] | \
+        select(.os=="ubuntu2204" and .architecture=="x86_64") | \
+        .amiId'
 ```
 
 3.  Check and modify as appropriate the parameters at the start of `install-image.sh`
