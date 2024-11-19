@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.0.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Michael Mayer">
+
+<title>today - Next Generation Workbench integration into AWS ParallelCluster</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">today</span>
+  </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./PWB.html" aria-current="page">Home</a>
+  </li>  
+  <li class="dropdown-header">
+ about.qmd</li>
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"> <span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#a-new-approach" id="toc-a-new-approach" class="nav-link" data-scroll-target="#a-new-approach"> <span class="header-section-number">2</span> A new approach</a></li>
+  <li><a href="#setup-instructions" id="toc-setup-instructions" class="nav-link" data-scroll-target="#setup-instructions"> <span class="header-section-number">3</span> Setup Instructions</a>
+  <ul class="collapse">
+  <li><a href="#sec-auxiliary-services" id="toc-sec-auxiliary-services" class="nav-link" data-scroll-target="#sec-auxiliary-services"> <span class="header-section-number">3.1</span> Auxiliary services</a>
+  <ul class="collapse">
+  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"> <span class="header-section-number">3.1.1</span> Prerequisites</a></li>
+  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup"> <span class="header-section-number">3.1.2</span> How to setup</a></li>
+  <li><a href="#additional-details" id="toc-additional-details" class="nav-link" data-scroll-target="#additional-details"> <span class="header-section-number">3.1.3</span> Additional details</a></li>
+  </ul></li>
+  <li><a href="#sec-custom-ami" id="toc-sec-custom-ami" class="nav-link" data-scroll-target="#sec-custom-ami"> <span class="header-section-number">3.2</span> Custom AMI</a>
+  <ul class="collapse">
+  <li><a href="#sec-how-to-build-a-custom-ami" id="toc-sec-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#sec-how-to-build-a-custom-ami"> <span class="header-section-number">3.2.1</span> How to build a custom AMI</a></li>
+  </ul></li>
+  <li><a href="#sec-aws-parallelcluster-build" id="toc-sec-aws-parallelcluster-build" class="nav-link" data-scroll-target="#sec-aws-parallelcluster-build"> <span class="header-section-number">3.3</span> AWS ParallelCluster</a>
+  <ul class="collapse">
+  <li><a href="#introduction-1" id="toc-introduction-1" class="nav-link" data-scroll-target="#introduction-1"> <span class="header-section-number">3.3.1</span> Introduction</a></li>
+  <li><a href="#sec-python-virtual-env" id="toc-sec-python-virtual-env" class="nav-link" data-scroll-target="#sec-python-virtual-env"> <span class="header-section-number">3.3.2</span> Python Virtual Env</a></li>
+  <li><a href="#sec-prerequisites" id="toc-sec-prerequisites" class="nav-link" data-scroll-target="#sec-prerequisites"> <span class="header-section-number">3.3.3</span> Prerequisites</a></li>
+  <li><a href="#sec-deployment-instructions" id="toc-sec-deployment-instructions" class="nav-link" data-scroll-target="#sec-deployment-instructions"> <span class="header-section-number">3.3.4</span> Deployment instructions</a></li>
+  <li><a href="#default-values-for-cluster-deployment" id="toc-default-values-for-cluster-deployment" class="nav-link" data-scroll-target="#default-values-for-cluster-deployment"> <span class="header-section-number">3.3.5</span> Default values for Cluster deployment</a></li>
+  <li><a href="#sec-notes-on-install-pwb-config.sh" id="toc-sec-notes-on-install-pwb-config.sh" class="nav-link" data-scroll-target="#sec-notes-on-install-pwb-config.sh"> <span class="header-section-number">3.3.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></a></li>
+  <li><a href="#customisations-on-top-of-aws-parallelcluster" id="toc-customisations-on-top-of-aws-parallelcluster" class="nav-link" data-scroll-target="#customisations-on-top-of-aws-parallelcluster"> <span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</a></li>
+  </ul></li>
+  <li><a href="#summary-and-conclusions" id="toc-summary-and-conclusions" class="nav-link" data-scroll-target="#summary-and-conclusions"> <span class="header-section-number">3.4</span> Summary and Conclusions</a>
+  <ul class="collapse">
+  <li><a href="#how-to-reach-full-ha" id="toc-how-to-reach-full-ha" class="nav-link" data-scroll-target="#how-to-reach-full-ha"> <span class="header-section-number">3.4.1</span> How to reach “full” HA</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix"> <span class="header-section-number">4</span> Appendix</a>
+  <ul class="collapse">
+  <li><a href="#sec-patch-for-elb" id="toc-sec-patch-for-elb" class="nav-link" data-scroll-target="#sec-patch-for-elb"> <span class="header-section-number">4.1</span> Patch for ELB to listen on port 8787 instead of 22</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Next Generation Workbench integration into AWS ParallelCluster</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Michael Mayer </p>
+          </div>
+  </div>
+    
+    
+  </div>
+  
+
+</header>
+
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p><a href="https://aws.amazon.com/hpc/parallelcluster/">AWS ParallelCluster</a> is a framework that allows for easy setup of HPC clusters with various schedulers. It takes a YAML file with all the necessary definitions and transforms that into Cloud Formation Code that then gets deployed into AWS.</p>
+<p>At the moment it supports both <a href="https://slurm.schedmd.com/">SLURM</a> and <a href="https://aws.amazon.com/batch/">AWS Batch</a>.</p>
+<p>Posit Workbench supports SLURM as a HPC back end via the <a href="https://docs.posit.co/ide/server-pro/job_launcher/slurm_plugin.html">SLURM Launcher</a>. As a consequence, a <a href="https://github.com/sol-eng/aws-parallelcluster-rsw/">github repository</a> has been set up to highlight a possible way to integrate Posit Workbench with AWS ParallelCluster via the SLURM Launcher. The approach used there works but has several shortcomings:</p>
+<ul>
+<li><p>Setting Workbench on the head node where also the <code>slurmctld</code> and <code>slurmdbd</code> (SLURM Controller and Database) daemons are running makes this head node very vulnerable and a single point of failure.</p></li>
+<li><p>All traffic will be routed through the head node</p></li>
+<li><p>The head node does not only act as Workbench Server and runs the main SLURM daemons (see above), it is also used as a NFS server adding additional load (depending on the size and utilisation of the cluster) that could contribute to very bad user experience on the HPC cluster up to a crash of the same if resources are exhausted.</p></li>
+</ul>
+<p>This document serves two purposes: Documenting the current setup used for Workbench benchmarking but also summarizing a potential reference architecture that overcomes some of the shortcomings of the current Workbench integration into AWS ParallelCluster with a focus on High(er) Availabiity.</p>
+</section>
+<section id="a-new-approach" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> A new approach</h1>
+<p>Fortunately, AWS ParallelCluster keeps evolving and in parallel Posit’s understanding of the tool also increases.</p>
+<p>Recent releases have added a couple of very interesting, exciting and very helpful features, most notably</p>
+<ul>
+<li><p>the ability to <a href="https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0">add login nodes in version 3.7.0</a></p></li>
+<li><p>ability to use EFS instead of NFS to host shared file systems needed for the cluster (e.g.&nbsp;<code>/opt/slurm</code> containing the SLURM installation) that removes the need to host an NFS server on the head node. This feature will be part of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">version 3.8.0</a> (beta version out - release imminent)</p></li>
+<li><p>ability to set up <code>/home</code> on FsX for Lustre or EFS instead of internal NFS hosted on the head node This feature is part of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">version 3.8.0</a> as well.</p></li>
+</ul>
+<p>While the above features are very vital to the new approach for the Workbench integration discussed in this doc, there is many other functionalities that are almost taken for granted (e.g.&nbsp;Easy integration into auth subsystems, SLURM scheduling fine tuning capabilities, …).</p>
+<p>If there was one feature that should be explicitly mentioned here, then it needs to be the ability to build custom AMIs. One of the features of a scalable cloud deployment (like AWS ParallelCluster) is the ability to scale up and down based on user demand. If there is a scale-up event, i.e.&nbsp;a node is getting added to the cluster, a new EC2 instance is provisioned. The elapsed time for such a scale-up event is about 4 minutes today when using a pre-built AMI but will increase if there is a need to run additional software installations just because the AMI does not contain all the needed features. Building a custom AMI will help to keep the instance spin up time at the 4 minute mark.</p>
+</section>
+<section id="setup-instructions" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Setup Instructions</h1>
+<p>In order to setup the new integration, 3 steps are needed</p>
+<ul>
+<li><p>Set up auxiliary services (Active Directory, PostgreSQL DB, users) - cf. <a href="#sec-auxiliary-services">Section&nbsp;3.1</a></p></li>
+<li><p>Create a custom AMI (<a href="#sec-custom-ami">Section&nbsp;3.2</a>)</p></li>
+<li><p>Trigger AWS ParallelCluster build (<a href="#sec-aws-parallelcluster-build">Section&nbsp;3.3</a>)</p></li>
+</ul>
+<p>All those three steps are explained in the subsequent sections.</p>
+<section id="sec-auxiliary-services" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-auxiliary-services"><span class="header-section-number">3.1</span> Auxiliary services</h2>
+<p>When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is <a href="https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html">AWS SimpleAD</a>. In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called <a href="https://www.freedesktop.org/software/realmd/adcli/adcli.html">adcli</a> (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional <code>expect</code> scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via <a href="https://www.pulumi.com/b/">Pulumi</a> recipes</p>
+<section id="prerequisites" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="prerequisites"><span class="header-section-number">3.1.1</span> Prerequisites</h3>
+<p>You will need to have</p>
+<ul>
+<li><p>pulumi installed and configure so you can successfully create, run and modify pulumi stacks</p></li>
+<li><p><a href="https://github.com/casey/just">just</a> installed locally</p></li>
+<li><p>ssh client including the <code>ssh-keygen</code> utility</p></li>
+</ul>
+</section>
+<section id="how-to-setup" class="level3" data-number="3.1.2">
+<h3 data-number="3.1.2" class="anchored" data-anchor-id="how-to-setup"><span class="header-section-number">3.1.2</span> How to setup</h3>
+<p>In the github repo, go tho the <code>pulumi</code> sub-folder. There, run the following commands</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Let's add a new ssh key pair</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">just</span> key-pair-new</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a new stack </span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack init auxiliary-wb</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Configure eMail address to ensure resources are properly tagged</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set email my-email@corp.co</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># add EC2 keypair via AWS CLI</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 import-key-pair <span class="at">--key-name</span> <span class="kw">`</span><span class="ex">pulumi</span> config get email<span class="kw">`</span><span class="at">-keypair-for-pulumi</span> <span class="at">--public-key-material</span> <span class="kw">`</span><span class="fu">cat</span> key.pem.pub<span class="kw">|</span> <span class="fu">base64</span> <span class="kw">`</span> </span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally start deployment of SimpleAD, PostgreSQL DB and Jump Host</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Also create 500 users at the same time</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="ex">just</span> up</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Please be aware</p>
+<ul>
+<li><p>Naming of your stack (<code>auxiliary-wb</code>) can be changed to your preference</p></li>
+<li><p>Make sure to set your correct eMail address.</p></li>
+<li><p>If you would like to use a different number of users, instead of <code>just up</code> run <code>pulumi up -y</code> and then <code>just create-users X</code> where X is the number of users you want to create.</p></li>
+<li><p>You can change the default values for various parameters defined in <code>Pulumi.yaml</code> to your liking as well. Please do NOT change <code>Domain</code> - this is currently hard-coded into the AWS ParallelCluster setup. Anything else can be changed as you see fit.</p></li>
+</ul>
+<p>Current configurable parameters in the pulumi recipe</p>
+<table class="table">
+<caption>Pulumi recipe parameters</caption>
+<colgroup>
+<col style="width: 18%">
+<col style="width: 59%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Description</th>
+<th>Default value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>region</code></td>
+<td>AWS region</td>
+<td><code>eu-west-1</code></td>
+</tr>
+<tr class="even">
+<td><code>email</code></td>
+<td>eMail address of user</td>
+<td><code>tbd@tbc.com</code></td>
+</tr>
+<tr class="odd">
+<td><code>ServerInstanceType</code></td>
+<td>Instance Type for the AD jumphost</td>
+<td><code>t3.medium</code></td>
+</tr>
+<tr class="even">
+<td><code>ami</code></td>
+<td>A valid AMI used to deploy on AD jumphost (must be Ubuntu 20.04 LTS)</td>
+<td><code>ami-0d2a4a5d69e46ea0b</code></td>
+</tr>
+<tr class="odd">
+<td><code>Domain</code></td>
+<td>Name of Domain to be used for AD</td>
+<td><code>pwb.posit.co</code></td>
+</tr>
+<tr class="even">
+<td><code>DomainPW</code></td>
+<td>Password for the Administrator AD account</td>
+<td><code>Testme123!</code></td>
+</tr>
+<tr class="odd">
+<td><code>db_username</code></td>
+<td>User name for PostgreSQL DB</td>
+<td><code>pwb_db_admin</code></td>
+</tr>
+<tr class="even">
+<td><code>db_password</code></td>
+<td>Password for PostgreSQL DB</td>
+<td><code>pwb_db_password</code></td>
+</tr>
+</tbody>
+</table>
+<p>Once you successfully built everything, <code>pulumi stack output</code>` should report something like</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Current</span> stack outputs <span class="er">(</span><span class="ex">12</span><span class="kw">)</span><span class="bu">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">OUTPUT</span>                   VALUE</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DomainPWARN</span>              arn:aws:secretsmanager:eu-west-1:637485797898:secret:SimpleADPassword-2898387-BQn4mT</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_access_url</span>            d-93675e652d.awsapps.com</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_dns_1</span>                 172.31.33.122</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_dns_2</span>                 172.31.48.170</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_jump_host_public_dns</span>  ec2-52-16-178-244.eu-west-1.compute.amazonaws.com</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_jump_host_public_ip</span>   52.16.178.244</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">db_address</span>               rsw-dbfee1a4f.clovh3dmuvji.eu-west-1.rds.amazonaws.com</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">db_endpoint</span>              rsw-dbfee1a4f.clovh3dmuvji.eu-west-1.rds.amazonaws.com:5432</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">db_port</span>                  5432</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jump_host_dns</span>            ec2-52-16-178-244.eu-west-1.compute.amazonaws.com</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="ex">key_pair</span> id              michael.mayer@posit.co-keypair-for-pulumi-1699956356</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="ex">vpc_subnet</span>               subnet-03259a81db5aec449</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="additional-details" class="level3" data-number="3.1.3">
+<h3 data-number="3.1.3" class="anchored" data-anchor-id="additional-details"><span class="header-section-number">3.1.3</span> Additional details</h3>
+<p>Users are created in the following way by default: User Name is <code>positXXXX</code> where <code>XXXX</code> is a 4-digit zero-padded number. Password is <code>Testme1234</code>. Those defaults can be changed in <code>server-side-files/config/useradd.sh</code> . The referenced script is using multi-threaded bash to speed up user creation. In order to prevent user creation from failing due to too many concurrent connections, it additionally runs <code>pamtester</code> to ensure the user is correctly created.</p>
+</section>
+</section>
+<section id="sec-custom-ami" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-custom-ami"><span class="header-section-number">3.2</span> Custom AMI</h2>
+<p>The use of a custom AMI is very helpful to reduce the time needed for spinning up additional compute nodes. While the spin-up time cannot be shrunk significantly below 4 minutes, the use of custom AMI prevents the need for adding additional software at spin-up time that would further extend the spin-up time reducing user experience further. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes.</p>
+<p>In this approach we are using ParallelCluster’s image builder capability that are integrated into AWS <code>packer</code> service.</p>
+<p>The main configuration file is <code>image-config.yaml</code> in the <code>image</code> subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script <code>install-image.sh</code> that calls a couple of additional scripts that facilitate the installation of Workbench, R, Python, ….. Each individual script is called by the <code>setup_something()</code>` bash function that will download the additional script and run with pre-defined parameters. The variables defined at the start of the script should be self-explanatory.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_LIST</span><span class="op">=</span><span class="st">"4.3.1 4.2.3 4.1.3 4.0.5"</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_DEFAULT</span><span class="op">=</span>4.3.1</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHON_VERSION_LIST</span><span class="op">=</span><span class="st">"3.11.6 3.10.13 3.9.18"</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHON_VERSION_DEFAULT</span><span class="op">=</span>3.11.6</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="va">QUARTO_VERSION</span><span class="op">=</span>1.4.449</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="va">PWB_VERSION</span><span class="op">=</span>2023.09.1-494.pro2</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="va">APPTAINER_VERSION</span><span class="op">=</span><span class="st">"1.2.4"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>and can be changed accordingly. Default versions in this context are system default, i.e.&nbsp;these are sym-linked into <code>/usr/local/bin</code></p>
+<p><code>install-pwb.sh</code> will install Posit Workbench, but then disable both <code>rstudio-launcher</code> and <code>rstudio-server</code> so that the AMI can be used both on the login nodes (where the installation acts as proper Workbench) and also on the compute nodes (where it acts as the session component). The small differences between a full workbench installation one the session components did not warrant the extra effort of creating and maintaining two different AMIs.</p>
+<p>In <code>install-pwb.sh</code> we also set up a cron job that will run <code>/opt/parallelcluster/shared/rstudio/scripts/rc.pwb</code>. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start <code>rstudio-server</code> as well as <code>rstudio-launcher</code>. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf.&nbsp;https://github.com/aws/aws-parallelcluster/issues/5723)</p>
+<section id="sec-how-to-build-a-custom-ami" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="sec-how-to-build-a-custom-ami"><span class="header-section-number">3.2.1</span> How to build a custom AMI</h3>
+<ol type="1">
+<li><p>Activate the AWS ParallelCluster <code>venv</code> (cf. <a href="#sec-python-virtual-env">Section&nbsp;3.3.2</a>)</p></li>
+<li><p>Make sure that the AMI referenced in <code>image-config.yaml</code> exists in your AWS region.</p></li>
+<li><p>Check and modify as appropriate the parameters at the start of <code>install-image.sh</code></p></li>
+<li><p>Adjust the S3 bucket <code>s3://hpc-scripts1234/</code> and the image name <code>master</code> to your desired values in <code>install-image.sh</code>. You will need to specify a S3 bucket where you have write permissions.</p></li>
+<li><p>Run <code>install-image.sh</code></p></li>
+</ol>
+<p>The script will transfer the shell scripts into the S3 bucket and eventually trigger the build of the custom image.</p>
+<p>It may take a moment, but after a few minutes you can trace the build of the image via</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> describe-image <span class="at">-i</span> master</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-image-log-streams <span class="at">-i</span> master</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>which will give you the list of log streams from your image. Once you identified the log stream, you can query this via</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> get-image-log-events <span class="at">-i</span> master <span class="at">--log-stream-name</span> a.b.c/d</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>where a.b.c/d is the log stream name you received from the previous command. <code>master</code> in all commands refers to the image name.</p>
+<p>Once the image is built successfully (will take about an hour or so), <code>pcluster describe-image -i master</code> will provide you an output similar to the one below</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageConfiguration"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageId"</span><span class="fu">:</span> <span class="st">"master"</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"creationTime"</span><span class="fu">:</span> <span class="st">"2023-11-05T11:22:31.000Z"</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageBuildStatus"</span><span class="fu">:</span> <span class="st">"BUILD_COMPLETE"</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"region"</span><span class="fu">:</span> <span class="st">"eu-west-1"</span><span class="fu">,</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"ec2AmiInfo"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"amiName"</span><span class="fu">:</span> <span class="st">"master 2023-11-05T10-35-49.191Z"</span><span class="fu">,</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"amiId"</span><span class="fu">:</span> <span class="st">"ami-09901d00eff671747"</span><span class="fu">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"AWS ParallelCluster AMI for ubuntu2004, kernel-5.15.0-1049-aws, lustre-5.15.0.1049.54~20.04.37, efa-2.5.0-1.amzn1, dcv-2023.0.15487-1"</span><span class="fu">,</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"state"</span><span class="fu">:</span> <span class="st">"AVAILABLE"</span><span class="fu">,</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"architecture"</span><span class="fu">:</span> <span class="st">"x86_64"</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"version"</span><span class="fu">:</span> <span class="st">"3.8.0b1"</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>where we removed the <code>tags</code> and the <code>url</code> section for better readability.</p>
+</section>
+</section>
+<section id="sec-aws-parallelcluster-build" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-aws-parallelcluster-build"><span class="header-section-number">3.3</span> AWS ParallelCluster</h2>
+<section id="introduction-1" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="introduction-1"><span class="header-section-number">3.3.1</span> Introduction</h3>
+<p>With launching the cluster via AWS ParallelCluster, everything comes together.</p>
+</section>
+<section id="sec-python-virtual-env" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="sec-python-virtual-env"><span class="header-section-number">3.3.2</span> Python Virtual Env</h3>
+<p>The virtual environment for AWS Parallelcluster can be created from the base folder of the git repo via</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .aws-pc-venv</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .aws-pc-venv/bin/activate </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">deactivate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>You may want to add the patch described in <a href="#sec-patch-for-elb">Section&nbsp;4.1</a> to ensure full functionality of workbench.</p>
+</section>
+<section id="sec-prerequisites" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-prerequisites"><span class="header-section-number">3.3.3</span> Prerequisites</h3>
+<ul>
+<li><p>Python Virtual Environment set up and activated (cf. <a href="#sec-python-virtual-env">Section&nbsp;3.3.2</a>).</p></li>
+<li><p>Auxiliary Services up and running (cf. <a href="#sec-auxiliary-services">Section&nbsp;3.1</a>)</p></li>
+<li><p>Custom AMI built (cf. <a href="#sec-custom-ami">Section&nbsp;3.2</a>)</p></li>
+<li><p>S3 bucket set up for temporarily hosting cluster deployment files and scripts</p></li>
+</ul>
+</section>
+<section id="sec-deployment-instructions" class="level3" data-number="3.3.4">
+<h3 data-number="3.3.4" class="anchored" data-anchor-id="sec-deployment-instructions"><span class="header-section-number">3.3.4</span> Deployment instructions</h3>
+<ol type="1">
+<li><p>Review the cluster template in <code>config/cluster-config-wb.tmpl</code> and modify accordingly.</p></li>
+<li><p>Review the <code>deploy.sh</code> script and modify accordingly, especially</p>
+<ol type="1">
+<li><p><code>CLUSTERNAME</code> - a human readable name of your cluster</p></li>
+<li><p><code>S3_BUCKETNAME</code> - The name of the S3 bucket you set up in <a href="#sec-prerequisites">Section&nbsp;3.3.3</a></p></li>
+<li><p><code>SECURITYGROUP_RSW</code> - a security group that should allow at least external access to port 443 and 8787 (the latter if no SSL is being used).</p></li>
+<li><p><code>AMI</code> - the AMI created in <a href="#sec-how-to-build-a-custom-ami">Section&nbsp;3.2.1</a></p></li>
+<li><p><code>SINGULARITY_SUPPORT</code> - if set true, Workbench will be configured for Singularity integration and two <code>r-session-complete</code> containers (Ubuntu Jammy and Cent OS 7 based) will be built. Please note that this significantly extends the spin-up time of the cluster.</p></li>
+</ol></li>
+</ol>
+</section>
+<section id="default-values-for-cluster-deployment" class="level3" data-number="3.3.5">
+<h3 data-number="3.3.5" class="anchored" data-anchor-id="default-values-for-cluster-deployment"><span class="header-section-number">3.3.5</span> Default values for Cluster deployment</h3>
+<p>For the <code>deploy.sh</code> script, unless mentioned in step 2 of the deployment instructions (cf. <a href="#sec-deployment-instructions">Section&nbsp;3.3.4</a>), all relevant parameters are extracted from the pulumi deployment for the auxiliary services.</p>
+<p>The default value in the cluster template <code>config/cluster-config-wb.tmpl</code>` are as follows</p>
+<ul>
+<li><p>EFS storage used for shared file systems needed by AWS ParallelCluster</p></li>
+<li><p>One Head Node</p>
+<ul>
+<li><p>Instance <code>t3.xlarge</code></p></li>
+<li><p>100 GB of local EBS storage</p></li>
+<li><p>Script <code>install-pwb-config.sh</code> triggered when head node is being deployed.</p></li>
+</ul></li>
+<li><p>Compute Nodes with</p>
+<ul>
+<li><p>Script <code>config-compute.sh</code> triggered when compute node starts.</p></li>
+<li><p>Partition <code>all</code></p>
+<ul>
+<li><p>Instance <code>t3.xlarge</code></p></li>
+<li><p>minimum/maximum number of instances: 1/10</p></li>
+</ul></li>
+<li><p>Partition <code>gpu</code></p>
+<ul>
+<li><p>Instance p3.2xlarge</p></li>
+<li><p>minimum/maximum number of instances; 0/1</p></li>
+</ul></li>
+</ul></li>
+<li><p>2 Login Nodes with</p>
+<ul>
+<li>Instance <code>t3.xlarge</code></li>
+<li>ELB in front</li>
+</ul></li>
+<li><p>Shared storage for <code>/home</code> - FsX for Lustre with capacity of 1.2 TB and deployment type <code>SCRATCH_2</code></p></li>
+</ul>
+<p>All of the above settings (Instance type, numbers, FsX size) can be changed as needed.</p>
+</section>
+<section id="sec-notes-on-install-pwb-config.sh" class="level3" data-number="3.3.6">
+<h3 data-number="3.3.6" class="anchored" data-anchor-id="sec-notes-on-install-pwb-config.sh"><span class="header-section-number">3.3.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></h3>
+<p><code>install-pwb-config.sh</code> mainly creates Posit Workbench configuration files and configures the workbench systemctl services <code>rstudio-launcher</code> and <code>rstudio-server</code> . It is only executed on the designated head node</p>
+<ul>
+<li><p>Workbench uses <code>/opt/parallelcluster/shared/rstudio/</code> as the base for its configuration (<code>PWB_BASE_DIR</code>). <code>/opt/parallelcluster/shared</code>` is already created by AWS ParallelCluster and shared across all nodes (head, login and compute) so we are making use of this functionality.</p></li>
+<li><p>configuration files are deployed in <code>$PWB_BASE_DIR/etc/rstudio</code></p></li>
+<li><p>shared storage is configured in <code>$PWB_BASE_DIR/shared</code></p></li>
+<li><p>R Versions file is configured in <code>$PWB_BASE_DIR/shared/r-versions</code></p></li>
+<li><p>In order to distinguish the head node from the login node, an empty file <code>/etc/head-node</code> is created. This is used in the cron job mentioned in <a href="#sec-custom-ami">Section&nbsp;3.2</a> to help differentiate the login nodes from the head node.</p></li>
+</ul>
+<p><code>ìnstall-compute.sh</code> script detects the presence of a GPU and then automatically updates the NVIDIA/CUDA driver and installs the CuDNN library for distributed GPU computing. This is more a nice to have but is rsther useful for distributed tensorflow etc…</p>
+<div id="architecture" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="Benchmark.drawio.png" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption">Architecture diagram</figcaption><p></p>
+</figure>
+</div>
+</section>
+<section id="customisations-on-top-of-aws-parallelcluster" class="level3" data-number="3.3.7">
+<h3 data-number="3.3.7" class="anchored" data-anchor-id="customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</h3>
+<section id="elastic-load-balancer" class="level4" data-number="3.3.7.1">
+<h4 data-number="3.3.7.1" class="anchored" data-anchor-id="elastic-load-balancer"><span class="header-section-number">3.3.7.1</span> Elastic Load Balancer</h4>
+<p>AWS ParallelCluster is setting up an ELB for the Login nodes and ensures that the desired number of login nodes is available at any given time. The ELB is by default listening on port 22 (ssh). In order to change that one would need to patch the python scripts a bit (patch supplied in <a href="#sec-patch-for-elb">Section&nbsp;4.1</a>)</p>
+<p>This change is simple but will effectively disable the ability to ssh into the ELB. Typically however Workbench Users do not need ssh access to login nodes - if needed, they can open a termina within the RStudio IDE, for example.</p>
+<p>An alternative would be to add a second ELB for Workbench but this would imply a significantly larger patch to AWS ParallelCluster.</p>
+</section>
+<section id="the-thing-with-the-login-nodes" class="level4" data-number="3.3.7.2">
+<h4 data-number="3.3.7.2" class="anchored" data-anchor-id="the-thing-with-the-login-nodes"><span class="header-section-number">3.3.7.2</span> The “thing” with the Login Nodes</h4>
+<p>AWS ParallelCluster introduced the ability to define separate login nodes in <a href="https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0">Version 3.7.0</a>. This is great and replaces a rather <a href="https://github.com/aws/aws-parallelcluster/wiki/ParallelCluster:-Launching-a-Login-Node">complicated workaround</a> that was in place until then. Unfortunately the team did not add the same features to the new <a href="https://docs.aws.amazon.com/parallelcluster/latest/ug/LoginNodes-v3.html">Login Nodes</a> such as <code>OnNodeConfigured</code> . We have raise a <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> which was acknowledged and the missing feature will be implemented in an upcoming release.</p>
+<p>As a consequence we have implemented a workaround with a cron job that runs on all ParallelCluster managed nodes (Login, Head and Compute) every minute. A login node is detected if there is a NFS mount that contains the name <code>login_node</code> and if there is no file <code>/etc/head-node</code> (the latter would signal that this is a head node indeed). See <a href="#sec-notes-on-install-pwb-config.sh">Section&nbsp;3.3.6</a> for additional information.</p>
+<p>Until the <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> is fixed, we will have to live with this workaround.</p>
+</section>
+</section>
+</section>
+<section id="summary-and-conclusions" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="summary-and-conclusions"><span class="header-section-number">3.4</span> Summary and Conclusions</h2>
+<p>This document describes a possibility on how to integrate Workbench and AWS ParallelCluster that allows for partial High Availability. The setup can tolerate login node failures and recover and as a consequence the workbench part is HA.</p>
+<p>The main ingredients for this setup is the creation of a custom AMI with all the software needed (Workbench, R, Python, …) baked into a custom AMI that can be used for all the three node types (Login, Head and Compute Node).</p>
+<p>In order to achieve this, some additional logic has to be implemented and some workarounds for missing features in AWS ParallelCluster be used.</p>
+<p>The remaining issue is however the single head node which is a single point of failure (if the head node crashes, SLURM stops working).</p>
+<section id="how-to-reach-full-ha" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="how-to-reach-full-ha"><span class="header-section-number">3.4.1</span> How to reach “full” HA</h3>
+<p>AWS paralelcluster makes a clear distinction between Head and Login nodes. This is more than justified given the fact that the Head node not only runs <code>slurmctld</code> but also can act as a NFS server exporting file systems such as <code>/home</code> , <code>/opt/slurm</code>, … This makes the Head node a single point of failure from the perspective of the NFS server alone.</p>
+<p>With the release of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">AWS ParallelCluster 3.8.0</a> (currently available as beta version), all the NFS file systems can be hosted on external EFS. This removes the single point of failure for the NFS server. There is a bug in the beta version <a href="https://github.com/aws/aws-parallelcluster/issues/5812">where all but one file system can be hosted on EFS</a> but this will be fixed in the official release of 3.8.0.</p>
+<p>Once this is in place, the boundaries between the Login Nodes and Head Nodes will become much less clear. With adding additional logic, one can automatically start additional <code>slurmctld</code> processes on the login nodes and configure those hosts in the slurm configuration. If the head node then fails, a <code>slurmctld</code> of one of the compute nodes will take over. While adding additional <code>slurmctld</code> is fairly straightforward, there also is a need for regular checks if all the defined <code>slurmctld</code>` hosts are still up and running. If not, those need to be removed from the slurm config.</p>
+<p>The complexity of establishing the above is fairly small but then it is another customisation we have to make and maintain. As long as this is only a posit internal solution, we should be ok.</p>
+<p>A drawback of having full HA as mentioned above however is that very likely the ParallelCluster API may become unuseable in case the head node is no longer available. Things like updating configuration and settings of the running cluster may no longer work. Whether this is needed in a productive cluster is another matter of debate.</p>
+</section>
+</section>
+</section>
+<section id="appendix" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Appendix</h1>
+<section id="sec-patch-for-elb" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-patch-for-elb"><span class="header-section-number">4.1</span> Patch for ELB to listen on port 8787 instead of 22</h2>
+<pre><code>diff -u --recursive pcluster/templates/cluster_stack.py pcluster.new/templates/cluster_stack.py
+--- pcluster/templates/cluster_stack.py 2023-11-22 12:25:53
++++ pcluster.new/templates/cluster_stack.py 2023-11-22 15:11:48
+@@ -871,10 +871,10 @@
+     def _get_source_ingress_rule(self, setting):
+         if setting.startswith("pl"):
+             return ec2.CfnSecurityGroup.IngressProperty(
+-                ip_protocol="tcp", from_port=22, to_port=22, source_prefix_list_id=setting
++                ip_protocol="tcp", from_port=8787, to_port=8787, source_prefix_list_id=setting
+             )
+         else:
+-            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol="tcp", from_port=22, to_port=22, cidr_ip=setting)
++            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol="tcp", from_port=8787, to_port=8787, cidr_ip=setting)
+ 
+     def _add_login_nodes_security_group(self):
+         login_nodes_security_group_ingress = [
+diff -u --recursive pcluster/templates/login_nodes_stack.py pcluster.new/templates/login_nodes_stack.py
+--- pcluster/templates/login_nodes_stack.py 2023-11-22 12:25:53
++++ pcluster.new/templates/login_nodes_stack.py 2023-11-22 15:11:19
+@@ -273,10 +273,10 @@
+             self,
+             f"{self._pool.name}TargetGroup",
+             health_check=elbv2.HealthCheck(
+-                port="22",
++                port="8787",
+                 protocol=elbv2.Protocol.TCP,
+             ),
+-            port=22,
++            port=8787,
+             protocol=elbv2.Protocol.TCP,
+             target_type=elbv2.TargetType.INSTANCE,
+             vpc=self._vpc,
+@@ -299,7 +299,7 @@
+             ),
+         )
+ 
+-        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=22)
++        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=8787)
+         listener.add_target_groups(f"LoginNodesListenerTargets{self._pool.name}", target_group)
+         return login_nodes_load_balancer
+ </code></pre>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
