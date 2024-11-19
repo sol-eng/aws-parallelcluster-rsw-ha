@@ -1,14 +1,23 @@
 ---
 title: "Custom AMI"
+number-sections: true
 --- 
 
 # Introduction 
 
 While AWS ParallelCluster allows the on-demand provisioning of software during cluster build and compute node spin up, the waiting time especially until a compute node is spun up and provisioned quickly becomes incompatible with a positive user experience. The use of a custom AMI is very helpful to reduce this time. The spin up time however cannot be reduced below approximately 4 to 5 minutes which is the minimum time needed to bring up an EC2 instance and let AWS parallelcluster configure it. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes.
 
+# Implementation details
+
 Here we are using ParallelCluster's image builder capability that is integrated into AWS'  `packer` service.
 
-The main configuration file is `image-config.yaml` in the `image` subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script `install-image.sh` that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the `setup_something()` bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software. 
+The main configuration file is `image-config.yaml` in the `image` subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script `install-image.sh` (cf. @sec-install-image-sh) that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the `setup_something()` bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software. 
+
+The R and Python installation scripts allow the installation of multiple [Python](https://docs.posit.co/resources/install-python.html) and [R](https://docs.posit.co/resources/install-r.html) versions using the Posit provided binaries. Each default version is symlinked into `/usr/local/bin`. 
+
+Each R version is configured to use [public Posit Package Manager](https://packagemanager.posit.co) and configured for CRAN and Bioconductor. Additionally all R packages needed for the RStudio IDE integration are preinstalled into a site-library. For CRAN a time-based snapshot is defined that points to the snapshot that is at most 60 days older than the corresponding R release date. Furthermore, a global `renv` cache points to `/home/renv` and the `renv`-`pak` integration is enabled. 
+
+The Python versions are setup to include the `jupyter`/`jupyterlab` integration including the ability to publish to Posit Connect. Each Python version uses `pypi` from [public Posit Package Manager](https://packagemanager.posit.co).
 
 In `install-image.sh` we also set up a cron job that will run `/opt/rstudio/scripts/rc.pwb`. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start `rstudio-server` as well as `rstudio-launcher`. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf. https://github.com/aws/aws-parallelcluster/issues/5723)
 
@@ -16,7 +25,7 @@ In `install-image.sh` we also set up a cron job that will run `/opt/rstudio/scri
 
 ## Prerequisites 
 
-You need to have access to a S3 bucket. In can you don't have one available, you can create one using the AWS CLI, for example: 
+You need to have access to a S3 bucket. In case you don't have one available, you can create one using the AWS CLI, for example: 
 
 ``` bash
 aws s3api create-bucket --bucket <BUCKETNAME> \
@@ -29,27 +38,29 @@ where `<BUCKETNAME>` is your desired name of the S3 bucket and `<REGION>` the AW
 ## Step by step instruction 
 
 1. Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as `<BUCKETNAME>` hereafter. 
-2. Identify the appropriate `pcluster` AMI (cf. @sec:pcluster-ami) and update `ParentImage` in `image-config.yaml`
-3. Check versions in `install-image.sh` (cf. @sec:install-image-sh) and adjust accordingly
+2. Identify the appropriate `pcluster` AMI (cf. @sec-pcluster-ami) and update `ParentImage` in `image-config.yaml`
+3. Check versions in `install-image.sh` (cf. @sec-install-image-sh) and adjust accordingly
 4. Finally, run 
 ``` bash
 ./build-image.sh <IMAGENAME> [<BUCKETNAME>]
 ```
 where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`. `<BUCKETNAME>` is an optional argument. If missing, the script will look in `.bucket.default` to read the default bucket name. 
 
-## Useful for debugging 
+## Other useful information for debugging etc.
 
 ### Cleanup 
 
 If you want to get rid of all AVAILABLE images, run
 
-```
-for i in `pcluster list-images --image-status AVAILABLE | grep imageId | awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; do pcluster delete-image -i $i ; done
+``` bash
+for i in `pcluster list-images --image-status AVAILABLE | grep imageId | \
+    awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; \
+        do pcluster delete-image -i $i ; done
 ```
 
 ### Get information about image 
 
-```
+``` bash
 pcluster describe-image -i <IMAGENAME>
 pcluster list-image-log-streams -i <IMAGENAME>
 pcluster get-image-log-events  -i <IMAGENAME> --log-stream-name <AWSPCVERSION>/1
@@ -57,7 +68,7 @@ pcluster get-image-log-events  -i <IMAGENAME> --log-stream-name <AWSPCVERSION>/1
 
 where `<AWSPCVERSION>` is the version of AWS parallelcluster used (e.g. 3.11.1) and `<IMAGENAME>` is the custom name of your AMI. 
 
-### Sample `install-image.sh` script {#sec:install-image-sh}
+### Sample `install-image.sh` script {#sec-install-image-sh}
 
 This is just the start of the script. 
 
@@ -73,7 +84,7 @@ QUARTO_VERSION=1.6.34
 APPTAINER_VERSION="1.3.5"
 ```
 
-### Find out the ID of the desired `pcluster` AMI {#sec:pcluster-ami}
+### Find out the ID of the desired `pcluster` AMI {#sec-pcluster-ami}
 
 You can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via 
 
