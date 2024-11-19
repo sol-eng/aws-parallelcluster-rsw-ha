@@ -86,7 +86,7 @@ def make_server(
         associate_public_ip_address=True,
         metadata_options={
             "http_put_response_hop_limit": 1,
-            "http_tokens": "require",
+            "http_tokens": "required",
         },
     )
 
@@ -308,27 +308,15 @@ def main():
     pulumi.export("rsw_db_name", rsw_db.db_name)
     pulumi.export("rsw_db_user", config.rsw_db_username)
 
-    slurm_db_parameter_group = rds.ParameterGroup(
-        "SlurmdbParameterGroup",
-        family="mysql8.0",
-        parameters=[
-            {
-                "name": "performance_schema",
-                "value": "1"
-            }
-        ],
-        description="Custom parameter group with Performance Insights enabled",
-    )
     slurm_db = rds.Instance(
         "slurm-db",
-        instance_class="db.t3.micro",
+        instance_class="db.t3.medium",
         allocated_storage=5,
         backup_retention_period=7,
         username=config.slurm_db_username,
         password=slurm_db_pass,
         db_name="slurm",
         engine="mysql",
-        parameter_group_name=slurm_db_parameter_group.name,
         publicly_accessible=False,
         skip_final_snapshot=True,
         tags=tags | {"Name": "slurm-db"},
