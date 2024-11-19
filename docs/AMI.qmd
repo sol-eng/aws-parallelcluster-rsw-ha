@@ -73,9 +73,8 @@ In `install-pwb.sh` we also set up a cron job that will run `/opt/parallelcluste
 
 ``` bash 
 pcluster list-official-images | \
-    jq '.images.[] | \
-        select(.os=="ubuntu2204" and .architecture=="x86_64") | \
-        .amiId'
+    jq '.images.[] | 
+        select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'
 ```
 
 3.  Check and modify as appropriate the parameters at the start of `install-image.sh`
