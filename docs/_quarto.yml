@@ -9,6 +9,8 @@ website:
         text: Overview
       - href: AMI.qmd
         text: AMI
+      - href: Architecture.qmd
+        text: Architecture
       - about.qmd
 
 format:
