@@ -325,8 +325,6 @@ def main():
         performance_insights_enabled=True,
         performance_insights_retention_period=7,
         storage_encrypted=True
-        # performance_insights_enabled=True,
-        # opts=pulumi.ResourceOptions(replace_on_changes=["*"])
     )
 
     secret = secretsmanager.Secret(f"SlurmDBPassword-{stack_name}")
