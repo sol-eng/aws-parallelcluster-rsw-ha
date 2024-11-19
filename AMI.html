@@ -155,17 +155,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#how-to-build-a-custom-ami" id="toc-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#how-to-build-a-custom-ami">How to build a custom AMI</a>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#implementation-details" id="toc-implementation-details" class="nav-link" data-scroll-target="#implementation-details"><span class="header-section-number">2</span> Implementation details</a></li>
+  <li><a href="#how-to-build-a-custom-ami" id="toc-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#how-to-build-a-custom-ami"><span class="header-section-number">3</span> How to build a custom AMI</a>
   <ul class="collapse">
-  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites">Prerequisites</a></li>
-  <li><a href="#step-by-step-instruction" id="toc-step-by-step-instruction" class="nav-link" data-scroll-target="#step-by-step-instruction">Step by step instruction</a></li>
-  <li><a href="#useful-for-debugging" id="toc-useful-for-debugging" class="nav-link" data-scroll-target="#useful-for-debugging">Useful for debugging</a>
+  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"><span class="header-section-number">3.1</span> Prerequisites</a></li>
+  <li><a href="#step-by-step-instruction" id="toc-step-by-step-instruction" class="nav-link" data-scroll-target="#step-by-step-instruction"><span class="header-section-number">3.2</span> Step by step instruction</a></li>
+  <li><a href="#other-useful-information-for-debugging-etc." id="toc-other-useful-information-for-debugging-etc." class="nav-link" data-scroll-target="#other-useful-information-for-debugging-etc."><span class="header-section-number">3.3</span> Other useful information for debugging etc.</a>
   <ul class="collapse">
-  <li><a href="#cleanup" id="toc-cleanup" class="nav-link" data-scroll-target="#cleanup">Cleanup</a></li>
-  <li><a href="#get-information-about-image" id="toc-get-information-about-image" class="nav-link" data-scroll-target="#get-information-about-image">Get information about image</a></li>
-  <li><a href="#sec:install-image-sh" id="toc-sec:install-image-sh" class="nav-link" data-scroll-target="#sec\:install-image-sh">Sample <code>install-image.sh</code> script</a></li>
-  <li><a href="#sec:pcluster-ami" id="toc-sec:pcluster-ami" class="nav-link" data-scroll-target="#sec\:pcluster-ami">Find out the ID of the desired <code>pcluster</code> AMI</a></li>
+  <li><a href="#cleanup" id="toc-cleanup" class="nav-link" data-scroll-target="#cleanup"><span class="header-section-number">3.3.1</span> Cleanup</a></li>
+  <li><a href="#get-information-about-image" id="toc-get-information-about-image" class="nav-link" data-scroll-target="#get-information-about-image"><span class="header-section-number">3.3.2</span> Get information about image</a></li>
+  <li><a href="#sec-install-image-sh" id="toc-sec-install-image-sh" class="nav-link" data-scroll-target="#sec-install-image-sh"><span class="header-section-number">3.3.3</span> Sample <code>install-image.sh</code> script</a></li>
+  <li><a href="#sec-pcluster-ami" id="toc-sec-pcluster-ami" class="nav-link" data-scroll-target="#sec-pcluster-ami"><span class="header-section-number">3.3.4</span> Find out the ID of the desired <code>pcluster</code> AMI</a></li>
   </ul></li>
   </ul></li>
   </ul>
@@ -193,50 +194,58 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="introduction" class="level1">
-<h1>Introduction</h1>
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
 <p>While AWS ParallelCluster allows the on-demand provisioning of software during cluster build and compute node spin up, the waiting time especially until a compute node is spun up and provisioned quickly becomes incompatible with a positive user experience. The use of a custom AMI is very helpful to reduce this time. The spin up time however cannot be reduced below approximately 4 to 5 minutes which is the minimum time needed to bring up an EC2 instance and let AWS parallelcluster configure it. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes.</p>
+</section>
+<section id="implementation-details" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Implementation details</h1>
 <p>Here we are using ParallelCluster’s image builder capability that is integrated into AWS’ <code>packer</code> service.</p>
-<p>The main configuration file is <code>image-config.yaml</code> in the <code>image</code> subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script <code>install-image.sh</code> that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the <code>setup_something()</code> bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software.</p>
+<p>The main configuration file is <code>image-config.yaml</code> in the <code>image</code> subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script <code>install-image.sh</code> (cf. <a href="#sec-install-image-sh" class="quarto-xref">Section&nbsp;3.3.3</a>) that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the <code>setup_something()</code> bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software.</p>
+<p>The R and Python installation scripts allow the installation of multiple <a href="https://docs.posit.co/resources/install-python.html">Python</a> and <a href="https://docs.posit.co/resources/install-r.html">R</a> versions using the Posit provided binaries. Each default version is symlinked into <code>/usr/local/bin</code>.</p>
+<p>Each R version is configured to use <a href="https://packagemanager.posit.co">public Posit Package Manager</a> and configured for CRAN and Bioconductor. Additionally all R packages needed for the RStudio IDE integration are preinstalled into a site-library. For CRAN a time-based snapshot is defined that points to the snapshot that is at most 60 days older than the corresponding R release date. Furthermore, a global <code>renv</code> cache points to <code>/home/renv</code> and the <code>renv</code>-<code>pak</code> integration is enabled.</p>
+<p>The Python versions are setup to include the <code>jupyter</code>/<code>jupyterlab</code> integration including the ability to publish to Posit Connect. Each Python version uses <code>pypi</code> from <a href="https://packagemanager.posit.co">public Posit Package Manager</a>.</p>
 <p>In <code>install-image.sh</code> we also set up a cron job that will run <code>/opt/rstudio/scripts/rc.pwb</code>. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start <code>rstudio-server</code> as well as <code>rstudio-launcher</code>. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf.&nbsp;https://github.com/aws/aws-parallelcluster/issues/5723)</p>
 </section>
-<section id="how-to-build-a-custom-ami" class="level1">
-<h1>How to build a custom AMI</h1>
-<section id="prerequisites" class="level2">
-<h2 class="anchored" data-anchor-id="prerequisites">Prerequisites</h2>
-<p>You need to have access to a S3 bucket. In can you don’t have one available, you can create one using the AWS CLI, for example:</p>
+<section id="how-to-build-a-custom-ami" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> How to build a custom AMI</h1>
+<section id="prerequisites" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="prerequisites"><span class="header-section-number">3.1</span> Prerequisites</h2>
+<p>You need to have access to a S3 bucket. In case you don’t have one available, you can create one using the AWS CLI, for example:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3api create-bucket <span class="at">--bucket</span> <span class="op">&lt;</span>BUCKETNAME<span class="op">&gt;</span> <span class="dt">\</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--region</span> <span class="op">&lt;</span>REGION<span class="op">&gt;</span> <span class="dt">\</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--create-bucket-configuration</span> LocationConstraint=<span class="op">&lt;</span>REGION<span class="op">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where <code>&lt;BUCKETNAME&gt;</code> is your desired name of the S3 bucket and <code>&lt;REGION&gt;</code> the AWS region you would like to deploy this bucket to.</p>
 </section>
-<section id="step-by-step-instruction" class="level2">
-<h2 class="anchored" data-anchor-id="step-by-step-instruction">Step by step instruction</h2>
+<section id="step-by-step-instruction" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="step-by-step-instruction"><span class="header-section-number">3.2</span> Step by step instruction</h2>
 <ol type="1">
 <li>Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as <code>&lt;BUCKETNAME&gt;</code> hereafter.</li>
-<li>Identify the appropriate <code>pcluster</code> AMI (cf. <span class="citation" data-cites="sec:pcluster-ami">@sec:pcluster-ami</span>) and update <code>ParentImage</code> in <code>image-config.yaml</code></li>
-<li>Check versions in <code>install-image.sh</code> (cf. <span class="citation" data-cites="sec:install-image-sh">@sec:install-image-sh</span>) and adjust accordingly</li>
+<li>Identify the appropriate <code>pcluster</code> AMI (cf. <a href="#sec-pcluster-ami" class="quarto-xref">Section&nbsp;3.3.4</a>) and update <code>ParentImage</code> in <code>image-config.yaml</code></li>
+<li>Check versions in <code>install-image.sh</code> (cf. <a href="#sec-install-image-sh" class="quarto-xref">Section&nbsp;3.3.3</a>) and adjust accordingly</li>
 <li>Finally, run</li>
 </ol>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./build-image.sh</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span> [<span class="op">&lt;</span>BUCKETNAME<span class="op">&gt;</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where <code>&lt;IMAGENAME&gt;</code> is the desired name of the new AMI and <code>&lt;BUCKETNAME&gt;</code> the name of the S3 bucket, e.g.&nbsp;<code>hpc-scripts1234</code>. <code>&lt;BUCKETNAME&gt;</code> is an optional argument. If missing, the script will look in <code>.bucket.default</code> to read the default bucket name.</p>
 </section>
-<section id="useful-for-debugging" class="level2">
-<h2 class="anchored" data-anchor-id="useful-for-debugging">Useful for debugging</h2>
-<section id="cleanup" class="level3">
-<h3 class="anchored" data-anchor-id="cleanup">Cleanup</h3>
+<section id="other-useful-information-for-debugging-etc." class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="other-useful-information-for-debugging-etc."><span class="header-section-number">3.3</span> Other useful information for debugging etc.</h2>
+<section id="cleanup" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="cleanup"><span class="header-section-number">3.3.1</span> Cleanup</h3>
 <p>If you want to get rid of all AVAILABLE images, run</p>
-<pre><code>for i in `pcluster list-images --image-status AVAILABLE | grep imageId | awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; do pcluster delete-image -i $i ; done</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="kw">`</span><span class="ex">pcluster</span> list-images <span class="at">--image-status</span> AVAILABLE <span class="kw">|</span> <span class="fu">grep</span> imageId <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">awk</span> <span class="st">'{print $2}'</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s#"##g'</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s#,##'</span><span class="kw">`;</span> <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">do</span> <span class="ex">pcluster</span> delete-image <span class="at">-i</span> <span class="va">$i</span> <span class="kw">;</span> <span class="cf">done</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="get-information-about-image" class="level3">
-<h3 class="anchored" data-anchor-id="get-information-about-image">Get information about image</h3>
-<pre><code>pcluster describe-image -i &lt;IMAGENAME&gt;
-pcluster list-image-log-streams -i &lt;IMAGENAME&gt;
-pcluster get-image-log-events  -i &lt;IMAGENAME&gt; --log-stream-name &lt;AWSPCVERSION&gt;/1</code></pre>
+<section id="get-information-about-image" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="get-information-about-image"><span class="header-section-number">3.3.2</span> Get information about image</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> describe-image <span class="at">-i</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-image-log-streams <span class="at">-i</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> get-image-log-events  <span class="at">-i</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span> --log-stream-name <span class="op">&lt;</span>AWSPCVERSION<span class="op">&gt;</span>/1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where <code>&lt;AWSPCVERSION&gt;</code> is the version of AWS parallelcluster used (e.g.&nbsp;3.11.1) and <code>&lt;IMAGENAME&gt;</code> is the custom name of your AMI.</p>
 </section>
-<section id="sec:install-image-sh" class="level3">
-<h3 class="anchored" data-anchor-id="sec:install-image-sh">Sample <code>install-image.sh</code> script</h3>
+<section id="sec-install-image-sh" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-install-image-sh"><span class="header-section-number">3.3.3</span> Sample <code>install-image.sh</code> script</h3>
 <p>This is just the start of the script.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_LIST</span><span class="op">=</span><span class="st">"4.4.2 4.3.3 4.2.3 4.1.3 4.0.5"</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_DEFAULT</span><span class="op">=</span>4.4.2</span>
@@ -248,8 +257,8 @@ pcluster get-image-log-events  -i &lt;IMAGENAME&gt; --log-stream-name &lt;AWSPCV
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="va">APPTAINER_VERSION</span><span class="op">=</span><span class="st">"1.3.5"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="sec:pcluster-ami" class="level3">
-<h3 class="anchored" data-anchor-id="sec:pcluster-ami">Find out the ID of the desired <code>pcluster</code> AMI</h3>
+<section id="sec-pcluster-ami" class="level3" data-number="3.3.4">
+<h3 data-number="3.3.4" class="anchored" data-anchor-id="sec-pcluster-ami"><span class="header-section-number">3.3.4</span> Find out the ID of the desired <code>pcluster</code> AMI</h3>
 <p>You can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-official-images <span class="kw">|</span> <span class="dt">\</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jq</span> <span class="st">'.images.[] | </span></span>
