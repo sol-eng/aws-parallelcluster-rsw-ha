@@ -151,7 +151,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#sec-how-to-build-a-custom-ami" id="toc-sec-how-to-build-a-custom-ami" class="nav-link active" data-scroll-target="#sec-how-to-build-a-custom-ami">How to build a custom AMI</a></li>
+  <li><a href="#build-custom-ami" id="toc-build-custom-ami" class="nav-link active" data-scroll-target="#build-custom-ami">Build custom AMI</a></li>
+  <li><a href="#useful-for-debugging" id="toc-useful-for-debugging" class="nav-link" data-scroll-target="#useful-for-debugging">Useful for debugging</a>
+  <ul class="collapse">
+  <li><a href="#creating-your-own-s3-bucket" id="toc-creating-your-own-s3-bucket" class="nav-link" data-scroll-target="#creating-your-own-s3-bucket">Creating your own S3 bucket</a></li>
+  <li><a href="#cleanup" id="toc-cleanup" class="nav-link" data-scroll-target="#cleanup">Cleanup</a></li>
+  <li><a href="#get-information-about-image" id="toc-get-information-about-image" class="nav-link" data-scroll-target="#get-information-about-image">Get information about image</a>
+  <ul class="collapse">
+  <li><a href="#sec-how-to-build-a-custom-ami" id="toc-sec-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#sec-how-to-build-a-custom-ami">How to build a custom AMI</a></li>
+  </ul></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -178,19 +187,45 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>The use of a custom AMI is very helpful to reduce the time needed for spinning up additional compute nodes. While the spin-up time cannot be shrunk significantly below 4 minutes, the use of custom AMI prevents the need for adding additional software at spin-up time that would further extend the spin-up time reducing user experience further. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes.</p>
-<p>In this approach we are using ParallelCluster’s image builder capability that are integrated into AWS <code>packer</code> service.</p>
+<p>In this approach we are using ParallelCluster’s image builder capability that is integrated into AWS’ <code>packer</code> service.</p>
 <p>The main configuration file is <code>image-config.yaml</code> in the <code>image</code> subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script <code>install-image.sh</code> that calls a couple of additional scripts that facilitate the installation of Workbench, R, Python, ….. Each individual script is called by the <code>setup_something()</code>` bash function that will download the additional script and run with pre-defined parameters. The variables defined at the start of the script should be self-explanatory.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_LIST</span><span class="op">=</span><span class="st">"4.3.1 4.2.3 4.1.3 4.0.5"</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_DEFAULT</span><span class="op">=</span>4.3.1</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHON_VERSION_LIST</span><span class="op">=</span><span class="st">"3.11.6 3.10.13 3.9.18"</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHON_VERSION_DEFAULT</span><span class="op">=</span>3.11.6</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="va">QUARTO_VERSION</span><span class="op">=</span>1.4.449</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="va">PWB_VERSION</span><span class="op">=</span>2023.09.1-494.pro2</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="va">APPTAINER_VERSION</span><span class="op">=</span><span class="st">"1.2.4"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="build-custom-ami" class="level1">
+<h1>Build custom AMI</h1>
+<ol type="1">
+<li>Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. Replace occurrence of <code>s3://hpc-scripts1234</code> with the actual S3 bucket reference in <code>install-image.sh</code>, <code>image-config.yaml</code> and <code>install-r.sh</code>.</li>
+<li>Check versions in <code>install-image.sh</code></li>
+<li>Finally, run</li>
+</ol>
+<pre><code>./build-image.sh &lt;IMAGENAME&gt; [&lt;BUCKETNAME&gt;]</code></pre>
+<p>where <code>&lt;IMAGENAME&gt;</code> is the desired name of the new AMI and <code>&lt;BUCKETNAME&gt;</code> the name of the S3 bucket, e.g.&nbsp;<code>hpc-scripts1234</code>. <code>&lt;BUCKETNAME&gt;</code> is an optional argument. If missing, the script will look in <code>.bucket.default</code> to read the default bucket name.</p>
+</section>
+<section id="useful-for-debugging" class="level1">
+<h1>Useful for debugging</h1>
+<section id="creating-your-own-s3-bucket" class="level2">
+<h2 class="anchored" data-anchor-id="creating-your-own-s3-bucket">Creating your own S3 bucket</h2>
+<pre><code>aws s3api create-bucket --bucket &lt;BUCKETNAME&gt; --region &lt;REGION&gt; --create-bucket-configuration LocationConstraint=&lt;REGION&gt;</code></pre>
+<p>where <code>&lt;BUCKETNAME&gt;</code> is the desired name of the s3 bucket and <code>&lt;REGION&gt;</code> the region intended for use.</p>
+</section>
+<section id="cleanup" class="level2">
+<h2 class="anchored" data-anchor-id="cleanup">Cleanup</h2>
+<p>If you want to get rid of all AVAILABLE images, run</p>
+<pre><code>for i in `pcluster list-images --image-status AVAILABLE | grep imageId | awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; do pcluster delete-image -i $i ; done</code></pre>
+</section>
+<section id="get-information-about-image" class="level2">
+<h2 class="anchored" data-anchor-id="get-information-about-image">Get information about image</h2>
+<pre><code>pcluster describe-image -i &lt;IMAGENAME&gt;
+pcluster  list-image-log-streams -i &lt;IMAGENAME&gt;
+pcluster get-image-log-events  -i &lt;IMAGENAME&gt; --log-stream-name &lt;AWSPCVERSION&gt;/1</code></pre>
+<p>where <code>&lt;AWSPCVERSION&gt;</code> is the version of AWS parallelcluster used (e.g.&nbsp;3.11.1)</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_LIST</span><span class="op">=</span><span class="st">"4.4.2 4.3.3 4.2.3 4.1.3 4.0.5"</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_DEFAULT</span><span class="op">=</span>4.4.2</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHON_VERSION_LIST</span><span class="op">=</span><span class="st">"3.12.7 3.11.10 3.10.15"</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHON_VERSION_DEFAULT</span><span class="op">=</span>3.12.7</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="va">QUARTO_VERSION</span><span class="op">=</span>1.6.34</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="va">APPTAINER_VERSION</span><span class="op">=</span><span class="st">"1.3.5"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>and can be changed accordingly. Default versions in this context are system default, i.e.&nbsp;these are sym-linked into <code>/usr/local/bin</code></p>
 <p><code>install-pwb.sh</code> will install Posit Workbench, but then disable both <code>rstudio-launcher</code> and <code>rstudio-server</code> so that the AMI can be used both on the login nodes (where the installation acts as proper Workbench) and also on the compute nodes (where it acts as the session component). The small differences between a full workbench installation one the session components did not warrant the extra effort of creating and maintaining two different AMIs.</p>
 <p>In <code>install-pwb.sh</code> we also set up a cron job that will run <code>/opt/parallelcluster/shared/rstudio/scripts/rc.pwb</code>. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start <code>rstudio-server</code> as well as <code>rstudio-launcher</code>. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf.&nbsp;https://github.com/aws/aws-parallelcluster/issues/5723)</p>
@@ -198,38 +233,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="sec-how-to-build-a-custom-ami">How to build a custom AMI</h3>
 <ol type="1">
 <li><p>Activate the AWS ParallelCluster <code>venv</code> (cf. <strong>?@sec-python-virtual-env</strong>)</p></li>
-<li><p>Make sure that the AMI referenced in <code>image-config.yaml</code> exists in your AWS region.</p></li>
+<li><p>Make sure that the AMI referenced in <code>image-config.yaml</code> exists in your AWS region. <code>pcluster list-official-images</code> will give you a list of supported images. For Ubuntu 22.04 LTS (Jammy) you can run</p></li>
+</ol>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-official-images <span class="kw">|</span> <span class="ex">jq</span> <span class="st">'.images.[] | select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="3" type="1">
 <li><p>Check and modify as appropriate the parameters at the start of <code>install-image.sh</code></p></li>
 <li><p>Adjust the S3 bucket <code>s3://hpc-scripts1234/</code> and the image name <code>master</code> to your desired values in <code>install-image.sh</code>. You will need to specify a S3 bucket where you have write permissions.</p></li>
 <li><p>Run <code>install-image.sh</code></p></li>
 </ol>
 <p>The script will transfer the shell scripts into the S3 bucket and eventually trigger the build of the custom image.</p>
 <p>It may take a moment, but after a few minutes you can trace the build of the image via</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> describe-image <span class="at">-i</span> master</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-image-log-streams <span class="at">-i</span> master</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> describe-image <span class="at">-i</span> master</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-image-log-streams <span class="at">-i</span> master</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>which will give you the list of log streams from your image. Once you identified the log stream, you can query this via</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> get-image-log-events <span class="at">-i</span> master <span class="at">--log-stream-name</span> a.b.c/d</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> get-image-log-events <span class="at">-i</span> master <span class="at">--log-stream-name</span> a.b.c/d</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where a.b.c/d is the log stream name you received from the previous command. <code>master</code> in all commands refers to the image name.</p>
 <p>Once the image is built successfully (will take about an hour or so), <code>pcluster describe-image -i master</code> will provide you an output similar to the one below</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageConfiguration"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageId"</span><span class="fu">:</span> <span class="st">"master"</span><span class="fu">,</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"creationTime"</span><span class="fu">:</span> <span class="st">"2023-11-05T11:22:31.000Z"</span><span class="fu">,</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageBuildStatus"</span><span class="fu">:</span> <span class="st">"BUILD_COMPLETE"</span><span class="fu">,</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"region"</span><span class="fu">:</span> <span class="st">"eu-west-1"</span><span class="fu">,</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"ec2AmiInfo"</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"amiName"</span><span class="fu">:</span> <span class="st">"master 2023-11-05T10-35-49.191Z"</span><span class="fu">,</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"amiId"</span><span class="fu">:</span> <span class="st">"ami-09901d00eff671747"</span><span class="fu">,</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"AWS ParallelCluster AMI for ubuntu2004, kernel-5.15.0-1049-aws, lustre-5.15.0.1049.54~20.04.37, efa-2.5.0-1.amzn1, dcv-2023.0.15487-1"</span><span class="fu">,</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"state"</span><span class="fu">:</span> <span class="st">"AVAILABLE"</span><span class="fu">,</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"architecture"</span><span class="fu">:</span> <span class="st">"x86_64"</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"version"</span><span class="fu">:</span> <span class="st">"3.8.0b1"</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageConfiguration"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageId"</span><span class="fu">:</span> <span class="st">"master"</span><span class="fu">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"creationTime"</span><span class="fu">:</span> <span class="st">"2023-11-05T11:22:31.000Z"</span><span class="fu">,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imageBuildStatus"</span><span class="fu">:</span> <span class="st">"BUILD_COMPLETE"</span><span class="fu">,</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"region"</span><span class="fu">:</span> <span class="st">"eu-west-1"</span><span class="fu">,</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"ec2AmiInfo"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"amiName"</span><span class="fu">:</span> <span class="st">"master 2023-11-05T10-35-49.191Z"</span><span class="fu">,</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"amiId"</span><span class="fu">:</span> <span class="st">"ami-09901d00eff671747"</span><span class="fu">,</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"AWS ParallelCluster AMI for ubuntu2004, kernel-5.15.0-1049-aws, lustre-5.15.0.1049.54~20.04.37, efa-2.5.0-1.amzn1, dcv-2023.0.15487-1"</span><span class="fu">,</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"state"</span><span class="fu">:</span> <span class="st">"AVAILABLE"</span><span class="fu">,</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"architecture"</span><span class="fu">:</span> <span class="st">"x86_64"</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"version"</span><span class="fu">:</span> <span class="st">"3.8.0b1"</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where we removed the <code>tags</code> and the <code>url</code> section for better readability.</p>
 
 
+</section>
+</section>
 </section>
 
 </main> <!-- /main -->
