@@ -122,14 +122,14 @@ def main():
 
     
 
-    user_pass = get_password("user_pass")
-    pulumi.export("user_pass", pulumi.Output.secret(user_pass))
-    secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
+    posit_user_pass = get_password("posit_user_pass")
+    pulumi.export("posit_user_pass", pulumi.Output.secret(posit_user_pass))
+    posit_user_pass_secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
     secretsmanager.SecretVersion(f"PositUserPassword-{stack_name}",
-                                       secret_id=secret.id,
-                                       secret_string=user_pass)
+                                       secret_id=posit_user_pass_secret.id,
+                                       secret_string=posit_user_pass)
 
-    pulumi.export("posit_user_pass", user_pass)
+    pulumi.export("posit_user_pass_arn", posit_user_pass_secret.arn)
     
     
 
@@ -402,7 +402,7 @@ def main():
 
     pulumi.export("vpc_public_subnet", vpc.public_subnet_ids.apply(lambda ids: ids[0]))
     pulumi.export("jump_host_dns", jump_host.public_dns)
-    pulumi.export("ad_jump_host_public_ip", jump_host.public_dns)
+    pulumi.export("jump_host_public_ip", jump_host.public_ip)
 
     connection = remote.ConnectionArgs(
         host=jump_host.public_dns,  # host=jump_host.id,
@@ -486,7 +486,7 @@ def main():
         serverSideFile(
             "server-side-files/config/useradd.sh",
             "~/useradd.sh",
-            pulumi.Output.all(config.domain_name, ad_password, user_pass).apply(
+            pulumi.Output.all(config.domain_name, ad_password, posit_user_pass).apply(
                 lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],
                                                                                         ad_password=x[1],
                                                                                         user_pass=x[2]))
