@@ -135,7 +135,7 @@ def main():
 
 
     secure_cookie_key = RandomUuid("secure_cookie_key")
-    pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key))
+    pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key.id))
 
     # --------------------------------------------------------------------------
     # Set up keys.
