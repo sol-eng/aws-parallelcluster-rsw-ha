@@ -6,7 +6,9 @@ website:
   navbar:
     left:
       - href: PWB.qmd
-        text: Home
+        text: Overview
+      - href: AMI.qmd
+        text: AMI
       - about.qmd
 
 format:
