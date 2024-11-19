@@ -196,7 +196,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Check versions in <code>install-image.sh</code></li>
 <li>Finally, run</li>
 </ol>
-<pre><code>./build-image.sh &lt;IMAGENAME&gt; [&lt;BUCKETNAME&gt;]</code></pre>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./build-image.sh</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span> [<span class="op">&lt;</span>BUCKETNAME<span class="op">&gt;</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where <code>&lt;IMAGENAME&gt;</code> is the desired name of the new AMI and <code>&lt;BUCKETNAME&gt;</code> the name of the S3 bucket, e.g.&nbsp;<code>hpc-scripts1234</code>. <code>&lt;BUCKETNAME&gt;</code> is an optional argument. If missing, the script will look in <code>.bucket.default</code> to read the default bucket name.</p>
 </section>
 <section id="useful-for-debugging" class="level1">
@@ -235,7 +235,10 @@ pcluster get-image-log-events  -i &lt;IMAGENAME&gt; --log-stream-name &lt;AWSPCV
 <li><p>Activate the AWS ParallelCluster <code>venv</code> (cf. <strong>?@sec-python-virtual-env</strong>)</p></li>
 <li><p>Make sure that the AMI referenced in <code>image-config.yaml</code> exists in your AWS region. <code>pcluster list-official-images</code> will give you a list of supported images. For Ubuntu 22.04 LTS (Jammy) you can run</p></li>
 </ol>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-official-images <span class="kw">|</span> <span class="ex">jq</span> <span class="st">'.images.[] | select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-official-images <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jq</span> <span class="st">'.images.[] | \</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="st">        select(.os=="ubuntu2204" and .architecture=="x86_64") | \</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="st">        .amiId'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="3" type="1">
 <li><p>Check and modify as appropriate the parameters at the start of <code>install-image.sh</code></p></li>
 <li><p>Adjust the S3 bucket <code>s3://hpc-scripts1234/</code> and the image name <code>master</code> to your desired values in <code>install-image.sh</code>. You will need to specify a S3 bucket where you have write permissions.</p></li>
