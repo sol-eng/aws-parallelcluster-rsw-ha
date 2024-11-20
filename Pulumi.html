@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Architecture – today</title>
+<title>pulumi – today</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,6 +19,40 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -97,11 +131,11 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">AMI</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./Pulumi.html"> 
+    <a class="nav-link active" href="./Pulumi.html" aria-current="page"> 
 <span class="menu-text">Pulumi</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./Architecture.html" aria-current="page"> 
+    <a class="nav-link" href="./Architecture.html"> 
 <span class="menu-text">Architecture</span></a>
   </li>  
   <li class="nav-item">
@@ -124,39 +158,159 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#auxiliary-services-via-pulumi" id="toc-auxiliary-services-via-pulumi" class="nav-link active" data-scroll-target="#auxiliary-services-via-pulumi">Auxiliary Services via Pulumi</a></li>
+  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites">Prerequisites</a></li>
+  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup">How to setup</a>
+  <ul class="collapse">
+  <li><a href="#additionl-information" id="toc-additionl-information" class="nav-link" data-scroll-target="#additionl-information">Additionl information</a></li>
+  <li><a href="#sec-passwords" id="toc-sec-passwords" class="nav-link" data-scroll-target="#sec-passwords">Defining “good”/secure passwords</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Architecture</h1>
-</div>
 
 
 
-<div class="quarto-title-meta">
+<section id="auxiliary-services-via-pulumi" class="level1">
+<h1>Auxiliary Services via Pulumi</h1>
+<p>When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is <a href="https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html">AWS SimpleAD</a>. In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called <a href="https://www.freedesktop.org/software/realmd/adcli/adcli.html">adcli</a> (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional <code>expect</code> scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via <a href="https://www.pulumi.com/b/">Pulumi</a> recipes</p>
+</section>
+<section id="prerequisites" class="level1">
+<h1>Prerequisites</h1>
+<p>You will need to have</p>
+<ul>
+<li><p><a href="https://pulumi.com">pulumi</a> installed and configured so you can successfully create, run and modify pulumi stacks</p></li>
+<li><p><a href="https://github.com/casey/just">just</a> installed locally</p></li>
+<li><p>ssh client including the <code>ssh-keygen</code> utility</p></li>
+</ul>
+</section>
+<section id="how-to-setup" class="level1">
+<h1>How to setup</h1>
+<p>In the github repo, go tho the <a href="../../pulumi"><code>pulumi</code></a> sub-folder.</p>
+<p>First, we need to define a new pulumi stack</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack init <span class="op">&lt;</span>STACKNAME<span class="op">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>where <code>&lt;STACKNAME&gt;</code> is the name of the pulumi stack.</p>
+<p>Then we need to set two pulumi stack configs</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set email <span class="op">&lt;</span>YOUREMAIL<span class="op">&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set billing_code <span class="op">&lt;</span>BILLING<span class="op">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Both configuration values are used to set up the appropriate <code>ssh</code> keys and to account for billing, respectively.</p>
+<p>Finally we create all the necessary secrets via</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">just</span> create-secrets</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>and eventually we can start the deployment of the new pulumi stack</p>
+<pre><code>just up </code></pre>
+<p>The stack deployment will also already set up 10 users named <code>posit0001...posit0010</code>.</p>
+<section id="additionl-information" class="level2">
+<h2 class="anchored" data-anchor-id="additionl-information">Additionl information</h2>
+<p>Please be aware</p>
+<ul>
+<li><p>Naming of your stack (<code>auxiliary-wb</code>) can be changed to your preference</p></li>
+<li><p>Make sure to set your correct eMail address.</p></li>
+<li><p>If you would like to use a different number of users, run <code>just create-users X</code> where X is the number of users you want to create.</p></li>
+<li><p>You can change the default values for various parameters defined in <code>Pulumi.yaml</code> to your liking as well. Please do NOT change <code>Domain</code> - this is currently hard-coded into the AWS ParallelCluster setup. Anything else can be changed as you see fit.</p></li>
+<li><p>Users are created in the following way by default: User Name is <code>positXXXX</code> where <code>XXXX</code> is a 4-digit zero-padded number. Password is chosen as per {ref:sec-passwords}. Those defaults can be changed in <code>server-side-files/config/useradd.sh</code> . The referenced script is using multi-threaded bash to speed up user creation. In order to prevent user creation from failing due to too many concurrent connections, it additionally runs <code>pamtester</code> to ensure the user is correctly created.</p></li>
+</ul>
+</section>
+<section id="sec-passwords" class="level2">
+<h2 class="anchored" data-anchor-id="sec-passwords">Defining “good”/secure passwords</h2>
+<p>Since this deployment will be done in the AWS cloud with some instances exposed to the public internet, using secure passwords is a necessity. As a consequence, all passwords using random strings with 16 characters with a minumum of 1 lower case and 1 upper case letter as well 1 number.</p>
+<p>Passwords that are needed by the ParallelCluster deployment (e.g.&nbsp;for the SLURM or PostgreSQL DB) are additionally stored as a secret in AWS Secrets Manager. Same is true for the common password for all <code>positXXXX</code> users.</p>
+<p>Current configurable parameters in the pulumi recipe</p>
+<table class="caption-top table">
+<caption>Pulumi recipe parameters</caption>
+<colgroup>
+<col style="width: 18%">
+<col style="width: 59%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Description</th>
+<th>Default value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>region</code></td>
+<td>AWS region</td>
+<td><code>eu-west-1</code></td>
+</tr>
+<tr class="even">
+<td><code>email</code></td>
+<td>eMail address of user</td>
+<td><code>tbd@tbc.com</code></td>
+</tr>
+<tr class="odd">
+<td><code>ServerInstanceType</code></td>
+<td>Instance Type for the AD jumphost</td>
+<td><code>t3.medium</code></td>
+</tr>
+<tr class="even">
+<td><code>Domain</code></td>
+<td>Name of Domain to be used for AD</td>
+<td><code>pwb.posit.co</code></td>
+</tr>
+<tr class="odd">
+<td><code>slurm_db_username</code></td>
+<td>User name for MySQL DB used for SLURM accounting</td>
+<td><code>slurm_db_admin</code></td>
+</tr>
+<tr class="even">
+<td><code>rsw_db_username</code></td>
+<td>User name for PostgreSQL DB for Workbench metadata</td>
+<td><code>pwb_db_admin</code></td>
+</tr>
+</tbody>
+</table>
+<p>Once you successfully built everything, <code>pulumi stack output</code>` should report something like</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Current</span> stack outputs <span class="er">(</span><span class="ex">36</span><span class="kw">)</span><span class="bu">:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">OUTPUT</span>                               VALUE</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_access_url</span>                        d-9367b69bb0.awsapps.com</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_dns_1</span>                             10.0.12.162</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_dns_2</span>                             10.0.129.28</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_password</span>                          <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_password_arn</span>                      arn:aws:secretsmanager:eu-west-1:637485797898:secret:SimpleADPassword-testing-2e1b657-Q2G38a</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ami_id</span>                               ami-00e528f20622b7c63</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">billing_code</span>                         me</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">elb_access</span>                           arn:aws:iam::637485797898:policy/elbaccess-20a0cab</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jump_host_dns</span>                        ec2-3-249-65-17.eu-west-1.compute.amazonaws.com</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jump_host_public_ip</span>                  3.249.65.17</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="ex">key_pair</span> id                          michael.mayer3@posit.co-keypair-for-pulumi</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="ex">posit_user_pass</span>                      <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="ex">posit_user_pass_arn</span>                  arn:aws:secretsmanager:eu-west-1:637485797898:secret:PositUserPassword-testing-3b66e30-bIFVvn</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_address</span>                       rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_endpoint</span>                      rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com:5432</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_name</span>                          pwb</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_pass</span>                          <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_port</span>                          5432</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_user</span>                          pwb_db_admin</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_security_group</span>                   sg-077c470194ee6b798</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_security_group_db</span>                sg-0d7b12857f91b688a</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="ex">s3_bucket_id</span>                         hpc-scripts-testing-f75b7d7</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="ex">secure_cookie_key</span>                    <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_address</span>                     slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_endpoint</span>                    slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com:3306</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_name</span>                        slurm</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_pass</span>                        <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_pass_arn</span>                    arn:aws:secretsmanager:eu-west-1:637485797898:secret:SlurmDBPassword-testing-04dc72f-syQYzS</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_port</span>                        3306</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_user</span>                        slurm_db_admin</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_security_group_db</span>              sg-02535d06fd5bb5503</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ssh_security_group</span>                   sg-0f6e1c077d4f3e04c</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="ex">stack_name</span>                           testing</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    <span class="ex">vpc_public_subnet</span>                    subnet-0bb915288a434510b</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 
-    
-  
-    
-  </div>
-  
 
-
-</header>
-
-
-<div id="architecture" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="Benchmark.drawio.png" class="img-fluid figure-img"></p>
-<figcaption>Architecture diagram</figcaption>
-</figure>
-</div>
-
-
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
