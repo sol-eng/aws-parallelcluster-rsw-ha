@@ -15,7 +15,15 @@ website:
         text: Architecture
       - href: AWSParallelcluster.qmd 
         text: AWS ParallelCluster 
-
+    right:
+      - icon: github
+        menu:
+          - text: Source code
+            url: https://github.com/sol-eng/aws-parallelcluster-rsw-ha
+            target: _blank
+          - text: Report a Bug
+            url: https://github.com/sol-eng/aws-parallelcluster-rsw-ha/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=
+            target: _blank
 format:
   html:
     theme: cosmo
