@@ -30,4 +30,4 @@ create-secrets:
 up: 
     #!/bin/bash
     pulumi up -y
-    just create-users 500 
+    just create-users  

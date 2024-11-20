@@ -29,7 +29,6 @@ class ConfigValues:
 
     def __post_init__(self):
         self.email = self.config.require("email")
-        self.ami = self.config.require("ami")
         self.domain_name = self.config.require("domain_name")
         self.aws_region = self.config.require("region")
         self.rsw_db_username = self.config.require("rsw_db_username")
