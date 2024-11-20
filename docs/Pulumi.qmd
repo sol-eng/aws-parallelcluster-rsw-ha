@@ -1,3 +1,9 @@
+---
+title: "Pulumi"
+number-sections: true
+---
+
+
 # Auxiliary Services via Pulumi
 
 When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is [AWS SimpleAD](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html). In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called [adcli](https://www.freedesktop.org/software/realmd/adcli/adcli.html) (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional `expect` scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via [Pulumi](https://www.pulumi.com/b/) recipes
