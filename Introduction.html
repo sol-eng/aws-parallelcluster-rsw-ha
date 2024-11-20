@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Architecture – today</title>
+<title>Introduction – today</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -89,7 +89,7 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./Introduction.html"> 
+    <a class="nav-link active" href="./Introduction.html" aria-current="page"> 
 <span class="menu-text">Introduction</span></a>
   </li>  
   <li class="nav-item">
@@ -101,7 +101,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Pulumi</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./Architecture.html" aria-current="page"> 
+    <a class="nav-link" href="./Architecture.html"> 
 <span class="menu-text">Architecture</span></a>
   </li>  
   <li class="nav-item">
@@ -124,15 +124,23 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#a-new-approach" id="toc-a-new-approach" class="nav-link" data-scroll-target="#a-new-approach"><span class="header-section-number">2</span> A new approach</a></li>
+  <li><a href="#setup-instructions" id="toc-setup-instructions" class="nav-link" data-scroll-target="#setup-instructions"><span class="header-section-number">3</span> Setup Instructions</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Architecture</h1>
+<h1 class="title">Introduction</h1>
 </div>
 
 
@@ -149,14 +157,42 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<div id="architecture" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="Benchmark.drawio.png" class="img-fluid figure-img"></p>
-<figcaption>Architecture diagram</figcaption>
-</figure>
-</div>
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p><a href="https://aws.amazon.com/hpc/parallelcluster/">AWS ParallelCluster</a> is a framework that allows for easy setup of HPC clusters with various schedulers. It takes a YAML file with all the necessary definitions and transforms that into Cloud Formation Code that then gets deployed into AWS.</p>
+<p>At the moment it supports both <a href="https://slurm.schedmd.com/">SLURM</a> and <a href="https://aws.amazon.com/batch/">AWS Batch</a>.</p>
+<p>Posit Workbench supports SLURM as a HPC back end via the <a href="https://docs.posit.co/ide/server-pro/job_launcher/slurm_plugin.html">SLURM Launcher</a>. As a consequence, a <a href="https://github.com/sol-eng/aws-parallelcluster-rsw/">github repository</a> has been set up to highlight a possible way to integrate Posit Workbench with AWS ParallelCluster via the SLURM Launcher. The approach used there works but has several shortcomings:</p>
+<ul>
+<li><p>Setting Workbench on the head node where also the <code>slurmctld</code> and <code>slurmdbd</code> (SLURM Controller and Database) daemons are running makes this head node very vulnerable and a single point of failure.</p></li>
+<li><p>All traffic will be routed through the head node</p></li>
+<li><p>The head node does not only act as Workbench Server and runs the main SLURM daemons (see above), it is also used as a NFS server adding additional load (depending on the size and utilisation of the cluster) that could contribute to very bad user experience on the HPC cluster up to a crash of the same if resources are exhausted.</p></li>
+</ul>
+<p>This document serves two purposes: Documenting the current setup used for Workbench benchmarking but also summarizing a potential reference architecture that overcomes some of the shortcomings of the current Workbench integration into AWS ParallelCluster with a focus on High(er) Availabiity.</p>
+</section>
+<section id="a-new-approach" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> A new approach</h1>
+<p>Fortunately, AWS ParallelCluster keeps evolving and in parallel Posit’s understanding of the tool also increases.</p>
+<p>Recent releases have added a couple of very interesting, exciting and very helpful features, most notably</p>
+<ul>
+<li><p>the ability to <a href="https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0">add login nodes in version 3.7.0</a></p></li>
+<li><p>ability to use EFS instead of NFS to host shared file systems needed for the cluster (e.g.&nbsp;<code>/opt/slurm</code> containing the SLURM installation) that removes the need to host an NFS server on the head node. This feature will be part of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">version 3.8.0</a> (beta version out - release imminent)</p></li>
+<li><p>ability to set up <code>/home</code> on FsX for Lustre or EFS instead of internal NFS hosted on the head node This feature is part of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">version 3.8.0</a> as well.</p></li>
+</ul>
+<p>While the above features are very vital to the new approach for the Workbench integration discussed in this doc, there is many other functionalities that are almost taken for granted (e.g.&nbsp;Easy integration into auth subsystems, SLURM scheduling fine tuning capabilities, …).</p>
+<p>If there was one feature that should be explicitly mentioned here, then it needs to be the ability to build custom AMIs. One of the features of a scalable cloud deployment (like AWS ParallelCluster) is the ability to scale up and down based on user demand. If there is a scale-up event, i.e.&nbsp;a node is getting added to the cluster, a new EC2 instance is provisioned. The elapsed time for such a scale-up event is about 4 minutes today when using a pre-built AMI but will increase if there is a need to run additional software installations just because the AMI does not contain all the needed features. Building a custom AMI will help to keep the instance spin up time at the 4 minute mark.</p>
+</section>
+<section id="setup-instructions" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Setup Instructions</h1>
+<p>In order to setup the new integration, 3 steps are needed</p>
+<ul>
+<li>Create a custom <a href="./AMI.html">AMI</a></li>
+<li>Set up auxiliary services (Active Directory, PostgreSQL DB, users) via <a href="Pulumi.qmd">Pulumi</a></li>
+<li>AWS ParallelCluster build <a href="./AWSParallelcluster.html">AWS Parallelcluster</a></li>
+</ul>
+<p>All those three steps are explained in the subsequent sections.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

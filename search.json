@@ -14,6 +14,27 @@
     "text": "While AWS ParallelCluster allows the on-demand provisioning of software during cluster build and compute node spin up, the waiting time especially until a compute node is spun up and provisioned quickly becomes incompatible with a positive user experience. The use of a custom AMI is very helpful to reduce this time. The spin up time however cannot be reduced below approximately 4 to 5 minutes which is the minimum time needed to bring up an EC2 instance and let AWS parallelcluster configure it. In a previous system where all software on the compute node was deployed on-demand on a default AMI, the spin-up time was larger than 10 minutes."
   },
   {
+    "objectID": "AMI.html#main-configuration",
+    "href": "AMI.html#main-configuration",
+    "title": "Custom AMI",
+    "section": "2.1 Main configuration",
+    "text": "2.1 Main configuration\nThe main configuration file is image-config.yaml in the image subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script install-image.sh (cf. Section 4.3) that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the setup_something() bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software."
+  },
+  {
+    "objectID": "AMI.html#r-and-python-configuration",
+    "href": "AMI.html#r-and-python-configuration",
+    "title": "Custom AMI",
+    "section": "2.2 R and Python configuration",
+    "text": "2.2 R and Python configuration\nThe R and Python installation scripts allow the installation of multiple Python and R versions using the Posit provided binaries. Each default version is symlinked into /usr/local/bin.\nEach R version (achieved by run.R)\n\nis configured to use public Posit Package Manager\nis configured to use CRAN and Bioconductor repositories\nhas all R packages needed for the RStudio IDE integration preinstalled into a site-library\nuses a time-based snapshot for CRAN that points to the snapshot that is at most 60 days older than the corresponding R release date\nuses a global renv cachethat points to /home/renv\nhas the renv-pak integration enabled\n\nThe Python versions are setup to\n\ninclude the jupyter/jupyterlab integration\ninclude the capability to publish to Posit Connect\nuse pypi from public Posit Package Manager"
+  },
+  {
+    "objectID": "AMI.html#an-important-cron-job",
+    "href": "AMI.html#an-important-cron-job",
+    "title": "Custom AMI",
+    "section": "2.3 An important cron job",
+    "text": "2.3 An important cron job\nIn install-image.sh we also set up a cron job that will run /opt/rstudio/scripts/rc.pwb. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start rstudio-server as well as rstudio-launcher. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf. https://github.com/aws/aws-parallelcluster/issues/5723)"
+  },
+  {
     "objectID": "AMI.html#prerequisites",
     "href": "AMI.html#prerequisites",
     "title": "Custom AMI",
@@ -25,14 +46,42 @@
     "href": "AMI.html#step-by-step-instruction",
     "title": "Custom AMI",
     "section": "3.2 Step by step instruction",
-    "text": "3.2 Step by step instruction\n\nMake sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as &lt;BUCKETNAME&gt; hereafter.\nIdentify the appropriate pcluster AMI (cf. Section 3.3.4) and update ParentImage in image-config.yaml\nCheck versions in install-image.sh (cf. Section 3.3.3) and adjust accordingly\nFinally, run\n\n./build-image.sh &lt;IMAGENAME&gt; [&lt;BUCKETNAME&gt;]\nwhere &lt;IMAGENAME&gt; is the desired name of the new AMI and &lt;BUCKETNAME&gt; the name of the S3 bucket, e.g. hpc-scripts1234. &lt;BUCKETNAME&gt; is an optional argument. If missing, the script will look in .bucket.default to read the default bucket name."
+    "text": "3.2 Step by step instruction\nIn the github repo, go tho the image sub-folder.\n\nMake sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as &lt;BUCKETNAME&gt; hereafter.\nIdentify the appropriate pcluster AMI (cf. Section 4.4) and update ParentImage in image-config.yaml\nCheck versions in install-image.sh (cf. Section 4.3) and adjust accordingly\nFinally, run\n\n./build-image.sh &lt;IMAGENAME&gt; [&lt;BUCKETNAME&gt;]\nwhere &lt;IMAGENAME&gt; is the desired name of the new AMI and &lt;BUCKETNAME&gt; the name of the S3 bucket, e.g. hpc-scripts1234. &lt;BUCKETNAME&gt; is an optional argument. If missing, the script will look in .bucket.default to read the default bucket name."
   },
   {
-    "objectID": "AMI.html#other-useful-information-for-debugging-etc.",
-    "href": "AMI.html#other-useful-information-for-debugging-etc.",
+    "objectID": "AMI.html#ami-cleanup",
+    "href": "AMI.html#ami-cleanup",
     "title": "Custom AMI",
-    "section": "3.3 Other useful information for debugging etc.",
-    "text": "3.3 Other useful information for debugging etc.\n\n3.3.1 Cleanup\nIf you want to get rid of all AVAILABLE images, run\nfor i in `pcluster list-images --image-status AVAILABLE | grep imageId | \\\n    awk '{print $2}' | sed 's#\"##g' | sed 's#,##'`; \\\n        do pcluster delete-image -i $i ; done\n\n\n3.3.2 Get information about image\npcluster describe-image -i &lt;IMAGENAME&gt;\npcluster list-image-log-streams -i &lt;IMAGENAME&gt;\npcluster get-image-log-events  -i &lt;IMAGENAME&gt; --log-stream-name &lt;AWSPCVERSION&gt;/1\nwhere &lt;AWSPCVERSION&gt; is the version of AWS parallelcluster used (e.g. 3.11.1) and &lt;IMAGENAME&gt; is the custom name of your AMI.\n\n\n3.3.3 Sample install-image.sh script\nThis is just the start of the script.\nR_VERSION_LIST=\"4.4.2 4.3.3 4.2.3 4.1.3 4.0.5\"\nR_VERSION_DEFAULT=4.4.2\n\nPYTHON_VERSION_LIST=\"3.12.7 3.11.10 3.10.15\"\nPYTHON_VERSION_DEFAULT=3.12.7\n\nQUARTO_VERSION=1.6.34\n\nAPPTAINER_VERSION=\"1.3.5\"\n\n\n3.3.4 Find out the ID of the desired pcluster AMI\nYou can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via\npcluster list-official-images | \\\n    jq '.images.[] | \n        select(.os==\"ubuntu2204\" and .architecture==\"x86_64\") | .amiId'"
+    "section": "4.1 AMI Cleanup",
+    "text": "4.1 AMI Cleanup\nIf you want to get rid of all AVAILABLE images, run\nfor i in `pcluster list-images --image-status AVAILABLE | grep imageId | \\\n    awk '{print $2}' | sed 's#\"##g' | sed 's#,##'`; \\\n        do pcluster delete-image -i $i ; done"
+  },
+  {
+    "objectID": "AMI.html#get-information-about-image",
+    "href": "AMI.html#get-information-about-image",
+    "title": "Custom AMI",
+    "section": "4.2 Get information about image",
+    "text": "4.2 Get information about image\npcluster describe-image -i &lt;IMAGENAME&gt;\npcluster list-image-log-streams -i &lt;IMAGENAME&gt;\npcluster get-image-log-events  -i &lt;IMAGENAME&gt; --log-stream-name &lt;AWSPCVERSION&gt;/1\nwhere &lt;AWSPCVERSION&gt; is the version of AWS parallelcluster used (e.g. 3.11.1) and &lt;IMAGENAME&gt; is the custom name of your AMI."
+  },
+  {
+    "objectID": "AMI.html#sec-install-image-sh",
+    "href": "AMI.html#sec-install-image-sh",
+    "title": "Custom AMI",
+    "section": "4.3 Sample install-image.sh script",
+    "text": "4.3 Sample install-image.sh script\nThis is just the start of the script.\nR_VERSION_LIST=\"4.4.2 4.3.3 4.2.3 4.1.3 4.0.5\"\nR_VERSION_DEFAULT=4.4.2\n\nPYTHON_VERSION_LIST=\"3.12.7 3.11.10 3.10.15\"\nPYTHON_VERSION_DEFAULT=3.12.7\n\nQUARTO_VERSION=1.6.34\n\nAPPTAINER_VERSION=\"1.3.5\""
+  },
+  {
+    "objectID": "AMI.html#sec-pcluster-ami",
+    "href": "AMI.html#sec-pcluster-ami",
+    "title": "Custom AMI",
+    "section": "4.4 Find out the ID of the desired pcluster AMI",
+    "text": "4.4 Find out the ID of the desired pcluster AMI\nYou can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via\npcluster list-official-images | \\\n    jq '.images.[] | \n        select(.os==\"ubuntu2204\" and .architecture==\"x86_64\") | .amiId'"
+  },
+  {
+    "objectID": "AMI.html#find-the-latest-default-ubuntu-22.04-ami",
+    "href": "AMI.html#find-the-latest-default-ubuntu-22.04-ami",
+    "title": "Custom AMI",
+    "section": "4.5 Find the latest default Ubuntu 22.04 AMI",
+    "text": "4.5 Find the latest default Ubuntu 22.04 AMI\naws ec2 describe-images \\\n    --owners 099720109477 \\\n    --filters \"Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*\" \\\n              \"Name=architecture,Values=x86_64\" \\\n              \"Name=virtualization-type,Values=hvm\" \\\n    --query 'Images[*].[CreationDate,ImageId]' \\\n    --output text | sort | tail -1 | awk '{print $2}'"
   },
   {
     "objectID": "PWB.html",
@@ -75,5 +124,12 @@
     "title": "Next Generation Workbench integration into AWS ParallelCluster",
     "section": "4.1 Patch for ELB to listen on port 8787 instead of 22",
     "text": "4.1 Patch for ELB to listen on port 8787 instead of 22\ndiff -u --recursive pcluster/templates/cluster_stack.py pcluster.new/templates/cluster_stack.py\n--- pcluster/templates/cluster_stack.py 2023-11-22 12:25:53\n+++ pcluster.new/templates/cluster_stack.py 2023-11-22 15:11:48\n@@ -871,10 +871,10 @@\n     def _get_source_ingress_rule(self, setting):\n         if setting.startswith(\"pl\"):\n             return ec2.CfnSecurityGroup.IngressProperty(\n-                ip_protocol=\"tcp\", from_port=22, to_port=22, source_prefix_list_id=setting\n+                ip_protocol=\"tcp\", from_port=8787, to_port=8787, source_prefix_list_id=setting\n             )\n         else:\n-            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol=\"tcp\", from_port=22, to_port=22, cidr_ip=setting)\n+            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol=\"tcp\", from_port=8787, to_port=8787, cidr_ip=setting)\n \n     def _add_login_nodes_security_group(self):\n         login_nodes_security_group_ingress = [\ndiff -u --recursive pcluster/templates/login_nodes_stack.py pcluster.new/templates/login_nodes_stack.py\n--- pcluster/templates/login_nodes_stack.py 2023-11-22 12:25:53\n+++ pcluster.new/templates/login_nodes_stack.py 2023-11-22 15:11:19\n@@ -273,10 +273,10 @@\n             self,\n             f\"{self._pool.name}TargetGroup\",\n             health_check=elbv2.HealthCheck(\n-                port=\"22\",\n+                port=\"8787\",\n                 protocol=elbv2.Protocol.TCP,\n             ),\n-            port=22,\n+            port=8787,\n             protocol=elbv2.Protocol.TCP,\n             target_type=elbv2.TargetType.INSTANCE,\n             vpc=self._vpc,\n@@ -299,7 +299,7 @@\n             ),\n         )\n \n-        listener = login_nodes_load_balancer.add_listener(f\"LoginNodesListener{self._pool.name}\", port=22)\n+        listener = login_nodes_load_balancer.add_listener(f\"LoginNodesListener{self._pool.name}\", port=8787)\n         listener.add_target_groups(f\"LoginNodesListenerTargets{self._pool.name}\", target_group)\n         return login_nodes_load_balancer"
+  },
+  {
+    "objectID": "Introduction.html",
+    "href": "Introduction.html",
+    "title": "Introduction",
+    "section": "",
+    "text": "1 Introduction\nAWS ParallelCluster is a framework that allows for easy setup of HPC clusters with various schedulers. It takes a YAML file with all the necessary definitions and transforms that into Cloud Formation Code that then gets deployed into AWS.\nAt the moment it supports both SLURM and AWS Batch.\nPosit Workbench supports SLURM as a HPC back end via the SLURM Launcher. As a consequence, a github repository has been set up to highlight a possible way to integrate Posit Workbench with AWS ParallelCluster via the SLURM Launcher. The approach used there works but has several shortcomings:\n\nSetting Workbench on the head node where also the slurmctld and slurmdbd (SLURM Controller and Database) daemons are running makes this head node very vulnerable and a single point of failure.\nAll traffic will be routed through the head node\nThe head node does not only act as Workbench Server and runs the main SLURM daemons (see above), it is also used as a NFS server adding additional load (depending on the size and utilisation of the cluster) that could contribute to very bad user experience on the HPC cluster up to a crash of the same if resources are exhausted.\n\nThis document serves two purposes: Documenting the current setup used for Workbench benchmarking but also summarizing a potential reference architecture that overcomes some of the shortcomings of the current Workbench integration into AWS ParallelCluster with a focus on High(er) Availabiity.\n\n\n2 A new approach\nFortunately, AWS ParallelCluster keeps evolving and in parallel Posit’s understanding of the tool also increases.\nRecent releases have added a couple of very interesting, exciting and very helpful features, most notably\n\nthe ability to add login nodes in version 3.7.0\nability to use EFS instead of NFS to host shared file systems needed for the cluster (e.g. /opt/slurm containing the SLURM installation) that removes the need to host an NFS server on the head node. This feature will be part of version 3.8.0 (beta version out - release imminent)\nability to set up /home on FsX for Lustre or EFS instead of internal NFS hosted on the head node This feature is part of version 3.8.0 as well.\n\nWhile the above features are very vital to the new approach for the Workbench integration discussed in this doc, there is many other functionalities that are almost taken for granted (e.g. Easy integration into auth subsystems, SLURM scheduling fine tuning capabilities, …).\nIf there was one feature that should be explicitly mentioned here, then it needs to be the ability to build custom AMIs. One of the features of a scalable cloud deployment (like AWS ParallelCluster) is the ability to scale up and down based on user demand. If there is a scale-up event, i.e. a node is getting added to the cluster, a new EC2 instance is provisioned. The elapsed time for such a scale-up event is about 4 minutes today when using a pre-built AMI but will increase if there is a need to run additional software installations just because the AMI does not contain all the needed features. Building a custom AMI will help to keep the instance spin up time at the 4 minute mark.\n\n\n3 Setup Instructions\nIn order to setup the new integration, 3 steps are needed\n\nCreate a custom AMI\nSet up auxiliary services (Active Directory, PostgreSQL DB, users) via Pulumi\nAWS ParallelCluster build AWS Parallelcluster\n\nAll those three steps are explained in the subsequent sections."
   }
 ]

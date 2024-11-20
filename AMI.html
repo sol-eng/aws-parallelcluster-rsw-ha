@@ -123,16 +123,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./PWB.html"> 
-<span class="menu-text">Overview</span></a>
+    <a class="nav-link" href="./Introduction.html"> 
+<span class="menu-text">Introduction</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link active" href="./AMI.html" aria-current="page"> 
 <span class="menu-text">AMI</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./Pulumi.qmd"> 
+<span class="menu-text">Pulumi</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./Architecture.html"> 
 <span class="menu-text">Architecture</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./AWSParallelcluster.html"> 
+<span class="menu-text">AWS ParallelCluster</span></a>
   </li>  
   <li class="nav-item">
     <span class="nav-link">
@@ -156,18 +164,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
-  <li><a href="#implementation-details" id="toc-implementation-details" class="nav-link" data-scroll-target="#implementation-details"><span class="header-section-number">2</span> Implementation details</a></li>
+  <li><a href="#implementation-details" id="toc-implementation-details" class="nav-link" data-scroll-target="#implementation-details"><span class="header-section-number">2</span> Implementation details</a>
+  <ul class="collapse">
+  <li><a href="#main-configuration" id="toc-main-configuration" class="nav-link" data-scroll-target="#main-configuration"><span class="header-section-number">2.1</span> Main configuration</a></li>
+  <li><a href="#r-and-python-configuration" id="toc-r-and-python-configuration" class="nav-link" data-scroll-target="#r-and-python-configuration"><span class="header-section-number">2.2</span> R and Python configuration</a></li>
+  <li><a href="#an-important-cron-job" id="toc-an-important-cron-job" class="nav-link" data-scroll-target="#an-important-cron-job"><span class="header-section-number">2.3</span> An important cron job</a></li>
+  </ul></li>
   <li><a href="#how-to-build-a-custom-ami" id="toc-how-to-build-a-custom-ami" class="nav-link" data-scroll-target="#how-to-build-a-custom-ami"><span class="header-section-number">3</span> How to build a custom AMI</a>
   <ul class="collapse">
   <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"><span class="header-section-number">3.1</span> Prerequisites</a></li>
   <li><a href="#step-by-step-instruction" id="toc-step-by-step-instruction" class="nav-link" data-scroll-target="#step-by-step-instruction"><span class="header-section-number">3.2</span> Step by step instruction</a></li>
-  <li><a href="#other-useful-information-for-debugging-etc." id="toc-other-useful-information-for-debugging-etc." class="nav-link" data-scroll-target="#other-useful-information-for-debugging-etc."><span class="header-section-number">3.3</span> Other useful information for debugging etc.</a>
-  <ul class="collapse">
-  <li><a href="#cleanup" id="toc-cleanup" class="nav-link" data-scroll-target="#cleanup"><span class="header-section-number">3.3.1</span> Cleanup</a></li>
-  <li><a href="#get-information-about-image" id="toc-get-information-about-image" class="nav-link" data-scroll-target="#get-information-about-image"><span class="header-section-number">3.3.2</span> Get information about image</a></li>
-  <li><a href="#sec-install-image-sh" id="toc-sec-install-image-sh" class="nav-link" data-scroll-target="#sec-install-image-sh"><span class="header-section-number">3.3.3</span> Sample <code>install-image.sh</code> script</a></li>
-  <li><a href="#sec-pcluster-ami" id="toc-sec-pcluster-ami" class="nav-link" data-scroll-target="#sec-pcluster-ami"><span class="header-section-number">3.3.4</span> Find out the ID of the desired <code>pcluster</code> AMI</a></li>
   </ul></li>
+  <li><a href="#other-useful-information-for-debugging-etc." id="toc-other-useful-information-for-debugging-etc." class="nav-link" data-scroll-target="#other-useful-information-for-debugging-etc."><span class="header-section-number">4</span> Other useful information for debugging etc.</a>
+  <ul class="collapse">
+  <li><a href="#ami-cleanup" id="toc-ami-cleanup" class="nav-link" data-scroll-target="#ami-cleanup"><span class="header-section-number">4.1</span> AMI Cleanup</a></li>
+  <li><a href="#get-information-about-image" id="toc-get-information-about-image" class="nav-link" data-scroll-target="#get-information-about-image"><span class="header-section-number">4.2</span> Get information about image</a></li>
+  <li><a href="#sec-install-image-sh" id="toc-sec-install-image-sh" class="nav-link" data-scroll-target="#sec-install-image-sh"><span class="header-section-number">4.3</span> Sample <code>install-image.sh</code> script</a></li>
+  <li><a href="#sec-pcluster-ami" id="toc-sec-pcluster-ami" class="nav-link" data-scroll-target="#sec-pcluster-ami"><span class="header-section-number">4.4</span> Find out the ID of the desired <code>pcluster</code> AMI</a></li>
+  <li><a href="#find-the-latest-default-ubuntu-22.04-ami" id="toc-find-the-latest-default-ubuntu-22.04-ami" class="nav-link" data-scroll-target="#find-the-latest-default-ubuntu-22.04-ami"><span class="header-section-number">4.5</span> Find the latest default Ubuntu 22.04 AMI</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -201,11 +215,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="implementation-details" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Implementation details</h1>
 <p>Here we are using ParallelCluster’s image builder capability that is integrated into AWS’ <code>packer</code> service.</p>
-<p>The main configuration file is <code>image-config.yaml</code> in the <code>image</code> subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script <code>install-image.sh</code> (cf. <a href="#sec-install-image-sh" class="quarto-xref">Section&nbsp;3.3.3</a>) that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the <code>setup_something()</code> bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software.</p>
+<section id="main-configuration" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="main-configuration"><span class="header-section-number">2.1</span> Main configuration</h2>
+<p>The main configuration file is <code>image-config.yaml</code> in the <code>image</code> subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script <code>install-image.sh</code> (cf. <a href="#sec-install-image-sh" class="quarto-xref">Section&nbsp;4.3</a>) that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the <code>setup_something()</code> bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software.</p>
+</section>
+<section id="r-and-python-configuration" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="r-and-python-configuration"><span class="header-section-number">2.2</span> R and Python configuration</h2>
 <p>The R and Python installation scripts allow the installation of multiple <a href="https://docs.posit.co/resources/install-python.html">Python</a> and <a href="https://docs.posit.co/resources/install-r.html">R</a> versions using the Posit provided binaries. Each default version is symlinked into <code>/usr/local/bin</code>.</p>
-<p>Each R version is configured to use <a href="https://packagemanager.posit.co">public Posit Package Manager</a> and configured for CRAN and Bioconductor. Additionally all R packages needed for the RStudio IDE integration are preinstalled into a site-library. For CRAN a time-based snapshot is defined that points to the snapshot that is at most 60 days older than the corresponding R release date. Furthermore, a global <code>renv</code> cache points to <code>/home/renv</code> and the <code>renv</code>-<code>pak</code> integration is enabled.</p>
-<p>The Python versions are setup to include the <code>jupyter</code>/<code>jupyterlab</code> integration including the ability to publish to Posit Connect. Each Python version uses <code>pypi</code> from <a href="https://packagemanager.posit.co">public Posit Package Manager</a>.</p>
+<p>Each R version (achieved by <a href="../../image/run.R"><code>run.R</code></a>)</p>
+<ul>
+<li>is configured to use <a href="https://packagemanager.posit.co">public Posit Package Manager</a></li>
+<li>is configured to use CRAN and Bioconductor repositories</li>
+<li>has all R packages needed for the RStudio IDE integration preinstalled into a site-library</li>
+<li>uses a time-based snapshot for CRAN that points to the snapshot that is at most 60 days older than the corresponding R release date</li>
+<li>uses a global <code>renv</code> cachethat points to <code>/home/renv</code></li>
+<li>has the <code>renv</code>-<code>pak</code> integration enabled</li>
+</ul>
+<p>The Python versions are setup to</p>
+<ul>
+<li>include the <code>jupyter</code>/<code>jupyterlab</code> integration</li>
+<li>include the capability to publish to Posit Connect</li>
+<li>use <code>pypi</code> from <a href="https://packagemanager.posit.co">public Posit Package Manager</a></li>
+</ul>
+</section>
+<section id="an-important-cron-job" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="an-important-cron-job"><span class="header-section-number">2.3</span> An important cron job</h2>
 <p>In <code>install-image.sh</code> we also set up a cron job that will run <code>/opt/rstudio/scripts/rc.pwb</code>. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start <code>rstudio-server</code> as well as <code>rstudio-launcher</code>. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf.&nbsp;https://github.com/aws/aws-parallelcluster/issues/5723)</p>
+</section>
 </section>
 <section id="how-to-build-a-custom-ami" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> How to build a custom AMI</h1>
@@ -219,33 +255,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="step-by-step-instruction" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="step-by-step-instruction"><span class="header-section-number">3.2</span> Step by step instruction</h2>
+<p>In the github repo, go tho the <a href="../../image"><code>image</code></a> sub-folder.</p>
 <ol type="1">
 <li>Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as <code>&lt;BUCKETNAME&gt;</code> hereafter.</li>
-<li>Identify the appropriate <code>pcluster</code> AMI (cf. <a href="#sec-pcluster-ami" class="quarto-xref">Section&nbsp;3.3.4</a>) and update <code>ParentImage</code> in <code>image-config.yaml</code></li>
-<li>Check versions in <code>install-image.sh</code> (cf. <a href="#sec-install-image-sh" class="quarto-xref">Section&nbsp;3.3.3</a>) and adjust accordingly</li>
+<li>Identify the appropriate <code>pcluster</code> AMI (cf. <a href="#sec-pcluster-ami" class="quarto-xref">Section&nbsp;4.4</a>) and update <code>ParentImage</code> in <code>image-config.yaml</code></li>
+<li>Check versions in <code>install-image.sh</code> (cf. <a href="#sec-install-image-sh" class="quarto-xref">Section&nbsp;4.3</a>) and adjust accordingly</li>
 <li>Finally, run</li>
 </ol>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./build-image.sh</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span> [<span class="op">&lt;</span>BUCKETNAME<span class="op">&gt;</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where <code>&lt;IMAGENAME&gt;</code> is the desired name of the new AMI and <code>&lt;BUCKETNAME&gt;</code> the name of the S3 bucket, e.g.&nbsp;<code>hpc-scripts1234</code>. <code>&lt;BUCKETNAME&gt;</code> is an optional argument. If missing, the script will look in <code>.bucket.default</code> to read the default bucket name.</p>
 </section>
-<section id="other-useful-information-for-debugging-etc." class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="other-useful-information-for-debugging-etc."><span class="header-section-number">3.3</span> Other useful information for debugging etc.</h2>
-<section id="cleanup" class="level3" data-number="3.3.1">
-<h3 data-number="3.3.1" class="anchored" data-anchor-id="cleanup"><span class="header-section-number">3.3.1</span> Cleanup</h3>
+</section>
+<section id="other-useful-information-for-debugging-etc." class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Other useful information for debugging etc.</h1>
+<section id="ami-cleanup" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="ami-cleanup"><span class="header-section-number">4.1</span> AMI Cleanup</h2>
 <p>If you want to get rid of all AVAILABLE images, run</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="kw">`</span><span class="ex">pcluster</span> list-images <span class="at">--image-status</span> AVAILABLE <span class="kw">|</span> <span class="fu">grep</span> imageId <span class="kw">|</span> <span class="dt">\</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">awk</span> <span class="st">'{print $2}'</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s#"##g'</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s#,##'</span><span class="kw">`;</span> <span class="dt">\</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">do</span> <span class="ex">pcluster</span> delete-image <span class="at">-i</span> <span class="va">$i</span> <span class="kw">;</span> <span class="cf">done</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="get-information-about-image" class="level3" data-number="3.3.2">
-<h3 data-number="3.3.2" class="anchored" data-anchor-id="get-information-about-image"><span class="header-section-number">3.3.2</span> Get information about image</h3>
+<section id="get-information-about-image" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="get-information-about-image"><span class="header-section-number">4.2</span> Get information about image</h2>
 <div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> describe-image <span class="at">-i</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-image-log-streams <span class="at">-i</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> get-image-log-events  <span class="at">-i</span> <span class="op">&lt;</span>IMAGENAME<span class="op">&gt;</span> --log-stream-name <span class="op">&lt;</span>AWSPCVERSION<span class="op">&gt;</span>/1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>where <code>&lt;AWSPCVERSION&gt;</code> is the version of AWS parallelcluster used (e.g.&nbsp;3.11.1) and <code>&lt;IMAGENAME&gt;</code> is the custom name of your AMI.</p>
 </section>
-<section id="sec-install-image-sh" class="level3" data-number="3.3.3">
-<h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-install-image-sh"><span class="header-section-number">3.3.3</span> Sample <code>install-image.sh</code> script</h3>
+<section id="sec-install-image-sh" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-install-image-sh"><span class="header-section-number">4.3</span> Sample <code>install-image.sh</code> script</h2>
 <p>This is just the start of the script.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_LIST</span><span class="op">=</span><span class="st">"4.4.2 4.3.3 4.2.3 4.1.3 4.0.5"</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="va">R_VERSION_DEFAULT</span><span class="op">=</span>4.4.2</span>
@@ -257,15 +295,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="va">APPTAINER_VERSION</span><span class="op">=</span><span class="st">"1.3.5"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="sec-pcluster-ami" class="level3" data-number="3.3.4">
-<h3 data-number="3.3.4" class="anchored" data-anchor-id="sec-pcluster-ami"><span class="header-section-number">3.3.4</span> Find out the ID of the desired <code>pcluster</code> AMI</h3>
+<section id="sec-pcluster-ami" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="sec-pcluster-ami"><span class="header-section-number">4.4</span> Find out the ID of the desired <code>pcluster</code> AMI</h2>
 <p>You can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pcluster</span> list-official-images <span class="kw">|</span> <span class="dt">\</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jq</span> <span class="st">'.images.[] | </span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="st">        select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-
-
 </section>
+<section id="find-the-latest-default-ubuntu-22.04-ami" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="find-the-latest-default-ubuntu-22.04-ami"><span class="header-section-number">4.5</span> Find the latest default Ubuntu 22.04 AMI</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> ec2 describe-images <span class="dt">\</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--owners</span> 099720109477 <span class="dt">\</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--filters</span> <span class="st">"Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"</span> <span class="dt">\</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Name=architecture,Values=x86_64"</span> <span class="dt">\</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Name=virtualization-type,Values=hvm"</span> <span class="dt">\</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--query</span> <span class="st">'Images[*].[CreationDate,ImageId]'</span> <span class="dt">\</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--output</span> text <span class="kw">|</span> <span class="fu">sort</span> <span class="kw">|</span> <span class="fu">tail</span> <span class="at">-1</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">'{print $2}'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+
+
 </section>
 </section>
 

@@ -2,14 +2,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Architecture.html</loc>
-    <lastmod>2024-11-20T08:52:48.835Z</lastmod>
+    <lastmod>2024-11-20T08:55:30.811Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/AWSParallelcluster.html</loc>
+    <lastmod>2024-11-20T08:55:30.811Z</lastmod>
   </url>
   <url>
     <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/AMI.html</loc>
-    <lastmod>2024-11-20T08:52:48.835Z</lastmod>
+    <lastmod>2024-11-20T08:55:30.811Z</lastmod>
   </url>
   <url>
     <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/PWB.html</loc>
-    <lastmod>2024-11-20T08:52:48.835Z</lastmod>
+    <lastmod>2024-11-20T08:55:30.811Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Introduction.html</loc>
+    <lastmod>2024-11-20T08:55:30.811Z</lastmod>
   </url>
 </urlset>
