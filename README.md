@@ -4,7 +4,7 @@ This is a repository that highlights a possible integration of Posit Workbench i
 
 The repository consists of a couple of sub folders containing
 
--   [Documentation](docs/PWB.pdf)
+-   [Documentation](https://sol-eng.github.io/aws-parallelcluster-rsw-ha/)
 -   [Pulumi recipes for auxiliary infrastructure](pulumi/)
 -   [Custom AMI generation](image/)
 -   [AWS ParallelCluster](parallelcluster/)
