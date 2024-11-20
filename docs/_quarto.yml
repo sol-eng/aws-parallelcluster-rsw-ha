@@ -5,12 +5,16 @@ website:
   title: "today"
   navbar:
     left:
-      - href: PWB.qmd
-        text: Overview
+      - href: Introduction.qmd
+        text: Introduction 
       - href: AMI.qmd
         text: AMI
+      - href: Pulumi.qmd
+        text: Pulumi
       - href: Architecture.qmd
         text: Architecture
+      - href: AWSParallelcluster.qmd 
+        text: AWS ParallelCluster 
       - about.qmd
 
 format:

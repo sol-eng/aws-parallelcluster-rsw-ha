@@ -11,14 +11,30 @@ While AWS ParallelCluster allows the on-demand provisioning of software during c
 
 Here we are using ParallelCluster's image builder capability that is integrated into AWS'  `packer` service.
 
+## Main configuration
+
 The main configuration file is `image-config.yaml` in the `image` subfolder. The idea for the custom image is to use a very slim approach. The yaml file references a script `install-image.sh` (cf. @sec-install-image-sh) that calls a couple of additional scripts that facilitate the installation of R, Python, quarto and apptainer. Each individual script, stored in an S3 bucket, is called by the `setup_something()` bash function that will download the additional script and run with pre-defined parameters that define the selected list of versions for the respective software. 
+
+## R and Python configuration 
 
 The R and Python installation scripts allow the installation of multiple [Python](https://docs.posit.co/resources/install-python.html) and [R](https://docs.posit.co/resources/install-r.html) versions using the Posit provided binaries. Each default version is symlinked into `/usr/local/bin`. 
 
-Each R version is configured to use [public Posit Package Manager](https://packagemanager.posit.co) and configured for CRAN and Bioconductor. Additionally all R packages needed for the RStudio IDE integration are preinstalled into a site-library. For CRAN a time-based snapshot is defined that points to the snapshot that is at most 60 days older than the corresponding R release date. Furthermore, a global `renv` cache points to `/home/renv` and the `renv`-`pak` integration is enabled. 
+Each R version (achieved by [`run.R`](../../image/run.R))
 
-The Python versions are setup to include the `jupyter`/`jupyterlab` integration including the ability to publish to Posit Connect. Each Python version uses `pypi` from [public Posit Package Manager](https://packagemanager.posit.co).
+* is configured to use [public Posit Package Manager](https://packagemanager.posit.co) 
+* is configured to use CRAN and Bioconductor repositories
+* has all R packages needed for the RStudio IDE integration preinstalled into a site-library
+* uses a time-based snapshot for CRAN that points to the snapshot that is at most 60 days older than the corresponding R release date
+* uses a global `renv` cachethat  points to `/home/renv` 
+* has the `renv`-`pak` integration enabled
 
+The Python versions are setup to 
+
+* include the `jupyter`/`jupyterlab` integration 
+* include the capability to publish to Posit Connect
+* use `pypi` from [public Posit Package Manager](https://packagemanager.posit.co)
+
+## An important cron job 
 In `install-image.sh` we also set up a cron job that will run `/opt/rstudio/scripts/rc.pwb`. When using the AMI, the cron job will check every minute whether the AMI is used on a login node or not. If on a login node, it will activate and start `rstudio-server` as well as `rstudio-launcher`. This has become necessary because AWS ParallelCluster does not support triggering of scripts upon the launch of login nodes (cf. https://github.com/aws/aws-parallelcluster/issues/5723)
 
 # How to build a custom AMI 
@@ -37,6 +53,8 @@ where `<BUCKETNAME>` is your desired name of the S3 bucket and `<REGION>` the AW
 
 ## Step by step instruction 
 
+In the github repo, go tho the [`image`](../../image) sub-folder. 
+
 1. Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. This bucket is referenced as `<BUCKETNAME>` hereafter. 
 2. Identify the appropriate `pcluster` AMI (cf. @sec-pcluster-ami) and update `ParentImage` in `image-config.yaml`
 3. Check versions in `install-image.sh` (cf. @sec-install-image-sh) and adjust accordingly
@@ -46,9 +64,9 @@ where `<BUCKETNAME>` is your desired name of the S3 bucket and `<REGION>` the AW
 ```
 where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`. `<BUCKETNAME>` is an optional argument. If missing, the script will look in `.bucket.default` to read the default bucket name. 
 
-## Other useful information for debugging etc.
+# Other useful information for debugging etc.
 
-### Cleanup 
+## AMI Cleanup 
 
 If you want to get rid of all AVAILABLE images, run
 
@@ -58,7 +76,7 @@ for i in `pcluster list-images --image-status AVAILABLE | grep imageId | \
         do pcluster delete-image -i $i ; done
 ```
 
-### Get information about image 
+## Get information about image 
 
 ``` bash
 pcluster describe-image -i <IMAGENAME>
@@ -68,7 +86,7 @@ pcluster get-image-log-events  -i <IMAGENAME> --log-stream-name <AWSPCVERSION>/1
 
 where `<AWSPCVERSION>` is the version of AWS parallelcluster used (e.g. 3.11.1) and `<IMAGENAME>` is the custom name of your AMI. 
 
-### Sample `install-image.sh` script {#sec-install-image-sh}
+## Sample `install-image.sh` script {#sec-install-image-sh}
 
 This is just the start of the script. 
 
@@ -84,7 +102,7 @@ QUARTO_VERSION=1.6.34
 APPTAINER_VERSION="1.3.5"
 ```
 
-### Find out the ID of the desired `pcluster` AMI {#sec-pcluster-ami}
+## Find out the ID of the desired `pcluster` AMI {#sec-pcluster-ami}
 
 You can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and architecture (x86_64) via 
 
@@ -92,4 +110,16 @@ You can check the AMI ID for the supported OS (Ubuntu 22.04 LTS (Jammy)) and arc
 pcluster list-official-images | \
     jq '.images.[] | 
         select(.os=="ubuntu2204" and .architecture=="x86_64") | .amiId'
+```
+
+## Find the latest default Ubuntu 22.04 AMI 
+
+``` bash
+aws ec2 describe-images \
+    --owners 099720109477 \
+    --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*" \
+              "Name=architecture,Values=x86_64" \
+              "Name=virtualization-type,Values=hvm" \
+    --query 'Images[*].[CreationDate,ImageId]' \
+    --output text | sort | tail -1 | awk '{print $2}'
 ```
