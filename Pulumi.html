@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>pulumi – today</title>
+<title>Pulumi – today</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -163,12 +163,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#auxiliary-services-via-pulumi" id="toc-auxiliary-services-via-pulumi" class="nav-link active" data-scroll-target="#auxiliary-services-via-pulumi">Auxiliary Services via Pulumi</a></li>
-  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites">Prerequisites</a></li>
-  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup">How to setup</a>
+  <li><a href="#auxiliary-services-via-pulumi" id="toc-auxiliary-services-via-pulumi" class="nav-link active" data-scroll-target="#auxiliary-services-via-pulumi"><span class="header-section-number">1</span> Auxiliary Services via Pulumi</a></li>
+  <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"><span class="header-section-number">2</span> Prerequisites</a></li>
+  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup"><span class="header-section-number">3</span> How to setup</a>
   <ul class="collapse">
-  <li><a href="#additionl-information" id="toc-additionl-information" class="nav-link" data-scroll-target="#additionl-information">Additionl information</a></li>
-  <li><a href="#sec-passwords" id="toc-sec-passwords" class="nav-link" data-scroll-target="#sec-passwords">Defining “good”/secure passwords</a></li>
+  <li><a href="#additionl-information" id="toc-additionl-information" class="nav-link" data-scroll-target="#additionl-information"><span class="header-section-number">3.1</span> Additionl information</a></li>
+  <li><a href="#sec-passwords" id="toc-sec-passwords" class="nav-link" data-scroll-target="#sec-passwords"><span class="header-section-number">3.2</span> Defining “good”/secure passwords</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -176,15 +176,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Pulumi</h1>
+</div>
 
 
 
-<section id="auxiliary-services-via-pulumi" class="level1">
-<h1>Auxiliary Services via Pulumi</h1>
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="auxiliary-services-via-pulumi" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Auxiliary Services via Pulumi</h1>
 <p>When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is <a href="https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html">AWS SimpleAD</a>. In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called <a href="https://www.freedesktop.org/software/realmd/adcli/adcli.html">adcli</a> (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional <code>expect</code> scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via <a href="https://www.pulumi.com/b/">Pulumi</a> recipes</p>
 </section>
-<section id="prerequisites" class="level1">
-<h1>Prerequisites</h1>
+<section id="prerequisites" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Prerequisites</h1>
 <p>You will need to have</p>
 <ul>
 <li><p><a href="https://pulumi.com">pulumi</a> installed and configured so you can successfully create, run and modify pulumi stacks</p></li>
@@ -192,8 +208,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><p>ssh client including the <code>ssh-keygen</code> utility</p></li>
 </ul>
 </section>
-<section id="how-to-setup" class="level1">
-<h1>How to setup</h1>
+<section id="how-to-setup" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> How to setup</h1>
 <p>In the github repo, go tho the <a href="../../pulumi"><code>pulumi</code></a> sub-folder.</p>
 <p>First, we need to define a new pulumi stack</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack init <span class="op">&lt;</span>STACKNAME<span class="op">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -207,8 +223,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>and eventually we can start the deployment of the new pulumi stack</p>
 <pre><code>just up </code></pre>
 <p>The stack deployment will also already set up 10 users named <code>posit0001...posit0010</code>.</p>
-<section id="additionl-information" class="level2">
-<h2 class="anchored" data-anchor-id="additionl-information">Additionl information</h2>
+<section id="additionl-information" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="additionl-information"><span class="header-section-number">3.1</span> Additionl information</h2>
 <p>Please be aware</p>
 <ul>
 <li><p>Naming of your stack (<code>auxiliary-wb</code>) can be changed to your preference</p></li>
@@ -218,8 +234,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><p>Users are created in the following way by default: User Name is <code>positXXXX</code> where <code>XXXX</code> is a 4-digit zero-padded number. Password is chosen as per {ref:sec-passwords}. Those defaults can be changed in <code>server-side-files/config/useradd.sh</code> . The referenced script is using multi-threaded bash to speed up user creation. In order to prevent user creation from failing due to too many concurrent connections, it additionally runs <code>pamtester</code> to ensure the user is correctly created.</p></li>
 </ul>
 </section>
-<section id="sec-passwords" class="level2">
-<h2 class="anchored" data-anchor-id="sec-passwords">Defining “good”/secure passwords</h2>
+<section id="sec-passwords" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-passwords"><span class="header-section-number">3.2</span> Defining “good”/secure passwords</h2>
 <p>Since this deployment will be done in the AWS cloud with some instances exposed to the public internet, using secure passwords is a necessity. As a consequence, all passwords using random strings with 16 characters with a minumum of 1 lower case and 1 upper case letter as well 1 number.</p>
 <p>Passwords that are needed by the ParallelCluster deployment (e.g.&nbsp;for the SLURM or PostgreSQL DB) are additionally stored as a secret in AWS Secrets Manager. Same is true for the common password for all <code>positXXXX</code> users.</p>
 <p>Current configurable parameters in the pulumi recipe</p>
