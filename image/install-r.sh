@@ -46,7 +46,7 @@ done
 #  - preinstalling packages needed for the RStudio IDE integration
 # Note: Install will run in parallel to speed up things
 
-aws s3 cp s3://hpc-scripts1234/image/run.R /tmp
+aws s3 cp s3://BUCKETNAME/image/run.R /tmp
 
 PATH_NOW=$PATH
 

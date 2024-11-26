@@ -24,11 +24,19 @@ if [ -z $2 ]; then
    bucketname="hpc-scripts1234"
 fi
 
+tmpdir=`mktemp -d`
+ 
+sed "s/BUCKETNAME/$bucketname/" image-config.yaml > $tmpdir/image-config.yaml
+
+
 for i in install*.sh *.R
 do
-aws s3 cp $i s3://$bucketname/image/$i
+sed "s/BUCKETNAME/$bucketname/" $i > $tmpdir/$i
+aws s3 cp $tmpdir/$i s3://$bucketname/image/$i
 done
 
-sed "s/BUCKETNAME/$bucketname/" image-config.tmpl > image-config.yaml
+sed "s/BUCKETNAME/$bucketname/" image-config.yaml > tmp/image-config.yaml
+
+rm -rf $tmpdir
 
 pcluster build-image -c image-config.yaml -i $1 --suppress-validators ALL
