@@ -25,7 +25,8 @@ fi
 while true 
 do
     if [ -d /opt/rstudio/scripts ]; then
-        pushd /opt/rstudio/scripts 
+        pushd /opt/rstudio/scripts
+	apt-get update -y  
         gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
         popd
         break

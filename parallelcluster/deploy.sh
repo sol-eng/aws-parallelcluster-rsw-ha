@@ -46,6 +46,7 @@ cat scripts/install-pwb-config.sh | \
         sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
         sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
+        sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
 	> tmp/install-pwb-config.sh 
 

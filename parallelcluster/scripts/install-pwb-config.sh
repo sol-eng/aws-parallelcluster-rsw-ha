@@ -424,6 +424,9 @@ EOF
 
 chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
 
+aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
+chmod +x $PWB_BASE_DIR/scripts/config-login.sh
+
 if (SINGULARITY_SUPPORT); then
         cd /tmp && \
                 git clone https://github.com/sol-eng/singularity-rstudio.git && \
