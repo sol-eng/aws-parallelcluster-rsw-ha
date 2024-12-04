@@ -2,11 +2,13 @@
 
 CLUSTERNAME="testing"
 STACKNAME="testing"
+PWB_VERSION="2024.11.0-daily-351.pro11"
 #SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
 AMI="ami-04bf99a2f0a089b37"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
 BENCHMARK_SUPPORT=true
+EASYBUILD_SUPPORT=false
 CONFIG="ide-team"
 
 echo "Extracting values from pulumi setup"
@@ -47,6 +49,12 @@ cat scripts/install-pwb-config.sh | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
 	> tmp/install-pwb-config.sh 
 
+cat scripts/config-login.sh | \
+        sed "s#AD_DNS#${AD_DNS}#g" | \
+        sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
+        sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g" \
+        > tmp/config-login.sh 
+
 cat scripts/config-compute.sh | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" \
 	> tmp/config-compute.sh 
@@ -54,6 +62,7 @@ cat scripts/config-compute.sh | \
 aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
 
 cat config/cluster-config-wb.${CONFIG}.tmpl | \
+        sed "s#PWB_VERSION#${PWB_VERSION}#g" | \
 	sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
         sed "s#SECURITYGROUP_RSW#${SECURITYGROUP_RSW}#g" | \
         sed "s#SUBNETID#${SUBNETID}#g" | \
