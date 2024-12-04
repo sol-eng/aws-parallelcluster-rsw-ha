@@ -1,10 +1,10 @@
 #!/bin/bash
 
-CLUSTERNAME="ide-team"
-STACKNAME="rstudio/ide-team"
+CLUSTERNAME="testing"
+STACKNAME="testing"
 #SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
-AMI="ami-0f44837ba2e027629"
-REGION="us-west-2"
+AMI="ami-04bf99a2f0a089b37"
+REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
 BENCHMARK_SUPPORT=true
 CONFIG="ide-team"
@@ -15,7 +15,7 @@ KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $STACKNAME`
 DOMAINPWSecret=` cd ../pulumi && pulumi stack output "ad_password_arn" -s $STACKNAME `
 echo $DOMAINPWSecret
 CERT="${KEY}.pem"
-EMAIL=`echo $KEY | cut -d "-" -f 1`
+EMAIL=`cd ../pulumi && pulumi config get email -s $STACKNAME`
 AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $STACKNAME`
 RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $STACKNAME`
 RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $STACKNAME`
@@ -25,12 +25,12 @@ SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $STACKNA
 SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $STACKNAME`
 SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $STACKNAME`
 SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $STACKNAME`
-SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $STACKNAME --show-secrets | jq ".id" | tr -d \"`
+SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $STACKNAME --show-secrets`
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $STACKNAME`
 ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $STACKNAME`
 S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $STACKNAME`
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_public_subnet -s $STACKNAME`
-SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output security_group_ssh -s $STACKNAME`
+SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output ssh_security_group -s $STACKNAME`
 echo "preparing scripts" 
 rm -rf tmp
 mkdir -p tmp

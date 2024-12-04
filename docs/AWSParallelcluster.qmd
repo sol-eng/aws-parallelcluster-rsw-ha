@@ -15,7 +15,7 @@ With launching the cluster via AWS ParallelCluster, everything comes together.
 The virtual environment for AWS Parallelcluster can be created from the base folder of the git repo via
 
 ``` bash
-python -m venv .aws-pc-venv
+python -m venv .venv
 source .aws-pc-venv/bin/activate 
 pip install -r requirements.txt
 deactivate

@@ -1,5 +1,5 @@
 ---
-title: "Introduction"
+titel: "Introduction"
 number-sections: true
 ---
 
@@ -39,8 +39,8 @@ If there was one feature that should be explicitly mentioned here, then it needs
 
 In order to setup the new integration, 3 steps are needed
 
--   Create a custom [AMI](AMI.qmd)
--   Set up auxiliary services (Active Directory, PostgreSQL DB, users) via [Pulumi](Pulumi.qmd)
--   AWS ParallelCluster build [AWS Parallelcluster](AWSParallelcluster.qmd)
+1.   Create a custom [AMI](AMI.qmd)
+2.  Set up auxiliary services (Active Directory, PostgreSQL DB, users) via [Pulumi](Pulumi.qmd)
+3.  AWS ParallelCluster build [AWS Parallelcluster](AWSParallelcluster.qmd)
 
 All those three steps are explained in the subsequent sections.
