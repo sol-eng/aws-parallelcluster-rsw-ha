@@ -18,6 +18,7 @@ tar xf /opt/rstudio/scripts/rsp-session-jammy-$1-amd64.tar.gz -C /usr/lib/rstudi
 
 if ( ! grep AD_DNS /etc/hosts >& /dev/null ); then
         echo "AD_DNS pwb.posit.co" >> /etc/hosts
+	systemctl restart sssd
 fi
 
 if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then
