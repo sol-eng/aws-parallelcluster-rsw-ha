@@ -25,7 +25,7 @@ fi
 
 for PYTHON_VERSION in ${PYTHON_VERSION_LIST}
 do
-  curl -O https://cdn.rstudio.com/python/ubuntu-2004/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
+  curl -O https://cdn.rstudio.com/python/ubuntu-2204/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
   gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
   rm -f python-${PYTHON_VERSION}_1_amd64.deb
 done

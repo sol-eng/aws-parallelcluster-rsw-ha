@@ -24,9 +24,6 @@
 # root folder for global renv cache 
 renvdir<-"/home/renv"
 
-# base folder site libraries for additional packages 
-basepackagedir<-"/opt/rstudio/rver"
-
 # packagemanager URL to be used
 pmurl <- "https://packagemanager.posit.co"
 
@@ -45,7 +42,7 @@ if(file.exists("/etc/redhat-release")) {
 
 currver <- paste0(R.Version()$major,".",R.Version()$minor)
 
-libdir <- paste0(basepackagedir,"/",currver)
+libdir <- paste0(R.home(),"/site-library")
 
 if(dir.exists(libdir)) {unlink(libdir,recursive=TRUE)}
 dir.create(libdir,recursive=TRUE)
@@ -106,7 +103,7 @@ os_vers=system(". /etc/os-release && echo $VERSION_ID", intern = TRUE)
 
 #Let's also pre-install tidyverse, clustermq, batchtools and microbenchmark
 Sys.setenv("CLUSTERMQ_USE_SYSTEM_LIBZMQ" = 0)
-pnames=c(pnames,"tidyverse","clustermq","batchtools","microbenchmark")
+pnames=c(pnames,"pak","tidyverse","clustermq","batchtools","microbenchmark")
 
 packages_needed<-pnames[pnames %in% avpack]
 
@@ -121,16 +118,17 @@ pak::pkg_install(packages_needed,lib=libdir)
 paste("Creating lock file for further reproducibility")
 pak::lockfile_create(packages_needed,lockfile=paste0(libdir,"/pkg.lock"))
 
-# workaround for clustermq as it cannot cooperate with pak... 
-if ( paste0(R.Version()$major,".",R.Version()$minor)>"4.3.0" ) { 
-  install_github("mschubert/clustermq@v0.9.1",lib=libdir)
-}
+## workaround for clustermq as it cannot cooperate with pak... 
+#if ( paste0(R.Version()$major,".",R.Version()$minor)>"4.3.0" ) { 
+#  install_github("mschubert/clustermq@v0.9.1",lib=libdir)
+#}
 
 paste("Setting up global renv cache")
 sink(paste0("/opt/R/",currver,"/lib/R/etc/Renviron.site"), append=TRUE)
   cat("RENV_PATHS_PREFIX_AUTO=TRUE\n")
   cat(paste0("RENV_PATHS_CACHE=", renvdir, "\n"))
   cat(paste0("RENV_PATHS_SANDBOX=", renvdir, "/sandbox\n"))
+  cat("RENV_CONFIG_PAK_ENABLED=TRUE\n")
 sink()
 
 paste("Configuring Bioconductor")
@@ -195,8 +193,6 @@ cat('options(repos=r)\n')
 options(BioC_mirror = paste0(pmurl,"/bioconductor"))
 options(BIOCONDUCTOR_CONFIG_FILE = paste0(pmurl,"/bioconductor/config.yaml"))
 
-libdir <- paste0(basepackagedir,"/",currver)
-cat(paste0('.libPaths(c(.libPaths(),"',libdir,'"))\n'))
 if ( currver < "4.1.0" ) {
 cat('}, envir = .env)\n')
 cat('attach(.env)\n')

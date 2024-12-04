@@ -1,20 +1,17 @@
 Build:
   InstanceType: p2.xlarge 
-  ParentImage: ami-070686bd03233cfa1
-  SubnetId: subnet-0811eb65b21ebe86a
-  SecurityGroupIds:
-    - sg-044a7e4db06bb9965
+  ParentImage: ami-0cae2309e56113b9e
   UpdateOsPackages:
-    Enabled: true
+    Enabled: true 
   Iam:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
   Components:
     - Type: script
-      Value: s3://hpc-scripts-ide-team-556a5ad/image/install-image.sh
+      Value: s3://BUCKETNAME/image/install-image.sh
   Imds:
     ImdsSupport: v2.0
-#DevSettings:
-#  Cookbook:
-#    ExtraChefAttributes: |
-#      {"cluster": {"nvidia": {"enabled": true, "driver_version": "550.54.15", "kernel_open": true }}}
+DevSettings:
+  Cookbook:
+    ExtraChefAttributes: |
+      {"cluster": {"nvidia": {"enabled": "yes", "kernel-open": "false"}}}

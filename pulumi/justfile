@@ -14,10 +14,11 @@ create-secrets:
     export keyname="${email}-keypair-for-pulumi"
     aws ec2 describe-key-pairs --key-names=$keyname
     if [ $? -ne 0 ]; then 
+        echo "Key $keyname does not seem to exist, let's create a new one."
         aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem
         chmod 0600 ${keyname}.pem
     else
-        echo $keyname already exists in your AWS account.  
+        echo "Key $keyname already exists in your AWS account."  
         if [ ! -f ${keyname}.pem ]; then 
             echo Please copy ${keyname}.pem into this folder to ensure full functionality of pulumi. 
         fi
@@ -27,5 +28,6 @@ create-secrets:
     fi
 
 up: 
+    #!/bin/bash
     pulumi up -y
-    just create-users 500 
+    just create-users  

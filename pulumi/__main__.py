@@ -9,7 +9,7 @@ from typing import Dict, List
 import jinja2
 import pulumi
 import json
-from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3
+from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Provider, get_region
 import pulumi_awsx as awsx
 from pulumi_command import remote
 from pulumi_random import RandomPassword, RandomUuid
@@ -29,7 +29,6 @@ class ConfigValues:
 
     def __post_init__(self):
         self.email = self.config.require("email")
-        self.ami = self.config.require("ami")
         self.domain_name = self.config.require("domain_name")
         self.aws_region = self.config.require("region")
         self.rsw_db_username = self.config.require("rsw_db_username")
@@ -86,7 +85,7 @@ def make_server(
         associate_public_ip_address=True,
         metadata_options={
             "http_put_response_hop_limit": 1,
-            "http_tokens": "require",
+            "http_tokens": "required",
         },
     )
 
@@ -120,16 +119,22 @@ def main():
     # Pulumi secrets
     # --------------------------------------------------------------------------
 
-    ad_password = get_password("ad_password")
-    pulumi.export("ad_password", pulumi.Output.secret(ad_password))
-    user_pass = get_password("user_pass")
-    pulumi.export("user_pass", pulumi.Output.secret(user_pass))
-    rsw_db_pass = get_password("rsw_db_pass")
-    pulumi.export("rsw_db_pass", pulumi.Output.secret(rsw_db_pass))
-    slurm_db_pass = get_password("slurm_db_pass")
-    pulumi.export("slurm_db_pass", pulumi.Output.secret(slurm_db_pass))
+    
+
+    posit_user_pass = get_password("posit_user_pass")
+    pulumi.export("posit_user_pass", pulumi.Output.secret(posit_user_pass))
+    posit_user_pass_secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
+    secretsmanager.SecretVersion(f"PositUserPassword-{stack_name}",
+                                       secret_id=posit_user_pass_secret.id,
+                                       secret_string=posit_user_pass)
+
+    pulumi.export("posit_user_pass_arn", posit_user_pass_secret.arn)
+    
+    
+
+
     secure_cookie_key = RandomUuid("secure_cookie_key")
-    pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key))
+    pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key.id))
 
     # --------------------------------------------------------------------------
     # Set up keys.
@@ -161,32 +166,13 @@ def main():
 
     # Create a new VPC with 2 availability zones
     # Enable DNS support and hostnames for EFS mounting
-    vpc = awsx.ec2.Vpc("pcluster-vpc", awsx.ec2.VpcArgs(
+    vpc = awsx.ec2.Vpc(f"pcluster-vpc-{stack_name}", awsx.ec2.VpcArgs(
         number_of_availability_zones=2,
         enable_dns_hostnames=True,
         enable_dns_support=True,
         tags=tags | {
         "Name": f"vpc-{stack_name}"},
     ))
-
-    # public_subnets = vpc.public_subnet_ids.apply(lambda ids: [ec2.get_subnet_output(id=id) for id in ids])
-    # private_subnets = vpc.private_subnet_ids.apply(lambda ids: [ec2.get_subnet_output(id=id) for id in ids])
-    # --------------------------------------------------------------------------
-    # Get VPC information.
-    # --------------------------------------------------------------------------
-    # vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
-    #     name="tag:Name",
-    #     values=["shared"])])
-    # vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
-    #     name="vpc-id",
-    #     values=["vpc-1486376d"])])
-    # vpc_subnets = ec2.get_subnets(filters=[ec2.GetSubnetsFilterArgs(
-    #     name="vpc-id",
-    #     values=[vpc.id])])
-    # vpc_subnet = ec2.get_subnet(id=vpc_subnets.ids[0])
-    # vpc_subnet2 = ec2.get_subnet(id=vpc_subnets.ids[4])
-    # pulumi.export("vpc_subnet", vpc_subnet.id)
-    # pulumi.export("vpc_subnet2", vpc_subnet2.id)
 
     # --------------------------------------------------------------------------
     # ELB access from within AWS ParallelCluster
@@ -201,7 +187,8 @@ def main():
                                 "Action": [
                                     "elasticloadbalancing:DescribeTags",
                                     "elasticloadbalancing:DescribeTargetGroups",
-                                    "elasticloadbalancing:DescribeLoadBalancers"
+                                    "elasticloadbalancing:DescribeLoadBalancers",
+                                    "elasticloadbalancing:DescribeTargetHealth",
                                 ],
                                 "Effect": "Allow",
                                 "Resource": "*",
@@ -211,8 +198,9 @@ def main():
     pulumi.export("elb_access", policy.arn)
 
     # --------------------------------------------------------------------------
-    # Make security groups
+    # Make security group for Posit Workbench
     # --------------------------------------------------------------------------
+
     rsw_security_group = ec2.SecurityGroup(
         "WorkbenchServer",
         description="Security group for WorkbenchServer access",
@@ -228,6 +216,11 @@ def main():
         vpc_id=vpc.vpc_id
     )
     pulumi.export("rsw_security_group", rsw_security_group.id)
+
+
+    # --------------------------------------------------------------------------
+    # Posit Workbench DB (PostgreSQL)
+    # --------------------------------------------------------------------------
 
     rsw_security_group_db = ec2.SecurityGroup(
         "postgres",
@@ -245,45 +238,14 @@ def main():
     )
     pulumi.export("rsw_security_group_db", rsw_security_group_db.id)
 
-    slurm_security_group_db = ec2.SecurityGroup(
-        "mysql",
-        description="Security group for MySQL access",
-        ingress=[
-            {"protocol": "TCP", "from_port": 3306, "to_port": 3306,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "MySQL DB"},
-            {"protocol": "TCP", "from_port": 3306, "to_port": 3306,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "MySQL DB"},
-        ],
-        egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
-        ],
-        tags=tags,
-        vpc_id=vpc.vpc_id
-    )
-    pulumi.export("slurm_security_group_db", slurm_security_group_db.id)
-
-    security_group_ssh = ec2.SecurityGroup(
-        "ssh",
-        description="ssh access ",
-        ingress=[
-            {"protocol": "TCP", "from_port": 22, "to_port": 22,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "SSH"},
-        ],
-        egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
-        ],
-        tags=tags,
-        vpc_id=vpc.vpc_id
-    )
-    pulumi.export("security_group_ssh", security_group_ssh.id)
-
     subnetgroup = rds.SubnetGroup("postgresdbsubnetgroup",
                                   subnet_ids=vpc.private_subnet_ids,
                                   tags={
                                       "Name": "Postgres subnet group",
                                   })
+
+    rsw_db_pass = get_password("rsw_db_pass")
+    pulumi.export("rsw_db_pass", pulumi.Output.secret(rsw_db_pass))
 
     rsw_db = rds.Instance(
         "rsw-db",
@@ -308,27 +270,45 @@ def main():
     pulumi.export("rsw_db_name", rsw_db.db_name)
     pulumi.export("rsw_db_user", config.rsw_db_username)
 
-    slurm_db_parameter_group = rds.ParameterGroup(
-        "SlurmdbParameterGroup",
-        family="mysql8.0",
-        parameters=[
-            {
-                "name": "performance_schema",
-                "value": "1"
-            }
+
+    # --------------------------------------------------------------------------
+    # SLURM Accounting DB (MySQL)
+    # --------------------------------------------------------------------------
+
+    slurm_security_group_db = ec2.SecurityGroup(
+        "mysql",
+        description="Security group for MySQL access",
+        ingress=[
+            {"protocol": "TCP", "from_port": 3306, "to_port": 3306,
+             'cidr_blocks': [vpc.vpc.cidr_block], "description": "MySQL DB"}
         ],
-        description="Custom parameter group with Performance Insights enabled",
+        egress=[
+            {"protocol": "All", "from_port": 0, "to_port": 0,
+             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+        ],
+        tags=tags,
+        vpc_id=vpc.vpc_id
     )
+    pulumi.export("slurm_security_group_db", slurm_security_group_db.id)
+
+    slurm_db_pass = get_password("slurm_db_pass")
+    pulumi.export("slurm_db_pass", pulumi.Output.secret(slurm_db_pass))
+
+    secret = secretsmanager.Secret(f"SlurmDBPassword-{stack_name}")
+    slurm_db_pass_sec = secretsmanager.SecretVersion(f"SlurmDBPassword-{stack_name}",
+                                           secret_id=secret.id,
+                                           secret_string=slurm_db_pass)
+    pulumi.export("slurm_db_pass_arn", slurm_db_pass_sec.arn)
+
     slurm_db = rds.Instance(
         "slurm-db",
-        instance_class="db.t3.micro",
+        instance_class="db.t3.medium",
         allocated_storage=5,
         backup_retention_period=7,
         username=config.slurm_db_username,
         password=slurm_db_pass,
         db_name="slurm",
         engine="mysql",
-        parameter_group_name=slurm_db_parameter_group.name,
         publicly_accessible=False,
         skip_final_snapshot=True,
         tags=tags | {"Name": "slurm-db"},
@@ -337,17 +317,7 @@ def main():
         performance_insights_enabled=True,
         performance_insights_retention_period=7,
         storage_encrypted=True
-        # performance_insights_enabled=True,
-        # opts=pulumi.ResourceOptions(replace_on_changes=["*"])
     )
-
-    secret = secretsmanager.Secret(f"SlurmDBPassword-{stack_name}")
-
-    example = secretsmanager.SecretVersion(f"SlurmDBPassword-{stack_name}",
-                                           secret_id=secret.id,
-                                           secret_string=slurm_db_pass)
-
-    pulumi.export("slurm_db_pass_arn", example.arn)
 
     pulumi.export("slurm_db_port", slurm_db.port)
     pulumi.export("slurm_db_address", slurm_db.address)
@@ -355,27 +325,18 @@ def main():
     pulumi.export("slurm_db_name", slurm_db.db_name)
     pulumi.export("slurm_db_user", config.slurm_db_username)
 
-    secret = secretsmanager.Secret(f"SimpleADPassword-{stack_name}")
+    # --------------------------------------------------------------------------
+    # Active Directory (SimpleAD)
+    # --------------------------------------------------------------------------
 
-    example = secretsmanager.SecretVersion(f"SimpleADPassword-{stack_name}",
+    ad_password = get_password("ad_password")
+    pulumi.export("ad_password", pulumi.Output.secret(ad_password))
+    
+    secret = secretsmanager.Secret(f"SimpleADPassword-{stack_name}")
+    ad_password_sec = secretsmanager.SecretVersion(f"SimpleADPassword-{stack_name}",
                                            secret_id=secret.id,
                                            secret_string=ad_password)
-
-    pulumi.export("ad_password_arn", example.arn)
-
-
-    secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
-
-    secretsmanager.SecretVersion(f"PositUserPassword-{stack_name}",
-                                       secret_id=secret.id,
-                                       secret_string=user_pass)
-
-    pulumi.export("posit_user_pass", user_pass)
-
-
-# --------------------------------------------------------------------------
-    # Create Active Directory (SimpleAD)
-    # --------------------------------------------------------------------------
+    pulumi.export("ad_password_arn", ad_password_sec.arn)
 
     ad = directoryservice.Directory("pwb_directory",
                                     name=config.domain_name,
@@ -394,22 +355,53 @@ def main():
     pulumi.export('ad_dns_2', ad.dns_ip_addresses[1])
     pulumi.export('ad_access_url', ad.access_url)
 
+    # --------------------------------------------------------------------------
+    # Jump Host (AD)
+    # --------------------------------------------------------------------------
+
+    ssh_security_group = ec2.SecurityGroup(
+        "ssh",
+        description="ssh access ",
+        ingress=[
+            {"protocol": "TCP", "from_port": 22, "to_port": 22,
+             'cidr_blocks': ['0.0.0.0/0'], "description": "SSH"},
+        ],
+        egress=[
+            {"protocol": "All", "from_port": 0, "to_port": 0,
+             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
+        ],
+        tags=tags,
+        vpc_id=vpc.vpc_id
+    )
+    pulumi.export("ssh_security_group", ssh_security_group.id)
+
+    # Fetch the most recent Ubuntu 20.04 AMI with HVM and x86_64 architecture in the specified region
+    ami = ec2.get_ami(most_recent=True,
+                        owners=["099720109477"],  # Canonical
+                        filters=[
+                            {"name": "name", "values": ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]},
+                            {"name": "architecture", "values": ["x86_64"]},
+                            {"name": "virtualization-type", "values": ["hvm"]},
+                        ],
+                        opts=pulumi.InvokeOptions(provider=Provider("test",region=get_region().name)))
+
+    # Export the AMI ID
+    pulumi.export("ami_id", ami.id)
+
     jump_host = make_server(
         "jump_host",
         "ad",
         tags=tags | {"Name": f"jump-host-ad-{stack_name}"},
-        vpc_group_ids=[security_group_ssh.id],
+        vpc_group_ids=[ssh_security_group.id],
         instance_type=config.ServerInstanceType,
         subnet_id=vpc.public_subnet_ids.apply(lambda ids: ids[0]),
-        ami=config.ami,
+        ami=ami.id,
         key_name=key_pair.key_name
     )
 
     pulumi.export("vpc_public_subnet", vpc.public_subnet_ids.apply(lambda ids: ids[0]))
-
     pulumi.export("jump_host_dns", jump_host.public_dns)
-
-    pulumi.export("ad_jump_host_public_ip", jump_host.public_dns)
+    pulumi.export("jump_host_public_ip", jump_host.public_ip)
 
     connection = remote.ConnectionArgs(
         host=jump_host.public_dns,  # host=jump_host.id,
@@ -493,7 +485,7 @@ def main():
         serverSideFile(
             "server-side-files/config/useradd.sh",
             "~/useradd.sh",
-            pulumi.Output.all(config.domain_name, ad_password, user_pass).apply(
+            pulumi.Output.all(config.domain_name, ad_password, posit_user_pass).apply(
                 lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],
                                                                                         ad_password=x[1],
                                                                                         user_pass=x[2]))

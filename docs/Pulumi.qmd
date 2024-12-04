@@ -1,0 +1,130 @@
+---
+title: "Pulumi"
+number-sections: true
+---
+
+
+# Auxiliary Services via Pulumi
+
+When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is [AWS SimpleAD](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html). In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called [adcli](https://www.freedesktop.org/software/realmd/adcli/adcli.html) (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional `expect` scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via [Pulumi](https://www.pulumi.com/b/) recipes
+
+# Prerequisites
+
+You will need to have
+
+-   [pulumi](https://pulumi.com) installed and configured so you can successfully create, run and modify pulumi stacks
+
+-   [just](https://github.com/casey/just) installed locally
+
+-   ssh client including the `ssh-keygen` utility
+
+# How to setup
+
+In the github repo, go tho the [`pulumi`](../../pulumi) sub-folder. 
+
+First, we need to define a new pulumi stack 
+
+``` bash
+pulumi stack init <STACKNAME>
+```
+
+where `<STACKNAME>` is the name of the pulumi stack. 
+
+Then we need to set two pulumi stack configs 
+
+``` bash
+pulumi config set email <YOUREMAIL>
+pulumi config set billing_code <BILLING>
+```
+
+Both configuration values are used to set up the appropriate `ssh` keys and to account for billing, respectively. 
+
+Finally we create all the necessary secrets via 
+
+``` bash
+just create-secrets
+```
+
+and eventually we can start the deployment of the new pulumi stack 
+
+```
+just up 
+```
+
+The stack deployment will also already set up 10 users named `posit0001...posit0010`. 
+
+## Additionl information 
+
+Please be aware
+
+-   Naming of your stack (`auxiliary-wb`) can be changed to your preference
+
+-   Make sure to set your correct eMail address.
+
+-   If you would like to use a different number of users, run `just create-users X` where X is the number of users you want to create.
+
+-   You can change the default values for various parameters defined in `Pulumi.yaml` to your liking as well. Please do NOT change `Domain` - this is currently hard-coded into the AWS ParallelCluster setup. Anything else can be changed as you see fit.
+-   Users are created in the following way by default: User Name is `positXXXX` where `XXXX` is a 4-digit zero-padded number. Password is chosen as per {ref:sec-passwords}. Those defaults can be changed in `server-side-files/config/useradd.sh` . The referenced script is using multi-threaded bash to speed up user creation. In order to prevent user creation from failing due to too many concurrent connections, it additionally runs `pamtester` to ensure the user is correctly created.
+
+## Defining "good"/secure passwords {#sec-passwords}
+
+Since this deployment will be done in the AWS cloud with some instances exposed to the public internet, using secure passwords is a necessity. As a consequence, all passwords using random strings with 16 characters with a minumum of 1 lower case and 1 upper case letter as well 1 number. 
+
+Passwords that are needed by the ParallelCluster deployment (e.g. for the SLURM or PostgreSQL DB) are additionally stored as a secret in AWS Secrets Manager. Same is true for the common password for all `positXXXX` users. 
+
+Current configurable parameters in the pulumi recipe
+
+| Parameter            | Description                                                          | Default value           |
+|----------------------|----------------------------------------------------------------------|-------------------------|
+| `region`             | AWS region                                                           | `eu-west-1`             |
+| `email`              | eMail address of user                                                | `tbd@tbc.com`           |
+| `ServerInstanceType` | Instance Type for the AD jumphost                                    | `t3.medium`             |
+| `Domain`             | Name of Domain to be used for AD                                     | `pwb.posit.co`          |
+| `slurm_db_username`  | User name for MySQL DB used for SLURM accounting                     | `slurm_db_admin`        |
+| `rsw_db_username`    | User name for PostgreSQL DB for Workbench metadata                   | `pwb_db_admin`          |
+
+: Pulumi recipe parameters
+
+Once you successfully built everything, `pulumi stack output`\` should report something like
+
+``` bash
+Current stack outputs (36):
+    OUTPUT                               VALUE
+    ad_access_url                        d-9367b69bb0.awsapps.com
+    ad_dns_1                             10.0.12.162
+    ad_dns_2                             10.0.129.28
+    ad_password                          [secret]
+    ad_password_arn                      arn:aws:secretsmanager:eu-west-1:637485797898:secret:SimpleADPassword-testing-2e1b657-Q2G38a
+    ami_id                               ami-00e528f20622b7c63
+    billing_code                         me
+    elb_access                           arn:aws:iam::637485797898:policy/elbaccess-20a0cab
+    jump_host_dns                        ec2-3-249-65-17.eu-west-1.compute.amazonaws.com
+    jump_host_public_ip                  3.249.65.17
+    key_pair id                          michael.mayer3@posit.co-keypair-for-pulumi
+    posit_user_pass                      [secret]
+    posit_user_pass_arn                  arn:aws:secretsmanager:eu-west-1:637485797898:secret:PositUserPassword-testing-3b66e30-bIFVvn
+    rsw_db_address                       rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+    rsw_db_endpoint                      rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com:5432
+    rsw_db_name                          pwb
+    rsw_db_pass                          [secret]
+    rsw_db_port                          5432
+    rsw_db_user                          pwb_db_admin
+    rsw_security_group                   sg-077c470194ee6b798
+    rsw_security_group_db                sg-0d7b12857f91b688a
+    s3_bucket_id                         hpc-scripts-testing-f75b7d7
+    secure_cookie_key                    [secret]
+    slurm_db_address                     slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com
+    slurm_db_endpoint                    slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com:3306
+    slurm_db_name                        slurm
+    slurm_db_pass                        [secret]
+    slurm_db_pass_arn                    arn:aws:secretsmanager:eu-west-1:637485797898:secret:SlurmDBPassword-testing-04dc72f-syQYzS
+    slurm_db_port                        3306
+    slurm_db_user                        slurm_db_admin
+    slurm_security_group_db              sg-02535d06fd5bb5503
+    ssh_security_group                   sg-0f6e1c077d4f3e04c
+    stack_name                           testing
+    vpc_public_subnet                    subnet-0bb915288a434510b
+```
+
+
+

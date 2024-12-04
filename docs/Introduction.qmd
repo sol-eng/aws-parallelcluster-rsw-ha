@@ -1,0 +1,46 @@
+---
+titel: "Introduction"
+number-sections: true
+---
+
+# Introduction
+
+[AWS ParallelCluster](https://aws.amazon.com/hpc/parallelcluster/) is a framework that allows for easy setup of HPC clusters with various schedulers. It takes a YAML file with all the necessary definitions and transforms that into Cloud Formation Code that then gets deployed into AWS.
+
+At the moment it supports both [SLURM](https://slurm.schedmd.com/) and [AWS Batch](https://aws.amazon.com/batch/).
+
+Posit Workbench supports SLURM as a HPC back end via the [SLURM Launcher](https://docs.posit.co/ide/server-pro/job_launcher/slurm_plugin.html). As a consequence, a [github repository](https://github.com/sol-eng/aws-parallelcluster-rsw/) has been set up to highlight a possible way to integrate Posit Workbench with AWS ParallelCluster via the SLURM Launcher. The approach used there works but has several shortcomings:
+
+-   Setting Workbench on the head node where also the `slurmctld` and `slurmdbd` (SLURM Controller and Database) daemons are running makes this head node very vulnerable and a single point of failure.
+
+-   All traffic will be routed through the head node
+
+-   The head node does not only act as Workbench Server and runs the main SLURM daemons (see above), it is also used as a NFS server adding additional load (depending on the size and utilisation of the cluster) that could contribute to very bad user experience on the HPC cluster up to a crash of the same if resources are exhausted.
+
+This document serves two purposes: Documenting the current setup used for Workbench benchmarking but also summarizing a potential reference architecture that overcomes some of the shortcomings of the current Workbench integration into AWS ParallelCluster with a focus on High(er) Availabiity.
+
+# A new approach
+
+Fortunately, AWS ParallelCluster keeps evolving and in parallel Posit's understanding of the tool also increases.
+
+Recent releases have added a couple of very interesting, exciting and very helpful features, most notably
+
+-   the ability to [add login nodes in version 3.7.0](https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0)
+
+-   ability to use EFS instead of NFS to host shared file systems needed for the cluster (e.g. `/opt/slurm` containing the SLURM installation) that removes the need to host an NFS server on the head node. This feature will be part of [version 3.8.0](https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380) (beta version out - release imminent)
+
+-   ability to set up `/home` on FsX for Lustre or EFS instead of internal NFS hosted on the head node This feature is part of [version 3.8.0](https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380) as well.
+
+While the above features are very vital to the new approach for the Workbench integration discussed in this doc, there is many other functionalities that are almost taken for granted (e.g. Easy integration into auth subsystems, SLURM scheduling fine tuning capabilities, ...).
+
+If there was one feature that should be explicitly mentioned here, then it needs to be the ability to build custom AMIs. One of the features of a scalable cloud deployment (like AWS ParallelCluster) is the ability to scale up and down based on user demand. If there is a scale-up event, i.e. a node is getting added to the cluster, a new EC2 instance is provisioned. The elapsed time for such a scale-up event is about 4 minutes today when using a pre-built AMI but will increase if there is a need to run additional software installations just because the AMI does not contain all the needed features. Building a custom AMI will help to keep the instance spin up time at the 4 minute mark.
+
+# Setup Instructions
+
+In order to setup the new integration, 3 steps are needed
+
+1.   Create a custom [AMI](AMI.qmd)
+2.  Set up auxiliary services (Active Directory, PostgreSQL DB, users) via [Pulumi](Pulumi.qmd)
+3.  AWS ParallelCluster build [AWS Parallelcluster](AWSParallelcluster.qmd)
+
+All those three steps are explained in the subsequent sections.

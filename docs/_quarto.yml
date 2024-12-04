@@ -1,0 +1,31 @@
+project:
+  type: website
+
+website:
+  title: "Posit Workbench and AWS ParallelCluster"
+  navbar:
+    left:
+      - href: Introduction.qmd
+        text: Introduction 
+      - href: AMI.qmd
+        text: AMI
+      - href: Pulumi.qmd
+        text: Pulumi
+      - href: Architecture.qmd
+        text: Architecture
+      - href: AWSParallelcluster.qmd 
+        text: AWS ParallelCluster 
+    right:
+      - icon: github
+        menu:
+          - text: Source code
+            url: https://github.com/sol-eng/aws-parallelcluster-rsw-ha
+            target: _blank
+          - text: Report a Bug
+            url: https://github.com/sol-eng/aws-parallelcluster-rsw-ha/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=
+            target: _blank
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true

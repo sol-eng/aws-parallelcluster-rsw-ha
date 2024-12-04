@@ -1,0 +1,6 @@
+---
+title: "Architecture"
+--- 
+
+
+![Architecture diagram](Benchmark.drawio.png){#architecture}

@@ -10,19 +10,10 @@ config:
     type: string
     description: AWS region to use
     default: eu-west-1 
-  email:
-    type: string
-    description: EMail address
-    default: tbd@tbc.com
   ServerInstanceType:
     type: string
     description: AWS instance type for AD jumphost EC2 instance 
     default: t3.medium
-  ami:
-    type: string
-    description: A valid AMI used to deploy on AD jumphost (must be Ubuntu 20.04 LTS)
-    default: ami-070686bd03233cfa1
-#    default: ami-07b36ea9852e986ad 
 
   domain_name:
     type: string
