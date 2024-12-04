@@ -16,17 +16,11 @@ fi
 
 echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
 
-if (BENCHMARK_SUPPORT); then 
-   # Perform the initial population of /opt/rstudio/rstudio-server if it doesn't exist. This lets the first deployed
-   # compute work right away
-   if [ ! -d "/opt/rstudio/rstudio-server" ]; then
-     cp -R /usr/lib/rstudio-server /opt/rstudio/
-   fi
-   # symlink /opt/rstudio/rstudio-server into /usr/lib/rstudio-server
-   rm -rf /usr/lib/rstudio-server
-   ln -s /opt/rstudio/rstudio-server /usr/lib
-
-fi
+# Session components
+apt-get update -y
+apt-get install -y curl libcurl4-gnutls-dev libssl-dev libpq5 rrdtool
+mkdir -p /usr/lib/rstudio-server
+tar xf /opt/rstudio/scripts/rsp-session-jammy-$1-amd64.tar.gz -C /usr/lib/rstudio-server --strip-components=1
 
 # create scratch folder as part of EFS fs
 mkdir -p /scratch /opt/rstudio/scratch 

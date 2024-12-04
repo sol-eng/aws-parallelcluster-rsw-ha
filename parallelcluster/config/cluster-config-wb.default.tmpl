@@ -2,6 +2,8 @@ HeadNode:
   CustomActions: 
     OnNodeConfigured: 
       Script: "s3://S3_BUCKETNAME/install-pwb-config.sh"
+      Args:
+        - "PWB_VERSION"
   Iam: 
     S3Access: 
       - BucketName: S3_BUCKETNAME
@@ -47,6 +49,8 @@ Scheduling:
       CustomActions:
         OnNodeConfigured:
           Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Args:
+            - "PWB_VERSION"
       CustomSlurmSettings:
         OverSubscribe: FORCE
       Iam:
@@ -69,6 +73,8 @@ Scheduling:
       CustomActions:
         OnNodeConfigured:
           Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Args:
+            - "PWB_VERSION"
       Iam:
         S3Access:
           - BucketName: S3_BUCKETNAME
@@ -89,6 +95,8 @@ Scheduling:
       CustomActions:
         OnNodeConfigured:
           Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Args:
+            - "PWB_VERSION"
       Iam:
         S3Access:
           - BucketName: S3_BUCKETNAME

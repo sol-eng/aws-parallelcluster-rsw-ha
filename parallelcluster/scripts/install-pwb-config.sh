@@ -20,8 +20,17 @@ mkdir -p /home/rstudio/shared-storage
 
 SHARED_DATA="/home/rstudio/shared-storage"
 
+PWB_VERSION=$1
+
 # Label this node as head-node so we can detect it later
 touch /etc/head-node
+
+# Download session components and store them in $PWB_BASE_DIR/scripts
+
+pushd $PWB_BASE_DIR/scripts
+curl -O https://s3.amazonaws.com/rstudio-ide-build/session/jammy/amd64/rsp-session-jammy-${PWB_VERSION}-amd64.tar.gz
+curl -O https://s3.amazonaws.com/rstudio-ide-build/server/jammy/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+popd
 
 # Add SLURM integration 
 
@@ -370,45 +379,24 @@ if [ \$pwb_version -lt 2023120 ] && \
         sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
 fi
 
-if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
-    # we are on a login node and need to start the workbench processes 
-    # but we need to make sure the config files are all there
-    while true ; do if [ -f /opt/rstudio/etc/rstudio/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
-    if [ ! -f /etc/systemd/system/rstudio-server.service.d/override.conf ]; then 
-        # systemctl overrides
-        for i in server launcher 
-        do 
-            mkdir -p /etc/systemd/system/rstudio-\$i.service.d
-            echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=/opt/rstudio/etc/rstudio\"" > /etc/systemd/system/rstudio-\$i.service.d/override.conf
-        done
-        # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
+if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then 
+        # yay - we are on a login node 
+        if [ ! -f /etc/login-node-is-setup ]; then
+                #  we have not set up workbench so let's do it
+                touch /etc/login-node-is-setup
+                $PWB_BASE_DIR/scripts/config-login.sh $PWB_CONFIG_DIR $PWB_VERSION
+        fi
 
-        # scalability
-        sysctl -w net.unix.max_dgram_qlen=8192
-        sysctl -w net.core.netdev_max_backlog=65535 
-
-        systemctl daemon-reload
-        systemctl enable rstudio-server
-        systemctl enable rstudio-launcher
-        #rm -f /var/lib/rstudio-server/secure-cookie-key
-        #rm -f /opt/rstudio/etc/rstudio/launcher.pub
-        #rm -f /opt/rstudio/etc/rstudio/launcher.pem
-        systemctl start rstudio-launcher
-        systemctl start rstudio-server
-        #rm -f /var/lib/rstudio-server/secure-cookie-key
-        #systemctl restart rstudio-server 
-        # Touch a file in /opt/rstudio to signal that workbench is running on this server
-        touch /opt/rstudio/workbench-\`hostname\`.state
-    fi    
-
-    if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then 
-        systemctl stop rstudio-server 
-        systemctl stop rstudio-launcher
-        systemctl start rstudio-launcher
-        systemctl start rstudio-server 
-        touch /opt/rstudio/workbench-\`hostname\`.state
-    fi
-    
+        if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then 
+                # Something wants us to restart so let's do it
+                systemctl stop rstudio-server 
+                systemctl stop rstudio-launcher
+                killall apache2
+                rm -rf /var/log/rstudio
+                systemctl start rstudio-launcher
+                systemctl start rstudio-server 
+                touch /opt/rstudio/workbench-\`hostname\`.state
+        fi
 fi
 
 if ( ! grep AD_DNS /etc/hosts >& /dev/null ); then 
