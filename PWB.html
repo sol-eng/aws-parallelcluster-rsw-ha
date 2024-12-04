@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.37">
+<meta name="generator" content="quarto-1.6.39">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -69,10 +69,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-e26003cea8cd680ca0c55a263523d882.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-19bbcc6d301408316d57746eade88bff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-659650fc26dc25888fc1474f317bb8ac.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -188,24 +188,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#additional-details" id="toc-additional-details" class="nav-link" data-scroll-target="#additional-details"><span class="header-section-number">3.1.3</span> Additional details</a></li>
   </ul></li>
   <li><a href="#sec-custom-ami" id="toc-sec-custom-ami" class="nav-link" data-scroll-target="#sec-custom-ami"><span class="header-section-number">3.2</span> Custom AMI</a></li>
-  <li><a href="#sec-aws-parallelcluster-build" id="toc-sec-aws-parallelcluster-build" class="nav-link" data-scroll-target="#sec-aws-parallelcluster-build"><span class="header-section-number">3.3</span> AWS ParallelCluster</a>
-  <ul class="collapse">
-  <li><a href="#introduction-1" id="toc-introduction-1" class="nav-link" data-scroll-target="#introduction-1"><span class="header-section-number">3.3.1</span> Introduction</a></li>
-  <li><a href="#sec-python-virtual-env" id="toc-sec-python-virtual-env" class="nav-link" data-scroll-target="#sec-python-virtual-env"><span class="header-section-number">3.3.2</span> Python Virtual Env</a></li>
-  <li><a href="#sec-prerequisites" id="toc-sec-prerequisites" class="nav-link" data-scroll-target="#sec-prerequisites"><span class="header-section-number">3.3.3</span> Prerequisites</a></li>
-  <li><a href="#sec-deployment-instructions" id="toc-sec-deployment-instructions" class="nav-link" data-scroll-target="#sec-deployment-instructions"><span class="header-section-number">3.3.4</span> Deployment instructions</a></li>
-  <li><a href="#default-values-for-cluster-deployment" id="toc-default-values-for-cluster-deployment" class="nav-link" data-scroll-target="#default-values-for-cluster-deployment"><span class="header-section-number">3.3.5</span> Default values for Cluster deployment</a></li>
-  <li><a href="#sec-notes-on-install-pwb-config.sh" id="toc-sec-notes-on-install-pwb-config.sh" class="nav-link" data-scroll-target="#sec-notes-on-install-pwb-config.sh"><span class="header-section-number">3.3.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></a></li>
-  <li><a href="#customisations-on-top-of-aws-parallelcluster" id="toc-customisations-on-top-of-aws-parallelcluster" class="nav-link" data-scroll-target="#customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</a></li>
-  </ul></li>
-  <li><a href="#summary-and-conclusions" id="toc-summary-and-conclusions" class="nav-link" data-scroll-target="#summary-and-conclusions"><span class="header-section-number">3.4</span> Summary and Conclusions</a>
-  <ul class="collapse">
-  <li><a href="#how-to-reach-full-ha" id="toc-how-to-reach-full-ha" class="nav-link" data-scroll-target="#how-to-reach-full-ha"><span class="header-section-number">3.4.1</span> How to reach “full” HA</a></li>
-  </ul></li>
-  </ul></li>
-  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix"><span class="header-section-number">4</span> Appendix</a>
-  <ul class="collapse">
-  <li><a href="#sec-patch-for-elb" id="toc-sec-patch-for-elb" class="nav-link" data-scroll-target="#sec-patch-for-elb"><span class="header-section-number">4.1</span> Patch for ELB to listen on port 8787 instead of 22</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -262,7 +244,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><p>Set up auxiliary services (Active Directory, PostgreSQL DB, users) - cf. <a href="#sec-auxiliary-services" class="quarto-xref">Section&nbsp;3.1</a></p></li>
 <li><p>Create a custom AMI (<a href="#sec-custom-ami" class="quarto-xref">Section&nbsp;3.2</a>)</p></li>
-<li><p>Trigger AWS ParallelCluster build (<a href="#sec-aws-parallelcluster-build" class="quarto-xref">Section&nbsp;3.3</a>)</p></li>
+<li><p>Trigger AWS ParallelCluster build (<strong>?@sec-aws-parallelcluster-build</strong>)</p></li>
 </ul>
 <p>All those three steps are explained in the subsequent sections.</p>
 <section id="sec-auxiliary-services" class="level2" data-number="3.1">
@@ -383,175 +365,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="sec-custom-ami" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="sec-custom-ami"><span class="header-section-number">3.2</span> Custom AMI</h2>
-</section>
-<section id="sec-aws-parallelcluster-build" class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="sec-aws-parallelcluster-build"><span class="header-section-number">3.3</span> AWS ParallelCluster</h2>
-<section id="introduction-1" class="level3" data-number="3.3.1">
-<h3 data-number="3.3.1" class="anchored" data-anchor-id="introduction-1"><span class="header-section-number">3.3.1</span> Introduction</h3>
-<p>With launching the cluster via AWS ParallelCluster, everything comes together.</p>
-</section>
-<section id="sec-python-virtual-env" class="level3" data-number="3.3.2">
-<h3 data-number="3.3.2" class="anchored" data-anchor-id="sec-python-virtual-env"><span class="header-section-number">3.3.2</span> Python Virtual Env</h3>
-<p>The virtual environment for AWS Parallelcluster can be created from the base folder of the git repo via</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .aws-pc-venv</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .aws-pc-venv/bin/activate </span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">deactivate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You may want to add the patch described in <a href="#sec-patch-for-elb" class="quarto-xref">Section&nbsp;4.1</a> to ensure full functionality of workbench.</p>
-</section>
-<section id="sec-prerequisites" class="level3" data-number="3.3.3">
-<h3 data-number="3.3.3" class="anchored" data-anchor-id="sec-prerequisites"><span class="header-section-number">3.3.3</span> Prerequisites</h3>
-<ul>
-<li><p>Python Virtual Environment set up and activated (cf. <a href="#sec-python-virtual-env" class="quarto-xref">Section&nbsp;3.3.2</a>).</p></li>
-<li><p>Auxiliary Services up and running (cf. <a href="#sec-auxiliary-services" class="quarto-xref">Section&nbsp;3.1</a>)</p></li>
-<li><p>Custom AMI built (cf. <a href="#sec-custom-ami" class="quarto-xref">Section&nbsp;3.2</a>)</p></li>
-<li><p>S3 bucket set up for temporarily hosting cluster deployment files and scripts</p></li>
-</ul>
-</section>
-<section id="sec-deployment-instructions" class="level3" data-number="3.3.4">
-<h3 data-number="3.3.4" class="anchored" data-anchor-id="sec-deployment-instructions"><span class="header-section-number">3.3.4</span> Deployment instructions</h3>
-<ol type="1">
-<li><p>Review the cluster template in <code>config/cluster-config-wb.tmpl</code> and modify accordingly.</p></li>
-<li><p>Review the <code>deploy.sh</code> script and modify accordingly, especially</p>
-<ol type="1">
-<li><p><code>CLUSTERNAME</code> - a human readable name of your cluster</p></li>
-<li><p><code>S3_BUCKETNAME</code> - The name of the S3 bucket you set up in <a href="#sec-prerequisites" class="quarto-xref">Section&nbsp;3.3.3</a></p></li>
-<li><p><code>SECURITYGROUP_RSW</code> - a security group that should allow at least external access to port 443 and 8787 (the latter if no SSL is being used).</p></li>
-<li><p><code>AMI</code> - the AMI created in <strong>?@sec-how-to-build-a-custom-ami</strong></p></li>
-<li><p><code>SINGULARITY_SUPPORT</code> - if set true, Workbench will be configured for Singularity integration and two <code>r-session-complete</code> containers (Ubuntu Jammy and Cent OS 7 based) will be built. Please note that this significantly extends the spin-up time of the cluster.</p></li>
-</ol></li>
-</ol>
-</section>
-<section id="default-values-for-cluster-deployment" class="level3" data-number="3.3.5">
-<h3 data-number="3.3.5" class="anchored" data-anchor-id="default-values-for-cluster-deployment"><span class="header-section-number">3.3.5</span> Default values for Cluster deployment</h3>
-<p>For the <code>deploy.sh</code> script, unless mentioned in step 2 of the deployment instructions (cf. <a href="#sec-deployment-instructions" class="quarto-xref">Section&nbsp;3.3.4</a>), all relevant parameters are extracted from the pulumi deployment for the auxiliary services.</p>
-<p>The default value in the cluster template <code>config/cluster-config-wb.tmpl</code>` are as follows</p>
-<ul>
-<li><p>EFS storage used for shared file systems needed by AWS ParallelCluster</p></li>
-<li><p>One Head Node</p>
-<ul>
-<li><p>Instance <code>t3.xlarge</code></p></li>
-<li><p>100 GB of local EBS storage</p></li>
-<li><p>Script <code>install-pwb-config.sh</code> triggered when head node is being deployed.</p></li>
-</ul></li>
-<li><p>Compute Nodes with</p>
-<ul>
-<li><p>Script <code>config-compute.sh</code> triggered when compute node starts.</p></li>
-<li><p>Partition <code>all</code></p>
-<ul>
-<li><p>Instance <code>t3.xlarge</code></p></li>
-<li><p>minimum/maximum number of instances: 1/10</p></li>
-</ul></li>
-<li><p>Partition <code>gpu</code></p>
-<ul>
-<li><p>Instance p3.2xlarge</p></li>
-<li><p>minimum/maximum number of instances; 0/1</p></li>
-</ul></li>
-</ul></li>
-<li><p>2 Login Nodes with</p>
-<ul>
-<li>Instance <code>t3.xlarge</code></li>
-<li>ELB in front</li>
-</ul></li>
-<li><p>Shared storage for <code>/home</code> - FsX for Lustre with capacity of 1.2 TB and deployment type <code>SCRATCH_2</code></p></li>
-</ul>
-<p>All of the above settings (Instance type, numbers, FsX size) can be changed as needed.</p>
-</section>
-<section id="sec-notes-on-install-pwb-config.sh" class="level3" data-number="3.3.6">
-<h3 data-number="3.3.6" class="anchored" data-anchor-id="sec-notes-on-install-pwb-config.sh"><span class="header-section-number">3.3.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></h3>
-<p><code>install-pwb-config.sh</code> mainly creates Posit Workbench configuration files and configures the workbench systemctl services <code>rstudio-launcher</code> and <code>rstudio-server</code> . It is only executed on the designated head node</p>
-<ul>
-<li><p>Workbench uses <code>/opt/parallelcluster/shared/rstudio/</code> as the base for its configuration (<code>PWB_BASE_DIR</code>). <code>/opt/parallelcluster/shared</code>` is already created by AWS ParallelCluster and shared across all nodes (head, login and compute) so we are making use of this functionality.</p></li>
-<li><p>configuration files are deployed in <code>$PWB_BASE_DIR/etc/rstudio</code></p></li>
-<li><p>shared storage is configured in <code>$PWB_BASE_DIR/shared</code></p></li>
-<li><p>R Versions file is configured in <code>$PWB_BASE_DIR/shared/r-versions</code></p></li>
-<li><p>In order to distinguish the head node from the login node, an empty file <code>/etc/head-node</code> is created. This is used in the cron job mentioned in <a href="#sec-custom-ami" class="quarto-xref">Section&nbsp;3.2</a> to help differentiate the login nodes from the head node.</p></li>
-</ul>
-<p><code>ìnstall-compute.sh</code> script detects the presence of a GPU and then automatically updates the NVIDIA/CUDA driver and installs the CuDNN library for distributed GPU computing. This is more a nice to have but is rsther useful for distributed tensorflow etc…</p>
-<div id="architecture" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="Benchmark.drawio.png" class="img-fluid figure-img"></p>
-<figcaption>Architecture diagram</figcaption>
-</figure>
-</div>
-</section>
-<section id="customisations-on-top-of-aws-parallelcluster" class="level3" data-number="3.3.7">
-<h3 data-number="3.3.7" class="anchored" data-anchor-id="customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">3.3.7</span> Customisations on top of AWS ParallelCluster</h3>
-<section id="elastic-load-balancer" class="level4" data-number="3.3.7.1">
-<h4 data-number="3.3.7.1" class="anchored" data-anchor-id="elastic-load-balancer"><span class="header-section-number">3.3.7.1</span> Elastic Load Balancer</h4>
-<p>AWS ParallelCluster is setting up an ELB for the Login nodes and ensures that the desired number of login nodes is available at any given time. The ELB is by default listening on port 22 (ssh). In order to change that one would need to patch the python scripts a bit (patch supplied in <a href="#sec-patch-for-elb" class="quarto-xref">Section&nbsp;4.1</a>)</p>
-<p>This change is simple but will effectively disable the ability to ssh into the ELB. Typically however Workbench Users do not need ssh access to login nodes - if needed, they can open a termina within the RStudio IDE, for example.</p>
-<p>An alternative would be to add a second ELB for Workbench but this would imply a significantly larger patch to AWS ParallelCluster.</p>
-</section>
-<section id="the-thing-with-the-login-nodes" class="level4" data-number="3.3.7.2">
-<h4 data-number="3.3.7.2" class="anchored" data-anchor-id="the-thing-with-the-login-nodes"><span class="header-section-number">3.3.7.2</span> The “thing” with the Login Nodes</h4>
-<p>AWS ParallelCluster introduced the ability to define separate login nodes in <a href="https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0">Version 3.7.0</a>. This is great and replaces a rather <a href="https://github.com/aws/aws-parallelcluster/wiki/ParallelCluster:-Launching-a-Login-Node">complicated workaround</a> that was in place until then. Unfortunately the team did not add the same features to the new <a href="https://docs.aws.amazon.com/parallelcluster/latest/ug/LoginNodes-v3.html">Login Nodes</a> such as <code>OnNodeConfigured</code> . We have raise a <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> which was acknowledged and the missing feature will be implemented in an upcoming release.</p>
-<p>As a consequence we have implemented a workaround with a cron job that runs on all ParallelCluster managed nodes (Login, Head and Compute) every minute. A login node is detected if there is a NFS mount that contains the name <code>login_node</code> and if there is no file <code>/etc/head-node</code> (the latter would signal that this is a head node indeed). See <a href="#sec-notes-on-install-pwb-config.sh" class="quarto-xref">Section&nbsp;3.3.6</a> for additional information.</p>
-<p>Until the <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> is fixed, we will have to live with this workaround.</p>
-</section>
-</section>
-</section>
-<section id="summary-and-conclusions" class="level2" data-number="3.4">
-<h2 data-number="3.4" class="anchored" data-anchor-id="summary-and-conclusions"><span class="header-section-number">3.4</span> Summary and Conclusions</h2>
-<p>This document describes a possibility on how to integrate Workbench and AWS ParallelCluster that allows for partial High Availability. The setup can tolerate login node failures and recover and as a consequence the workbench part is HA.</p>
-<p>The main ingredients for this setup is the creation of a custom AMI with all the software needed (Workbench, R, Python, …) baked into a custom AMI that can be used for all the three node types (Login, Head and Compute Node).</p>
-<p>In order to achieve this, some additional logic has to be implemented and some workarounds for missing features in AWS ParallelCluster be used.</p>
-<p>The remaining issue is however the single head node which is a single point of failure (if the head node crashes, SLURM stops working).</p>
-<section id="how-to-reach-full-ha" class="level3" data-number="3.4.1">
-<h3 data-number="3.4.1" class="anchored" data-anchor-id="how-to-reach-full-ha"><span class="header-section-number">3.4.1</span> How to reach “full” HA</h3>
-<p>AWS paralelcluster makes a clear distinction between Head and Login nodes. This is more than justified given the fact that the Head node not only runs <code>slurmctld</code> but also can act as a NFS server exporting file systems such as <code>/home</code> , <code>/opt/slurm</code>, … This makes the Head node a single point of failure from the perspective of the NFS server alone.</p>
-<p>With the release of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">AWS ParallelCluster 3.8.0</a> (currently available as beta version), all the NFS file systems can be hosted on external EFS. This removes the single point of failure for the NFS server. There is a bug in the beta version <a href="https://github.com/aws/aws-parallelcluster/issues/5812">where all but one file system can be hosted on EFS</a> but this will be fixed in the official release of 3.8.0.</p>
-<p>Once this is in place, the boundaries between the Login Nodes and Head Nodes will become much less clear. With adding additional logic, one can automatically start additional <code>slurmctld</code> processes on the login nodes and configure those hosts in the slurm configuration. If the head node then fails, a <code>slurmctld</code> of one of the compute nodes will take over. While adding additional <code>slurmctld</code> is fairly straightforward, there also is a need for regular checks if all the defined <code>slurmctld</code>` hosts are still up and running. If not, those need to be removed from the slurm config.</p>
-<p>The complexity of establishing the above is fairly small but then it is another customisation we have to make and maintain. As long as this is only a posit internal solution, we should be ok.</p>
-<p>A drawback of having full HA as mentioned above however is that very likely the ParallelCluster API may become unuseable in case the head node is no longer available. Things like updating configuration and settings of the running cluster may no longer work. Whether this is needed in a productive cluster is another matter of debate.</p>
-</section>
-</section>
-</section>
-<section id="appendix" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Appendix</h1>
-<section id="sec-patch-for-elb" class="level2" data-number="4.1">
-<h2 data-number="4.1" class="anchored" data-anchor-id="sec-patch-for-elb"><span class="header-section-number">4.1</span> Patch for ELB to listen on port 8787 instead of 22</h2>
-<pre><code>diff -u --recursive pcluster/templates/cluster_stack.py pcluster.new/templates/cluster_stack.py
---- pcluster/templates/cluster_stack.py 2023-11-22 12:25:53
-+++ pcluster.new/templates/cluster_stack.py 2023-11-22 15:11:48
-@@ -871,10 +871,10 @@
-     def _get_source_ingress_rule(self, setting):
-         if setting.startswith("pl"):
-             return ec2.CfnSecurityGroup.IngressProperty(
--                ip_protocol="tcp", from_port=22, to_port=22, source_prefix_list_id=setting
-+                ip_protocol="tcp", from_port=8787, to_port=8787, source_prefix_list_id=setting
-             )
-         else:
--            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol="tcp", from_port=22, to_port=22, cidr_ip=setting)
-+            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol="tcp", from_port=8787, to_port=8787, cidr_ip=setting)
- 
-     def _add_login_nodes_security_group(self):
-         login_nodes_security_group_ingress = [
-diff -u --recursive pcluster/templates/login_nodes_stack.py pcluster.new/templates/login_nodes_stack.py
---- pcluster/templates/login_nodes_stack.py 2023-11-22 12:25:53
-+++ pcluster.new/templates/login_nodes_stack.py 2023-11-22 15:11:19
-@@ -273,10 +273,10 @@
-             self,
-             f"{self._pool.name}TargetGroup",
-             health_check=elbv2.HealthCheck(
--                port="22",
-+                port="8787",
-                 protocol=elbv2.Protocol.TCP,
-             ),
--            port=22,
-+            port=8787,
-             protocol=elbv2.Protocol.TCP,
-             target_type=elbv2.TargetType.INSTANCE,
-             vpc=self._vpc,
-@@ -299,7 +299,7 @@
-             ),
-         )
- 
--        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=22)
-+        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=8787)
-         listener.add_target_groups(f"LoginNodesListenerTargets{self._pool.name}", target_group)
-         return login_nodes_load_balancer
- </code></pre>
 
 
 </section>
