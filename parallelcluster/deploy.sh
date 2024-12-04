@@ -57,6 +57,7 @@ cat scripts/config-login.sh | \
         > tmp/config-login.sh 
 
 cat scripts/config-compute.sh | \
+        sed "s#AD_DNS#${AD_DNS}#g" | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" \
 	> tmp/config-compute.sh 
 
