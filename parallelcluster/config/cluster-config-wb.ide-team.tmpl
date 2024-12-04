@@ -20,7 +20,7 @@ HeadNode:
   Ssh:
     KeyName: KEY 
 Image: 
-  Os: ubuntu2004
+  Os: ubuntu2204
   CustomAmi: AMI
 Region: REGION
 Scheduling: 
@@ -72,26 +72,6 @@ Scheduling:
         PlacementGroup:
           Enabled: FALSE
         SubnetIds:
-          - SUBNETID
-
-    - Name: gpu 
-      ComputeResources:
-        - Name: large
-          InstanceType: p3.2xlarge
-          MaxCount: 1
-          MinCount: 0
-          Efa:
-            Enabled: FALSE
-      CustomActions:
-        OnNodeConfigured:
-          Script: "s3://S3_BUCKETNAME/config-compute.sh"
-      Iam:
-        S3Access:
-          - BucketName: S3_BUCKETNAME
-      Networking:
-        PlacementGroup:
-          Enabled: FALSE
-        SubnetIds: 
           - SUBNETID
 
 
