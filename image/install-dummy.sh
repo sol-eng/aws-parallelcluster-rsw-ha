@@ -5,8 +5,6 @@ groupadd --system --gid 8788 rstudio-admins
 groupadd --system --gid 8789 rstudio-superuser-admins
 usermod -G rstudio-admins,rstudio-superuser-admins rstudio
  
-echo -e "rstudio\nrstudio" | passwd rstudio
-
 apt-get update
 apt install libpam-runtime 
 # automatically create home-directories with directories strictly only accessible by user. 
