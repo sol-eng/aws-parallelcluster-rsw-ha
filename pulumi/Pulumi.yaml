@@ -27,4 +27,8 @@ config:
     type: string
     description: Username for the MySQL db
     default: slurm_db_admin 
+  my_ip:
+    type: string
+    description: Local IP address for AWS access
+    default: my_ip
 
