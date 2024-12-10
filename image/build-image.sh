@@ -35,6 +35,7 @@ done
 
 sed "s/BUCKETNAME/$bucketname/" image-config.yaml > $tmpdir/image-config.yaml
 
+pcluster build-image -c $tmpdir/image-config.yaml -i $1 --suppress-validators ALL
+
 rm -rf $tmpdir
 
-pcluster build-image -c image-config.yaml -i $1 --suppress-validators ALL
