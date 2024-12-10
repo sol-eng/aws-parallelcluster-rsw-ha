@@ -13,15 +13,13 @@ fi
 
 bucketname=$2
 if [ -z $2 ]; then
-   if [ ! -f .bucket.default ]; then 
-      echo "<BUCKETNAME> not specified but no default in .bucket.default configured either !"
-      usage
-      exit
-   fi
-   bucketname=`cat .bucket.default` 
-   echo "S3 Bucket Name not provided, attempting to use $bucketname as default"
-
    bucketname="hpc-scripts1234"
+
+   if [ ! -f .bucket.default ]; then 
+      echo "<BUCKETNAME> not specified, falling back to default [hpc-script1234]"
+   else 
+      bucketname=`cat .bucket.default`
+   fi
 fi
 
 tmpdir=`mktemp -d`
@@ -35,7 +33,7 @@ sed "s/BUCKETNAME/$bucketname/" $i > $tmpdir/$i
 aws s3 cp $tmpdir/$i s3://$bucketname/image/$i
 done
 
-sed "s/BUCKETNAME/$bucketname/" image-config.yaml > tmp/image-config.yaml
+sed "s/BUCKETNAME/$bucketname/" image-config.yaml > $tmpdir/image-config.yaml
 
 rm -rf $tmpdir
 
