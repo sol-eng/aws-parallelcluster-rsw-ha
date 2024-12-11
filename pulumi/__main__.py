@@ -13,7 +13,7 @@ from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Prov
 import pulumi_awsx as awsx
 from pulumi_command import remote
 from pulumi_random import RandomPassword, RandomUuid
-
+from pulumi_tls import PrivateKey
 
 # ------------------------------------------------------------------------------
 # Helper functions
@@ -26,6 +26,7 @@ class ConfigValues:
     email: str = field(init=False)
     public_key: str = field(init=False)
     billing_code: str = field(init=False)
+    my_ip: str = field(init=False)
 
     def __post_init__(self):
         self.email = self.config.require("email")
@@ -35,6 +36,7 @@ class ConfigValues:
         self.slurm_db_username = self.config.require("slurm_db_username")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
         self.billing_code = self.config.require("billing_code")
+        self.my_ip = self.config.require("my_ip")
 
 
 def create_template(path: str) -> jinja2.Template:
@@ -140,9 +142,23 @@ def main():
     # Set up keys.
     # --------------------------------------------------------------------------
 
-    key_pair_name = f"{config.email}-keypair-for-pulumi"
+    key_pair_name = f"{config.email}-keypair-for-pulumi-{stack_name}"
 
-    key_pair = ec2.get_key_pair(key_name=key_pair_name)
+
+    ssh_key = PrivateKey(key_pair_name,
+        algorithm="ED25519"
+    )   
+
+    # Export the public key in OpenSSH format
+    pulumi.export("public_key_ssh", ssh_key.public_key_openssh)
+
+    # Optionally, export the private key (be cautious with this)
+    pulumi.export("private_key_ssh", pulumi.Output.secret(ssh_key.private_key_openssh))
+
+    key_pair = ec2.KeyPair("pcluster-deployment",
+        key_name=key_pair_name,
+        public_key=ssh_key.public_key_openssh
+    )
 
     pulumi.export("key_pair id", key_pair.key_name)
 
@@ -195,7 +211,32 @@ def main():
                             }],
                         }))
 
-    pulumi.export("elb_access", policy.arn)
+    pulumi.export("iam_elb_access", policy.arn)
+
+    # --------------------------------------------------------------------------
+    # S3 access from login nodes
+    # --------------------------------------------------------------------------
+
+    policy = iam.Policy("s3access",
+                        path="/",
+                        description="S3 Access from login nodes of parallelcluster",
+                        policy=json.dumps({
+                            "Version": "2012-10-17",
+                            "Statement": [{
+                                "Action": [
+                                    "s3:Get*",
+                                    "s3:List*",
+                                    "s3:Describe*",
+                                    "s3-object-lambda:Get*",
+                                    "s3-object-lambda:List*"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": "*",
+                            }],
+                        }))
+
+    pulumi.export("iam_s3_access", policy.arn)
+    
 
     # --------------------------------------------------------------------------
     # Make security group for Posit Workbench
@@ -364,7 +405,7 @@ def main():
         description="ssh access ",
         ingress=[
             {"protocol": "TCP", "from_port": 22, "to_port": 22,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "SSH"},
+             'cidr_blocks': [f"{config.my_ip}/32"], "description": "SSH"},
         ],
         egress=[
             {"protocol": "All", "from_port": 0, "to_port": 0,
@@ -400,13 +441,16 @@ def main():
     )
 
     pulumi.export("vpc_public_subnet", vpc.public_subnet_ids.apply(lambda ids: ids[0]))
+    pulumi.export("vpc_private_subnet", vpc.private_subnet_ids.apply(lambda ids: ids[0]))
     pulumi.export("jump_host_dns", jump_host.public_dns)
     pulumi.export("jump_host_public_ip", jump_host.public_ip)
+    pulumi.export("jump_host_instance_id", jump_host.id)
 
     connection = remote.ConnectionArgs(
         host=jump_host.public_dns,  # host=jump_host.id,
         user="ubuntu",
-        private_key=Path(f"{key_pair.key_name}.pem").read_text()
+        #private_key=Path(f"{key_pair.key_name}.pem").read_text()
+        private_key=ssh_key.private_key_openssh
     )
 
     command_set_environment_variables = remote.Command(

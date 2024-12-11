@@ -53,18 +53,18 @@ function find_elb_url() {
 elb_url=$(find_elb_url $cluster_name)
 
 
-# generate launcher ssl keys
-openssl genpkey -algorithm RSA \
-            -out $PWB_CONFIG_DIR/launcher.pem \
-            -pkeyopt rsa_keygen_bits:2048 && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pem && \
-    chmod 0600 $PWB_CONFIG_DIR/launcher.pem
+# # generate launcher ssl keys
+# openssl genpkey -algorithm RSA \
+#             -out $PWB_CONFIG_DIR/launcher.pem \
+#             -pkeyopt rsa_keygen_bits:2048 && \
+#     chown rstudio-server:rstudio-server \
+#             $PWB_CONFIG_DIR/launcher.pem && \
+#     chmod 0600 $PWB_CONFIG_DIR/launcher.pem
 
-openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
-            -pubout > $PWB_CONFIG_DIR/launcher.pub && \
-    chown rstudio-server:rstudio-server \
-            $PWB_CONFIG_DIR/launcher.pub
+# openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
+#             -pubout > $PWB_CONFIG_DIR/launcher.pub && \
+#     chown rstudio-server:rstudio-server \
+#             $PWB_CONFIG_DIR/launcher.pub
 
 
 # generate secure-cookie-key as a simple UUID
@@ -74,6 +74,13 @@ chmod 0600 $PWB_CONFIG_DIR/etc/rstudio/secure-cookie-key
 cat > $PWB_CONFIG_DIR/launcher-env << EOF
 RSTUDIO_DISABLE_PACKAGE_INSTALL_PROMPT=yes
 SLURM_CONF=/opt/slurm/etc/slurm.conf
+EOF
+
+cat > $PWB_CONFIG_DIR/logging.conf << EOF
+[*]
+log-level=info
+logger-type=file
+log-dir=/var/tmp/rstudio/rstudio-server
 EOF
  
 cat > $PWB_CONFIG_DIR/rserver.conf << EOF
@@ -168,6 +175,7 @@ admin-group=rstudio-server
 authorization-enabled=1
 thread-pool-size=4
 enable-debug-logging=1
+logging-dir=/var/tmp/rstudio/launcher
 
 [cluster]
 name=slurminteractive
@@ -370,15 +378,6 @@ set -x
 exec > /var/log/rc.pwb.log
 exec 2>&1
 
-# Add stuff for increased performance 
-export pwb_version=\`rstudio-server version | cut -d "-" -f 1 | sed 's/\.//g'\`
-
-if [ \$pwb_version -lt 2023120 ] && \
-        !( grep "worker_rlimit_nofile 4096" /usr/lib/rstudio-server/conf/rserver-http.conf >& /dev/null); then 
-        sed -i 's/worker_connections.*/worker_connections   2048;/' /usr/lib/rstudio-server/conf/rserver-http.conf
-        sed -i '/events.*/i worker_rlimit_nofile 4096;' /usr/lib/rstudio-server/conf/rserver-http.conf
-fi
-
 if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then 
         # yay - we are on a login node 
         if [ ! -f /etc/login-node-is-setup ]; then
@@ -392,7 +391,8 @@ if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
                 systemctl stop rstudio-server 
                 systemctl stop rstudio-launcher
                 killall apache2
-                rm -rf /var/log/rstudio
+                rm -rf /var/tmp/rstudio
+                mkdir -p /var/tmp/rstudio/{rstudio-server,launcher}
                 systemctl start rstudio-launcher
                 systemctl start rstudio-server 
                 touch /opt/rstudio/workbench-\`hostname\`.state

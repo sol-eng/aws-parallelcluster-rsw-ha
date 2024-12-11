@@ -2,30 +2,21 @@ set shell := ["bash"]
 
 create-users num="10":
     #!/bin/bash
+    # set SSH_AUTH_SOCK env var to a fixed value
+    export SSH_AUTH_SOCK=~/.ssh/ssh-agent.sock
+
+    # test whether $SSH_AUTH_SOCK is valid
+    ssh-add -l 2>/dev/null >/dev/null
+
+    # if not valid, then start ssh-agent using $SSH_AUTH_SOCK
+    [ $? -ge 2 ] && ssh-agent -a "$SSH_AUTH_SOCK" >/dev/null
+
+    ssh-add  - <<< "$(pulumi stack output --show-secrets 'private_key_ssh')"
     ssh \
-        -i "$(pulumi stack output 'key_pair id').pem" \
         -o StrictHostKeyChecking=no \
-        ubuntu@$(pulumi stack output ad_jump_host_public_ip) \
+        ubuntu@$(pulumi stack output jump_host_public_ip) \
         "bash useradd.sh {{num}}"
 
-create-secrets:
-    #!/bin/bash
-    export email=`pulumi config get email`
-    export keyname="${email}-keypair-for-pulumi"
-    aws ec2 describe-key-pairs --key-names=$keyname
-    if [ $? -ne 0 ]; then 
-        echo "Key $keyname does not seem to exist, let's create a new one."
-        aws ec2 create-key-pair --key-name $keyname --query 'KeyMaterial' --key-type ed25519 --key-format pem --output text > ${keyname}.pem
-        chmod 0600 ${keyname}.pem
-    else
-        echo "Key $keyname already exists in your AWS account."  
-        if [ ! -f ${keyname}.pem ]; then 
-            echo Please copy ${keyname}.pem into this folder to ensure full functionality of pulumi. 
-        fi
-    fi
-    if [ ! -f ${keyname}.pub ]; then 
-        ssh-keygen -y -f ${keyname}.pem > ${keyname}.pub
-    fi
 
 up: 
     #!/bin/bash

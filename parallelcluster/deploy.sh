@@ -1,15 +1,17 @@
 #!/bin/bash
 
-CLUSTERNAME="testing"
-STACKNAME="testing"
-PWB_VERSION="2024.11.0-daily-351.pro11"
+CLUSTERNAME="security"
+STACKNAME="security2"
+PWB_VERSION="2024.12.0-465.pro3"
 #SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
 AMI="ami-04bf99a2f0a089b37"
+AMI="ami-078a7049a04229601"
+AMI="ami-09d641c6d0df34503"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
-BENCHMARK_SUPPORT=true
+BENCHMARK_SUPPORT=false
 EASYBUILD_SUPPORT=false
-CONFIG="ide-team"
+CONFIG="default"
 
 echo "Extracting values from pulumi setup"
 #SUBNETID=`cd ../pulumi && pulumi stack output vpc_subnet2  -s $STACKNAME`
@@ -29,9 +31,10 @@ SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $STACKNAME`
 SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $STACKNAME`
 SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $STACKNAME --show-secrets`
 BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $STACKNAME`
-ELB_ACCESS=`cd ../pulumi && pulumi stack output elb_access -s $STACKNAME`
+ELB_ACCESS=`cd ../pulumi && pulumi stack output iam_elb_access -s $STACKNAME`
+S3_ACCESS=`cd ../pulumi && pulumi stack output iam_s3_access -s $STACKNAME`
 S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $STACKNAME`
-SUBNETID=`cd ../pulumi && pulumi stack output vpc_public_subnet -s $STACKNAME`
+SUBNETID=`cd ../pulumi && pulumi stack output vpc_private_subnet -s $STACKNAME`
 SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output ssh_security_group -s $STACKNAME`
 echo "preparing scripts" 
 rm -rf tmp
@@ -79,10 +82,11 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
 	sed "s#EMAIL#${EMAIL}#g" | \
 	sed "s#BILLING_CODE#${BILLING_CODE}#g" | \
         sed "s#SECURITYGROUP_SSH#${SECURITYGROUP_SSH}#g" | \
-        sed "s#ELB_ACCESS#${ELB_ACCESS}#g" \
+        sed "s#ELB_ACCESS#${ELB_ACCESS}#g" | \
+	sed "s#S3_ACCESS#${S3_ACCESS}#g" \
 	> config/cluster-config-wb.yaml
 
 aws s3 cp config/cluster-config-wb.yaml s3://${S3_BUCKETNAME}
 
 echo "Starting deployment"
-pcluster create-cluster --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 
+pcluster create-cluster --suppress-validators=ALL --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 
