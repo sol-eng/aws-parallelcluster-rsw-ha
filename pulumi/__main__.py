@@ -146,8 +146,7 @@ def main():
 
 
     ssh_key = PrivateKey(key_pair_name,
-        algorithm="RSA",
-        rsa_bits=2048
+        algorithm="ED25519"
     )   
 
     # Export the public key in OpenSSH format
