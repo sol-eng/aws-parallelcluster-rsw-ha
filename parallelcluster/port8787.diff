@@ -1,0 +1,24 @@
+--- templates/login_nodes_stack.py	2024-11-20 10:35:37
++++ templates/login_nodes_stack.py	2024-12-11 10:20:17
+@@ -401,10 +401,10 @@
+             self,
+             f"{self._pool.name}TargetGroup",
+             health_check=elbv2.HealthCheck(
+-                port="22",
++                port="8787",
+                 protocol=elbv2.Protocol.TCP,
+             ),
+-            port=22,
++            port=8787,
+             protocol=elbv2.Protocol.TCP,
+             target_type=elbv2.TargetType.INSTANCE,
+             vpc=self._vpc,
+@@ -438,7 +438,7 @@
+         login_nodes_load_balancer.node.default_child.add_property_override(
+             "SecurityGroups", self._load_balancer_security_groups
+         )
+-        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=22)
++        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=8787)
+         listener.add_target_groups(f"LoginNodesListenerTargets{self._pool.name}", target_group)
+         return login_nodes_load_balancer
+ 
