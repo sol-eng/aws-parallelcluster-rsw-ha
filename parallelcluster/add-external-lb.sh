@@ -1,8 +1,9 @@
 #!/bin/bash
-export cluster="security3"
+export cluster="security"
 tempfile=`mktemp`
 aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-target-groups --query 'TargetGroups[*].TargetGroupArn' --output text) --query "TagDescriptions[?Tags[?Key==\`parallelcluster:cluster-name\` && Value==\`$cluster\`]].ResourceArn" --output text > $tempfile
 target_group_arn=`cat $tempfile`
+rm -f $tempfile
 
 # Query VPC ID
 vpc_id=`aws elbv2 describe-target-groups --target-group-arns $target_group_arn  --query 'TargetGroups[0].VpcId' --output text`
@@ -27,6 +28,17 @@ aws elbv2 create-load-balancer --name my-load-balancer-$cluster --subnets `echo 
 
 my_lb_arn=`aws elbv2 describe-load-balancers --names my-load-balancer-$cluster --query 'LoadBalancers[0].LoadBalancerArn' --output text`
 
+# Remove Listener from existing LB
+
+# Find existing LB ARN
+tempfile=`mktemp`
+aws elbv2 describe-tags --resource-arns $(aws elbv2 describe-load-balancers --query 'LoadBalancers[*].LoadBalancerArn' --output text) --query "TagDescriptions[?Tags[?Key==\`parallelcluster:cluster-name\` && Value==\`$cluster\`]].ResourceArn" --output text > $tempfile
+old_lb_arn=`cat $tempfile`
+rm $tempfile
+old_listener_arn=`aws elbv2 describe-listeners --load-balancer-arn $old_lb_arn --query 'Listeners[*].ListenerArn' --output text`
+
+aws elbv2 delete-listener --listener-arn $old_listener_arn
+
 # Create Listener that forwards traffix to target group in private subnet 
 aws elbv2 create-listener --load-balancer-arn $my_lb_arn --protocol TCP --port 8787 --default-actions Type=forward,TargetGroupArn=$target_group_arn
-rm -f $tempfile
+

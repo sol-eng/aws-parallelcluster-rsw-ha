@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CLUSTERNAME="security"
+CLUSTERNAME="security2"
 STACKNAME="security2"
 PWB_VERSION="2024.12.0-465.pro3"
 #SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
