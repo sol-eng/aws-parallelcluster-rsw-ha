@@ -9,7 +9,7 @@ from typing import Dict, List
 import jinja2
 import pulumi
 import json
-from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Provider, get_region
+from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Provider, get_region, lb
 import pulumi_awsx as awsx
 from pulumi_command import remote
 from pulumi_random import RandomPassword, RandomUuid
@@ -558,5 +558,66 @@ def main():
                                                 command_copy_justfile] + command_copy_config_files)
     )
 
+    #########################################################################
+    # Section: Public Load Balancer
+    # Date: 2024-12-13
+    #########################################################################
+
+
+    lb_security_group = ec2.SecurityGroup(
+        "ha-lb-secgrp",
+        vpc_id=vpc.vpc_id,
+        ingress=[
+            # Allow all 80/443 incoming
+            ec2.SecurityGroupIngressArgs(
+                from_port=80,
+                to_port=80,
+                protocol="tcp",
+                cidr_blocks=["0.0.0.0/0"],
+            )
+        ],
+        egress=[
+            # Allow outbound traffic to private subnet HTTP only
+            ec2.SecurityGroupEgressArgs(
+                from_port=80,
+                to_port=80,
+                protocol="tcp",
+                cidr_blocks=[vpc.vpc.cidr_block]
+            )
+        ],
+        tags=tags,
+    )
+
+    public_lb = lb.LoadBalancer(
+        "ha-lb",
+        load_balancer_type="network",
+        security_groups=[lb_security_group.id],
+        subnets=vpc.public_subnet_ids,
+        tags=tags ,
+    )
+
+    lb_target_group = lb.TargetGroup(
+        "ha-lb-target-group",
+        port=80,
+        protocol="HTTP",
+        stickiness=lb.TargetGroupStickinessArgs(
+            type="lb_cookie",
+            cookie_duration=604800, # Max duration: 1 week
+        ),
+        vpc_id=vpc.vpc_id,
+        tags=tags,
+    )
+
+    lb_listener = lb.Listener(
+        "ha-lb-listener",
+        load_balancer_arn=public_lb.arn,
+        port=80,
+        protocol="HTTP",
+        default_actions=[lb.ListenerDefaultActionArgs(
+            type="forward",
+            target_group_arn=lb_target_group.arn,
+        )],
+        tags=tags,
+    )
 
 main()

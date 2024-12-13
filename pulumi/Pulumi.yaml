@@ -2,6 +2,7 @@ name: rsw-ha
 runtime:
   name: python
   options:
+    toolchain: uv
     virtualenv: .venv
 description: Deploy Posit Workbench in HA/LB configuration 
 
