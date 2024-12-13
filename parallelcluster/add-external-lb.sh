@@ -29,15 +29,13 @@ internal_lb_ip=`aws ssm get-command-invocation \
 vpc_id=`aws elbv2 describe-load-balancers --load-balancer-arns $internal_lb_arn --query 'LoadBalancers[0].VpcId' --output text`
 
 # Create new Target group 
-aws elbv2 create-target-group --name private-nlb-tgt-group-$cluster --protocol TCP --port 8787 --vpc-id $vpc_id --target-type ip
+target_group_arn=`aws elbv2 create-target-group --name private-nlb-tgt-group-$cluster --protocol TCP --port 8787 --vpc-id $vpc_id --target-type ip --query 'TargetGroups[0].TargetGroupArn'`
 
 # Register target (use the ip of the internal  NLB)
 aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names private-nlb-tgt-group-$cluster --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip
 
 # Add new SG
-aws ec2 create-security-group --group-name my-security-group-$cluster --description "Security group for port 80/8787 access from everywhere" --vpc-id $vpc_id
-
-my_sg_id=`aws ec2 describe-security-groups --filters Name=group-name,Values=my-security-group-$cluster --query 'SecurityGroups[0].GroupId' --output text`
+my_sg_id=`aws ec2 create-security-group --group-name my-security-group-$cluster --description "Security group for port 80/8787 access from everywhere" --vpc-id $vpc_id | jq -r .GroupId`
 
 aws ec2 authorize-security-group-ingress --group-id $my_sg_id --protocol tcp --port 80 --cidr 0.0.0.0/0
 
@@ -50,13 +48,10 @@ my_rt_ids=`aws ec2 describe-route-tables --filters Name=vpc-id,Values=$vpc_id --
 my_public_subnet_ids=`aws ec2 describe-route-tables --filters Name=route-table-id,Values=$my_rt_ids --query 'RouteTables[*].Associations[?SubnetId!=null].SubnetId' --output text | tr -u "\n" " " `
 
 # Create new LB in public subnet 
-aws elbv2 create-load-balancer --name my-load-balancer-$cluster --subnets `echo $my_public_subnet_ids` --security-groups $my_sg_id --scheme internet-facing --type network 
-
-my_lb_arn=`aws elbv2 describe-load-balancers --names my-load-balancer-$cluster --query 'LoadBalancers[0].LoadBalancerArn' --output text`
-target_group_arn=`aws elbv2 describe-target-groups --names private-nlb-tgt-group-$cluster --query 'TargetGroups[0].TargetGroupArn' --output text`
+my_lb_arn=`aws elbv2 create-load-balancer --name my-load-balancer-$cluster --subnets \`echo $my_public_subnet_ids\` --security-groups $my_sg_id --scheme internet-facing --type network --query 'LoadBalancers[0].LoadBalancerArn' --output text`
 
 # Create Listener that forwards traffix to target group in private subnet 
-aws elbv2 create-listener --load-balancer-arn $my_lb_arn --protocol TCP --port 80 --default-actions Type=forward,TargetGroupArn=$target_group_arn
+my_listener_arn=`aws elbv2 create-listener --load-balancer-arn $my_lb_arn --protocol TCP --port 80 --default-actions Type=forward,TargetGroupArn=$target_group_arn --query 'Listeners[0].ListenerArn' --output text` 
 
 
 
