@@ -39,7 +39,6 @@ aws ec2 create-security-group --group-name my-security-group-$cluster --descript
 
 my_sg_id=`aws ec2 describe-security-groups --filters Name=group-name,Values=my-security-group-$cluster --query 'SecurityGroups[0].GroupId' --output text`
 
-aws ec2 authorize-security-group-ingress --group-id $my_sg_id --protocol tcp --port 8787 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id $my_sg_id --protocol tcp --port 80 --cidr 0.0.0.0/0
 
 # Find internet gw 
