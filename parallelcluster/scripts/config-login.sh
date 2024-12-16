@@ -33,6 +33,45 @@ do
     fi
 done 
 
+cat << EOF > /etc/logrotate.d/rstudio
+/var/log/rstudio/rstudio-server/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0640 rstudio-server rstudio-server
+    su rstudio-server rstudio-server
+    sharedscripts
+    prerotate
+        systemctl stop rstudio-server
+    endscript
+    postrotate
+        systemctl start rstudio-server
+    endscript
+}
+
+/var/log/rstudio/launcher/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0640 rstudio-server rstudio-server
+    su rstudio-server rstudio-server 
+    sharedscripts
+    prerotate
+        systemctl stop rstudio-launcher
+    endscript
+    postrotate
+        systemctl start rstudio-launcher
+    endscript
+}
+EOF
+
+systemctl restart logrotate
 
 VSCODE_EXTDIR=/usr/local/rstudio/code-server
 
