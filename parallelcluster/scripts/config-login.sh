@@ -107,7 +107,7 @@ systemctl daemon-reload
 systemctl stop rstudio-server
 systemctl stop rstudio-launcher
 killall apache2 
-rm -rf /var/log/rstudio
+logrotate -f /etc/logrotate.d/rstudio
 systemctl start rstudio-launcher
 systemctl start rstudio-server
 
