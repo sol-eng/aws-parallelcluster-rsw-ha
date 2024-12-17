@@ -80,6 +80,7 @@ cat > $PWB_CONFIG_DIR/logging.conf << EOF
 [*]
 log-level=info
 logger-type=file
+rotate=0
 EOF
  
 cat > $PWB_CONFIG_DIR/rserver.conf << EOF
@@ -390,6 +391,7 @@ if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
                 systemctl stop rstudio-server 
                 systemctl stop rstudio-launcher
                 killall apache2
+                logrotate -f /etc/logrotate.d/rstudio
                 systemctl start rstudio-launcher
                 systemctl start rstudio-server 
                 touch /opt/rstudio/workbench-\`hostname\`.state
