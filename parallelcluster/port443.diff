@@ -1,5 +1,5 @@
---- templates/login_nodes_stack.py	2024-11-20 10:35:37
-+++ templates/login_nodes_stack.py	2024-12-11 10:20:17
+--- .venv/lib/python3.12/site-packages/pcluster/templates/login_nodes_stack.py	2024-11-20 10:35:37
++++ .venv/lib/python3.12/site-packages/pcluster/templates/login_nodes_stack.py	2024-12-11 10:20:17
 @@ -401,10 +401,10 @@
              self,
              f"{self._pool.name}TargetGroup",
