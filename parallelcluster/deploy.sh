@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CLUSTERNAME="security2"
-STACKNAME="security2"
+CLUSTERNAME="sjc-security"
+STACKNAME="rstudio/sjc-security"
 PWB_VERSION="2024.12.0-465.pro3"
 #SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
 AMI="ami-04bf99a2f0a089b37"

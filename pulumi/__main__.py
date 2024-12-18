@@ -190,6 +190,15 @@ def main():
         "Name": f"vpc-{stack_name}"},
     ))
 
+    guardduty_vpc_endpoint = ec2.VpcEndpoint(
+        f"pcluster-vpc-{stack_name}",
+        vpc_id=vpc.vpc_id,
+        service_name=f"com.amazonaws.{get_region().name}.guardduty",
+        vpc_endpoint_type="Interface",
+        subnet_ids=vpc.private_subnet_ids,
+        private_dns_enabled=True,  # Enable private DNS for this endpoint
+    )
+
     # --------------------------------------------------------------------------
     # ELB access from within AWS ParallelCluster
     # --------------------------------------------------------------------------
@@ -474,9 +483,10 @@ def main():
         connection=connection
     )
 
-    command_copy_justfile = remote.CopyFile(
+    justfile_asset = pulumi.FileAsset("server-side-files/justfile")
+    command_copy_justfile = remote.CopyToRemote(
         f"copy-justfile",
-        local_path="server-side-files/justfile",
+        source=justfile_asset,
         remote_path='justfile',
         connection=connection,
         opts=pulumi.ResourceOptions(depends_on=jump_host),
@@ -565,7 +575,8 @@ def main():
 
 
     lb_security_group = ec2.SecurityGroup(
-        "ha-lb-secgrp",
+        f"public-nlb-secgrp-{stack_name}",
+        name=f"public-nlb-secgrp-{stack_name}",
         vpc_id=vpc.vpc_id,
         ingress=[
             # Allow all 80/443 incoming
@@ -586,10 +597,12 @@ def main():
             )
         ],
         tags=tags,
+        opts=pulumi.ResourceOptions(delete_before_replace=True),
     )
 
     public_lb = lb.LoadBalancer(
-        "ha-lb",
+        f"public-nlb-{stack_name}",
+        name=f"public-nlb-{stack_name}",
         load_balancer_type="network",
         security_groups=[lb_security_group.id],
         subnets=vpc.public_subnet_ids,
@@ -597,22 +610,20 @@ def main():
     )
 
     lb_target_group = lb.TargetGroup(
-        "ha-lb-target-group",
+        f"public-nlb-tg-{stack_name}",
+        name=f"public-nlb-tg-{stack_name}",
         port=80,
-        protocol="HTTP",
-        stickiness=lb.TargetGroupStickinessArgs(
-            type="lb_cookie",
-            cookie_duration=604800, # Max duration: 1 week
-        ),
+        protocol="TCP",
+        target_type="ip",
         vpc_id=vpc.vpc_id,
         tags=tags,
     )
 
     lb_listener = lb.Listener(
-        "ha-lb-listener",
+        f"public-nlb-listener-{stack_name}",
         load_balancer_arn=public_lb.arn,
         port=80,
-        protocol="HTTP",
+        protocol="TCP",
         default_actions=[lb.ListenerDefaultActionArgs(
             type="forward",
             target_group_arn=lb_target_group.arn,
