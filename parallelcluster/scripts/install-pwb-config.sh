@@ -320,6 +320,10 @@ notebooks-enabled=1
 labs-enabled=1
 EOF
 
+cat > $PWB_CONFIG_DIR/positron.conf << EOF
+exe=/usr/lib/rstudio-server/bin/positron-server/bin/positron-server  
+enabled=1  
+EOF
 
 VSCODE_EXTDIR=/usr/local/rstudio/code-server
 
