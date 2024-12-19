@@ -1,2 +1,5 @@
 /.quarto/
 /_site/
+/pulumi/__pycache__/
+/.idea/
+*.iml

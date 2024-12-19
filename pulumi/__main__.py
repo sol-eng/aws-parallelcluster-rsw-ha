@@ -9,7 +9,7 @@ from typing import Dict, List
 import jinja2
 import pulumi
 import json
-from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Provider, get_region
+from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Provider, get_region, lb
 import pulumi_awsx as awsx
 from pulumi_command import remote
 from pulumi_random import RandomPassword, RandomUuid
@@ -189,6 +189,15 @@ def main():
         tags=tags | {
         "Name": f"vpc-{stack_name}"},
     ))
+
+    guardduty_vpc_endpoint = ec2.VpcEndpoint(
+        f"pcluster-vpc-{stack_name}",
+        vpc_id=vpc.vpc_id,
+        service_name=f"com.amazonaws.{get_region().name}.guardduty",
+        vpc_endpoint_type="Interface",
+        subnet_ids=vpc.private_subnet_ids,
+        private_dns_enabled=True,  # Enable private DNS for this endpoint
+    )
 
     # --------------------------------------------------------------------------
     # ELB access from within AWS ParallelCluster
@@ -474,9 +483,10 @@ def main():
         connection=connection
     )
 
-    command_copy_justfile = remote.CopyFile(
+    justfile_asset = pulumi.FileAsset("server-side-files/justfile")
+    command_copy_justfile = remote.CopyToRemote(
         f"copy-justfile",
-        local_path="server-side-files/justfile",
+        source=justfile_asset,
         remote_path='justfile',
         connection=connection,
         opts=pulumi.ResourceOptions(depends_on=jump_host),
@@ -558,5 +568,67 @@ def main():
                                                 command_copy_justfile] + command_copy_config_files)
     )
 
+    #########################################################################
+    # Section: Public Load Balancer
+    # Date: 2024-12-13
+    #########################################################################
+
+
+    lb_security_group = ec2.SecurityGroup(
+        f"public-nlb-secgrp-{stack_name}",
+        name=f"public-nlb-secgrp-{stack_name}",
+        vpc_id=vpc.vpc_id,
+        ingress=[
+            # Allow all 80/443 incoming
+            ec2.SecurityGroupIngressArgs(
+                from_port=80,
+                to_port=80,
+                protocol="tcp",
+                cidr_blocks=["0.0.0.0/0"],
+            )
+        ],
+        egress=[
+            # Allow outbound traffic to private subnet HTTP only
+            ec2.SecurityGroupEgressArgs(
+                from_port=80,
+                to_port=80,
+                protocol="tcp",
+                cidr_blocks=[vpc.vpc.cidr_block]
+            )
+        ],
+        tags=tags,
+        opts=pulumi.ResourceOptions(delete_before_replace=True),
+    )
+
+    public_lb = lb.LoadBalancer(
+        f"public-nlb-{stack_name}",
+        name=f"public-nlb-{stack_name}",
+        load_balancer_type="network",
+        security_groups=[lb_security_group.id],
+        subnets=vpc.public_subnet_ids,
+        tags=tags ,
+    )
+
+    lb_target_group = lb.TargetGroup(
+        f"public-nlb-tg-{stack_name}",
+        name=f"public-nlb-tg-{stack_name}",
+        port=80,
+        protocol="TCP",
+        target_type="ip",
+        vpc_id=vpc.vpc_id,
+        tags=tags,
+    )
+
+    lb_listener = lb.Listener(
+        f"public-nlb-listener-{stack_name}",
+        load_balancer_arn=public_lb.arn,
+        port=80,
+        protocol="TCP",
+        default_actions=[lb.ListenerDefaultActionArgs(
+            type="forward",
+            target_group_arn=lb_target_group.arn,
+        )],
+        tags=tags,
+    )
 
 main()
