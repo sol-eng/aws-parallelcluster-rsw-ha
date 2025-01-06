@@ -80,7 +80,7 @@ for i in $ec2_ids;
         do 
                 ctr=$(($ctr+1))
                 ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
-                echo "$ip node${ctr} node${ctr}.$HPC_DOMAIN" >> $PWB_CONFIG_DIR/nodes
+                echo "$ip node${ctr}.$HPC_DOMAIN node${ctr}" >> $PWB_CONFIG_DIR/nodes
         done
 
 # Append nodes file to /etc/hosts
@@ -169,7 +169,7 @@ auth-timeout-minutes=120
 www-thread-pool-size=8
 
 # multiple launchers
-launcher-sessions-clusters=slurminteractive
+launcher-sessions-clusters=local,slurminteractive
 launcher-adhoc-clusters=slurmbatch
 
 # performance optimisations
@@ -272,7 +272,7 @@ type=Slurm
 config-file=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.conf
 
 [cluster]
-name=Local
+name=local
 type=Local
 EOF
 
