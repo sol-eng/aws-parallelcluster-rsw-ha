@@ -2,5 +2,6 @@
 title: "Architecture"
 --- 
 
+Below is the general architecture of the Posit Workbench <==> AWS Parallelcluster integration. 
 
-![Architecture diagram](Benchmark.drawio.png){#architecture}
+![Architecture diagram](AWS PC.drawio.png){#architecture}
