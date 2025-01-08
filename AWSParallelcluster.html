@@ -308,12 +308,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><p>In order to distinguish the head node from the login node, an empty file <code>/etc/head-node</code> is created. This is used in the cron job mentioned in <strong>?@sec-custom-ami</strong> to help differentiate the login nodes from the head node.</p></li>
 </ul>
 <p><code>ìnstall-compute.sh</code> script detects the presence of a GPU and then automatically updates the NVIDIA/CUDA driver and installs the CuDNN library for distributed GPU computing. This is more a nice to have but is rsther useful for distributed tensorflow etc…</p>
-<div id="architecture" class="quarto-figure quarto-figure-center anchored">
-<figure class="figure">
-<p><img src="Benchmark.drawio.png" class="img-fluid figure-img"></p>
-<figcaption>Architecture diagram</figcaption>
-</figure>
-</div>
 </section>
 <section id="customisations-on-top-of-aws-parallelcluster" class="level2" data-number="1.7">
 <h2 data-number="1.7" class="anchored" data-anchor-id="customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">1.7</span> Customisations on top of AWS ParallelCluster</h2>
