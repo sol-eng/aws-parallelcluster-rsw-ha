@@ -2,6 +2,22 @@
 title: "Architecture"
 --- 
 
-Below is the general architecture of the Posit Workbench <==> AWS Parallelcluster integration. 
+This is the general architecture of the Posit Workbench <==> AWS Parallelcluster integration. 
 
 ![Architecture diagram](AWS PC.drawio.png){#architecture}
+
+This architecture uses AWS ParallelCluster to build the main infrastructure and Pulumi recipes to add auxiliary pieces. The intent is to build everything - as much as possible - in private subnets and only expose as little as possible to the public Internet to ensure that any security attack vector is as small as possible. 
+
+While AWS ParallelCluster support [multi-zone SLURM partitions](https://aws.amazon.com/blogs/hpc/multiple-availability-zones-now-supported-in-aws-parallelcluster-3-4/), we are not making use of this feature here due to the fact that even with the compute nodes spread across multiple availability zones the Head Node where `slurmctld` is running still remains a single point of failure. This limitation again can be overcome by either adding additonal `slurmctld` processes (e.g. to the Login Nodes) or - even better - using SLURM cluster [federation](https://isc23.hpcworkshops.com/08-federation-and-cache/60-federating-clusters.html). Posit Workbench and in particular the SLURM Launcher currently does not support federation unfortunately.
+
+AWS Simple Active Directory (SimpleAD) is used for user management. The Jump Host is fully integrated into SimpleAD and also used to create/modify/delete users and groups, any other EC2 instance is connected to SimpleAD via read-only `sssd` configuration. 
+
+FsX for Lustre is used for users' home directories for performance reasons. Any other shared storage is utilising EFS. 
+
+By default two Login Nodes are provisioned that will run the `rstudio-server` and `rstudio-launcher` systemctl services of Posit Workbench. 
+
+A use will browse to the Network Load Balancer (NLB) in the public subnet. This NLB will forward any traffic to the NLB in the private subnet which in turn will distribute traffic across the Login Nodes where it will hit the Posit Workbench setup. Depending on the specific Posit Workbench setup, session will be launcher on the compute nodes or on the login nodes directly. 
+
+EFS file system is mostly used for AWS ParalelCluster internal purposes - additionally we use it to store Posit Workbench configuration files. 
+
+
