@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
   push:
-    branches: new-features 
+    branches: architecture 
 
 name: Quarto Publish
 
