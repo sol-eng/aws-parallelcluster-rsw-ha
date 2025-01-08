@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Architecture.html</loc>
-    <lastmod>2024-12-04T18:10:52.052Z</lastmod>
-  </url>
-  <url>
-    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/AWSParallelcluster.html</loc>
-    <lastmod>2024-12-04T18:10:52.052Z</lastmod>
-  </url>
-  <url>
-    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/AMI.html</loc>
-    <lastmod>2024-12-04T18:10:52.052Z</lastmod>
-  </url>
-  <url>
-    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Pulumi.html</loc>
-    <lastmod>2024-12-04T18:10:52.052Z</lastmod>
-  </url>
-  <url>
     <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/PWB.html</loc>
-    <lastmod>2024-12-04T18:10:52.052Z</lastmod>
+    <lastmod>2025-01-08T07:28:48.314Z</lastmod>
   </url>
   <url>
     <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Introduction.html</loc>
-    <lastmod>2024-12-04T18:10:52.052Z</lastmod>
+    <lastmod>2025-01-08T07:28:48.314Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/AMI.html</loc>
+    <lastmod>2025-01-08T07:28:48.305Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Pulumi.html</loc>
+    <lastmod>2025-01-08T07:28:48.314Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/Architecture.html</loc>
+    <lastmod>2025-01-08T07:28:48.314Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sol-eng.github.io/aws-parallelcluster-rsw-ha/AWSParallelcluster.html</loc>
+    <lastmod>2025-01-08T07:28:48.314Z</lastmod>
   </url>
 </urlset>
