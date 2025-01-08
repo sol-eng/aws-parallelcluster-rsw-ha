@@ -2,6 +2,8 @@
 title: "Architecture"
 --- 
 
+# General Architecture
+
 This is the general architecture of the Posit Workbench <==> AWS Parallelcluster integration. 
 
 ![Architecture diagram](AWS PC.drawio.png){#architecture}
@@ -20,4 +22,4 @@ A use will browse to the Network Load Balancer (NLB) in the public subnet. This 
 
 EFS file system is mostly used for AWS ParalelCluster internal purposes - additionally we use it to store Posit Workbench configuration files. 
 
-
+# Workbench specific configurations
