@@ -190,14 +190,14 @@ def main():
         "Name": f"vpc-{stack_name}"},
     ))
 
-    guardduty_vpc_endpoint = ec2.VpcEndpoint(
-        f"pcluster-vpc-{stack_name}",
-        vpc_id=vpc.vpc_id,
-        service_name=f"com.amazonaws.{get_region().name}.guardduty",
-        vpc_endpoint_type="Interface",
-        subnet_ids=vpc.private_subnet_ids,
-        private_dns_enabled=True,  # Enable private DNS for this endpoint
-    )
+    # guardduty_vpc_endpoint = ec2.VpcEndpoint(
+    #     f"pcluster-vpc-{stack_name}",
+    #     vpc_id=vpc.vpc_id,
+    #     service_name=f"com.amazonaws.{get_region().name}.guardduty",
+    #     vpc_endpoint_type="Interface",
+    #     subnet_ids=vpc.private_subnet_ids,
+    #     private_dns_enabled=True,  # Enable private DNS for this endpoint
+    # )
 
     # --------------------------------------------------------------------------
     # ELB access from within AWS ParallelCluster
@@ -255,8 +255,10 @@ def main():
         "WorkbenchServer",
         description="Security group for WorkbenchServer access",
         ingress=[
-            {"protocol": "TCP", "from_port": 8787, "to_port": 8787,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "WorkbenchServer access"}
+            {"protocol": "TCP", "from_port": 443, "to_port": 443,
+             'cidr_blocks': [vpc.vpc.cidr_block], "description": "WorkbenchServer access"},
+            {"protocol": "TCP", "from_port": 5559, "to_port": 5559,
+             'cidr_blocks': [vpc.vpc.cidr_block], "description": "Launcher access"},
         ],
         egress=[
             {"protocol": "All", "from_port": 0, "to_port": 0,
@@ -581,8 +583,8 @@ def main():
         ingress=[
             # Allow all 80/443 incoming
             ec2.SecurityGroupIngressArgs(
-                from_port=80,
-                to_port=80,
+                from_port=443,
+                to_port=443,
                 protocol="tcp",
                 cidr_blocks=["0.0.0.0/0"],
             )
@@ -590,8 +592,8 @@ def main():
         egress=[
             # Allow outbound traffic to private subnet HTTP only
             ec2.SecurityGroupEgressArgs(
-                from_port=80,
-                to_port=80,
+                from_port=443,
+                to_port=443,
                 protocol="tcp",
                 cidr_blocks=[vpc.vpc.cidr_block]
             )
@@ -612,7 +614,7 @@ def main():
     lb_target_group = lb.TargetGroup(
         f"public-nlb-tg-{stack_name}",
         name=f"public-nlb-tg-{stack_name}",
-        port=80,
+        port=443,
         protocol="TCP",
         target_type="ip",
         vpc_id=vpc.vpc_id,
@@ -622,7 +624,7 @@ def main():
     lb_listener = lb.Listener(
         f"public-nlb-listener-{stack_name}",
         load_balancer_arn=public_lb.arn,
-        port=80,
+        port=443,
         protocol="TCP",
         default_actions=[lb.ListenerDefaultActionArgs(
             type="forward",

@@ -22,4 +22,8 @@ A use will browse to the Network Load Balancer (NLB) in the public subnet. This 
 
 EFS file system is mostly used for AWS ParalelCluster internal purposes - additionally we use it to store Posit Workbench configuration files. 
 
+# Note on SSL
+
+Always bind together certificates with the main certificate first and anly then the intermediate certificates. 
+
 # Workbench specific configurations
