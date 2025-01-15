@@ -530,10 +530,10 @@ if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
                 touch /etc/login-node-is-setup
                 # we need to loop until the config-login.sh script is deployed
                 config_not_found=true
-                while $config_not_found
+                while \$config_not_found
                 do 
                    sleep 5
-                   if [ -f $PWB_BASE_DIR/scripts/config-login.sh]; then 
+                   if [ -f $PWB_BASE_DIR/scripts/config-login.sh ]; then 
                        config_not_found=false
                    fi
                 done

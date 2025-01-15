@@ -1,6 +1,6 @@
 #!/bin/bash
-export cluster="wb-2024-09-2"
-export cluster_pulumi="wb-2024-09-2"
+export cluster="daily-demo"
+export cluster_pulumi="daily-demo"
 # Find existing internal LB ARN
 internal_lb_arn=`for arn in $(aws elbv2 describe-load-balancers --query "LoadBalancers[*].LoadBalancerArn" --output text); do
     tags=$(aws elbv2 describe-tags --resource-arns $arn --query "TagDescriptions[].Tags[?Key=='parallelcluster:cluster-name' && Value=='$cluster']" --output text)
