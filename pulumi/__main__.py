@@ -214,10 +214,19 @@ def main():
                                     "elasticloadbalancing:DescribeTargetGroups",
                                     "elasticloadbalancing:DescribeLoadBalancers",
                                     "elasticloadbalancing:DescribeTargetHealth",
+                                    "elasticloadbalancing:RegisterTargets"
                                 ],
                                 "Effect": "Allow",
                                 "Resource": "*",
-                            }],
+                            },
+                            {
+                                "Action": [
+                                    "ec2:DescribeNetworkInterfaces"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": "*",
+                            }
+                            ],
                         }))
 
     pulumi.export("iam_elb_access", policy.arn)
