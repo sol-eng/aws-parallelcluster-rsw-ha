@@ -123,4 +123,4 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
 aws s3 cp config/cluster-config-wb.yaml s3://${S3_BUCKETNAME}
 
 #echo "Starting deployment"
-pcluster create-cluster --suppress-validators=ALL --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 
+pcluster create-cluster --suppress-validators type:CustomSlurmSettingsValidator --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 
