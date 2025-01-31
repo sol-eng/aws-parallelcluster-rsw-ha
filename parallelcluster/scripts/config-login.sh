@@ -26,7 +26,7 @@ while true
 do
     if [ -d /opt/rstudio/scripts ]; then
         pushd /opt/rstudio/scripts
-	apt-get update -y  
+        apt-get update -y 
         gdebi -n rstudio-workbench-${PWB_VERSION}-amd64.deb
         popd
         break
@@ -92,11 +92,34 @@ chmod a+rx /usr/local/rstudio/code-server
 # wait until the workbench config files are there (deployed by head-node)
 while true ; do if [ -f $PWB_CONFIG_DIR/rserver.conf ]; then break; fi; sleep 1; done ; echo "PWB config files found !"
 
-for i in server launcher 
-do 
-    mkdir -p /etc/systemd/system/rstudio-$i.service.d
-    echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=$PWB_CONFIG_DIR\"" > /etc/systemd/system/rstudio-$i.service.d/override.conf
-done
+my_ip=`ifconfig | grep inet | awk '{print $2}'| head -1`
+
+REAL_PWB_CONFIG_DIR=${PWB_CONFIG_DIR/.tmpl/}
+
+rm -rf /etc/rstudio
+mkdir -p /etc/rstudio
+#mm ln -s /etc/rstudio ${REAL_PWB_CONFIG_DIR%rstudio*}
+
+cp -dpRf $PWB_CONFIG_DIR/* /etc/rstudio
+
+# add DNS entries for LB nodes 
+cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
+
+my_hostname=`grep $my_ip /etc/hosts | tail -1  | awk '{print $3}'`
+
+echo "www-host-name=$my_hostname" > /etc/rstudio/load-balancer
+
+# add SSL Cert locally to make workbench LB happy
+cp /opt/rstudio/etc/$HPC_DOMAIN.crt /usr/local/share/ca-certificates 
+update-ca-certificates
+
+# systemctl overrides
+
+# for i in server launcher 
+# do 
+#     mkdir -p /etc/systemd/system/rstudio-$i.service.d
+#     echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=$REAL_PWB_CONFIG_DIR\"" > /etc/systemd/system/rstudio-$i.service.d/override.conf
+# done
 # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
 
 # scalability
