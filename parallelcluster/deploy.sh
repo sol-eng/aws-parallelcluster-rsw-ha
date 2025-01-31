@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CLUSTERNAME="daily-demo"
-STACKNAME="daily-demo"
+CLUSTERNAME="hybrid-launcher"
+STACKNAME="hybrid-launcher"
 PWB_VERSION="2024.12.1-533.pro1"
 #SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
 AMI="ami-04bf99a2f0a089b37"
@@ -13,9 +13,9 @@ BENCHMARK_SUPPORT=false
 EASYBUILD_SUPPORT=false
 CONFIG="default"
 HPC_DOMAIN=mayer.cx
-HPC_HOST="daily-demo"
+HPC_HOST="hybrid-launcher"
 SSL=true
-LOCAL=false
+LOCAL=true
 
 echo "Extracting values from pulumi setup"
 KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $STACKNAME`

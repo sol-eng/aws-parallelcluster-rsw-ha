@@ -12,12 +12,12 @@ SHARED_DIR=/opt
 
 PWB_BASE_DIR=$SHARED_DIR/rstudio/
 
-PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio.tmpl
-FINAL_PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
+PWB_CONFIG_DIR=$PWB_BASE_DIR/etc/rstudio
+
 
 mkdir -p $PWB_BASE_DIR/{scripts,apptainer}
 
-mkdir -p $FINAL_PWB_CONFIG_DIR $PWB_CONFIG_DIR
+mkdir -p $PWB_CONFIG_DIR
 
 mkdir -p /home/rstudio/shared-storage
 
@@ -198,7 +198,7 @@ audit-r-sessions-limit-months=6
 monitor-data-path=$SHARED_DATA/head-node/monitor-data
 
 # secure cookie key
-secure-cookie-key-file=${FINAL_PWB_CONFIG_DIR}/secure-cookie-key
+secure-cookie-key-file=/etc/rstudio/secure-cookie-key
 
 # scalability 
 auth-timeout-minutes=120
@@ -310,12 +310,12 @@ cat >> $PWB_CONFIG_DIR/launcher.conf<<EOF
 [cluster]
 name=slurminteractive
 type=Slurm
-config-file=$FINAL_PWB_CONFIG_DIR/launcher.slurminteractive.conf
+config-file=/etc/rstudio/launcher.slurminteractive.conf
 
 [cluster]
 name=slurmbatch
 type=Slurm
-config-file=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.conf
+config-file=/etc/rstudio/launcher.slurmbatch.conf
 EOF
 
 if (LOCAL); then 
@@ -342,8 +342,8 @@ enable-gpus=1
 gpu-types=v100
 
 # User/group and resource profiles
-profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf
-resource-profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf
+profile-config=/etc/rstudio/launcher.slurminteractive.profiles.conf
+resource-profile-config=/etc/rstudio/launcher.slurminteractive.resources.conf
 
 EOF
 
@@ -360,11 +360,12 @@ enable-gpus=1
 gpu-types=v100
 
 # User/group and resource profiles
-profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf
-resource-profile-config=$FINAL_PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf
+profile-config=/etc/rstudio/launcher.slurmbatch.profiles.conf
+resource-profile-config=/etc/rstudio/launcher.slurmbatch.resources.conf
 
 EOF
 
+if (LOCAL); then 
 cat > $PWB_CONFIG_DIR/launcher.local.conf << EOF 
 scratch-path=/home/rstudio/shared-storage/Local
 load-balancer-preference=nfs
@@ -372,9 +373,28 @@ EOF
  
 cat > $PWB_CONFIG_DIR/launcher.local.profiles.conf << EOF 
 [*]
-max-cpus=2
-max-mem-mb=4096
+max-cpus=4
+max-mem-mb=15000
 EOF
+
+cat > $PWB_CONFIG_DIR/launcher.local.resources.conf<<EOF
+# memory limits calculated based on 90% of total t3.xlarge memory
+[small]
+name = "Small (1 cpu, 1 GB mem)"
+cpus=1
+mem-mb=899
+[medium]
+name = "Medium (2 cpu, 2 GB mem)"
+cpus=2
+mem-mb=3873
+[large]
+name = "Large (4 cpu, 4 GB mem)"
+cpus=4
+mem-mb=7746
+
+EOF
+
+fi
  
 
 if (SINGULARITY_SUPPORT); then 

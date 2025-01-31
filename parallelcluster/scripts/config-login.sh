@@ -98,16 +98,16 @@ REAL_PWB_CONFIG_DIR=${PWB_CONFIG_DIR/.tmpl/}
 
 rm -rf /etc/rstudio
 mkdir -p /etc/rstudio
-ln -s /etc/rstudio ${REAL_PWB_CONFIG_DIR%rstudio*}
+#mm ln -s /etc/rstudio ${REAL_PWB_CONFIG_DIR%rstudio*}
 
-cp -dpRf $PWB_CONFIG_DIR/* $REAL_PWB_CONFIG_DIR
+cp -dpRf $PWB_CONFIG_DIR/* /etc/rstudio
 
 # add DNS entries for LB nodes 
 cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
 
 my_hostname=`grep $my_ip /etc/hosts | tail -1  | awk '{print $3}'`
 
-echo "www-host-name=$my_hostname" > $REAL_PWB_CONFIG_DIR/load-balancer
+echo "www-host-name=$my_hostname" > /etc/rstudio/load-balancer
 
 # add SSL Cert locally to make workbench LB happy
 cp /opt/rstudio/etc/$HPC_DOMAIN.crt /usr/local/share/ca-certificates 
@@ -115,11 +115,11 @@ update-ca-certificates
 
 # systemctl overrides
 
-for i in server launcher 
-do 
-    mkdir -p /etc/systemd/system/rstudio-$i.service.d
-    echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=$REAL_PWB_CONFIG_DIR\"" > /etc/systemd/system/rstudio-$i.service.d/override.conf
-done
+# for i in server launcher 
+# do 
+#     mkdir -p /etc/systemd/system/rstudio-$i.service.d
+#     echo -e "[Service]\nEnvironment=\"RSTUDIO_CONFIG_DIR=$REAL_PWB_CONFIG_DIR\"" > /etc/systemd/system/rstudio-$i.service.d/override.conf
+# done
 # We are on a login node and hence will need to enable rstudio-server and rstudio-launcher
 
 # scalability
