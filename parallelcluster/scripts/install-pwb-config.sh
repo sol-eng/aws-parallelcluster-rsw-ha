@@ -115,8 +115,12 @@ lb_name=`aws elbv2 describe-load-balancers --load-balancer-arns $internal_lb_arn
 internal_lb_ip=`aws ec2 describe-network-interfaces --filters "Name=interface-type,Values=network_load_balancer" "Name=description,Values=*$lb_name*" --query "NetworkInterfaces[*].[PrivateIpAddress]" --output text`
 
 # Register target (use the ip of the internal  NLB)
-aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names public-nlb-tg-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip
-
+if SSL 
+then
+  aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-https-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip
+else
+  aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-nohttps-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip 
+fi
 # # generate launcher ssl keys
 # openssl genpkey -algorithm RSA \
 #             -out $PWB_CONFIG_DIR/launcher.pem \
@@ -167,7 +171,16 @@ launcher-address=127.0.0.1
 launcher-port=5559
 launcher-sessions-enabled=1
 launcher-default-cluster=Slurm
-launcher-sessions-callback-address=https://$HPC_HOST.$HPC_DOMAIN
+EOF
+
+if SSL 
+then
+        echo "launcher-sessions-callback-address=https://$HPC_HOST.$HPC_DOMAIN" >> $PWB_CONFIG_DIR/rserver.conf
+else
+        echo "launcher-sessions-callback-address=http://$internal_lb_ip:8787" >> $PWB_CONFIG_DIR/rserver.conf
+fi
+
+cat >> $PWB_CONFIG_DIR/rserver.conf << EOF
 
 # Disable R Versions scanning
 #r-versions-scan=0
@@ -218,7 +231,8 @@ workbench-api-admin-enabled=1
 workbench-api-super-admin-enabled=1
 EOF
 
-if (LOCAL); then 
+if LOCAL 
+then 
 cat >> $PWB_CONFIG_DIR/rserver.conf << EOF
 
 # multiple launchers
@@ -249,10 +263,11 @@ EOF
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
 chown -R rstudio-server $SHARED_DATA/head-node/
 
-if ($SSL); then 
+if SSL 
+then 
     cat << EOF >> $PWB_CONFIG_DIR/rserver.conf
 
-# SSL Certificate
+# Ssl Certificate
 ssl-enabled=1
 ssl-certificate=$PWB_BASE_DIR/etc/$HPC_DOMAIN.crt
 ssl-certificate-key=$PWB_BASE_DIR/etc/$HPC_DOMAIN.key  
@@ -263,7 +278,8 @@ EOF
         chmod 0600 $PWB_BASE_DIR/etc/$HPC_DOMAIN.key 
 fi
 
-if (EASYBUILD_SUPPORT); then 
+if EASYBUILD_SUPPORT 
+then 
 
     # get rid of modules.sh (left-over from environment-modules)
     rm -rf /etc/profile.d/modules.sh 
@@ -301,7 +317,8 @@ thread-pool-size=4
 enable-debug-logging=1
 EOF
 
-if (LOCAL); then 
+if LOCAL 
+then 
     echo "enable-cgroups=1" >>  $PWB_CONFIG_DIR/launcher.conf
 fi 
 
@@ -318,7 +335,8 @@ type=Slurm
 config-file=/etc/rstudio/launcher.slurmbatch.conf
 EOF
 
-if (LOCAL); then 
+if LOCAL 
+then 
 cat >> $PWB_CONFIG_DIR/launcher.conf<<EOF
 
 [cluster]
@@ -365,7 +383,8 @@ resource-profile-config=/etc/rstudio/launcher.slurmbatch.resources.conf
 
 EOF
 
-if (LOCAL); then 
+if LOCAL 
+then 
 cat > $PWB_CONFIG_DIR/launcher.local.conf << EOF 
 scratch-path=/home/rstudio/shared-storage/Local
 load-balancer-preference=nfs
@@ -397,7 +416,8 @@ EOF
 fi
  
 
-if (SINGULARITY_SUPPORT); then 
+if SINGULARITY_SUPPORT 
+then 
         my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
 
         if [[ $my_pwb_version =~ "daily" ]]; then 
@@ -464,7 +484,8 @@ mem-mb=14386
 
 EOF
 
-if (BENCHMARK_SUPPORT); then 
+if BENCHMARK_SUPPORT
+then 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf<<EOF
 [small]
 name = "Small (1 cpu, 1 GB mem)"
@@ -540,7 +561,7 @@ EOF
 mkdir -p $SHARED_DATA/crash-dumps
 chmod 777 $SHARED_DATA/crash-dumps
 
-aws s3 cp s3://S3_BUCKET/config-login.sh  $PWB_BASE_DIR/scripts
+aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
 chmod +x $PWB_BASE_DIR/scripts/config-login.sh
 
 cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb 
@@ -596,7 +617,8 @@ chmod +x $PWB_BASE_DIR/scripts/rc.pwb
 aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
 chmod +x $PWB_BASE_DIR/scripts/config-login.sh
 
-if (SINGULARITY_SUPPORT); then
+if SINGULARITY_SUPPORT 
+then
         cd /tmp && \
                 git clone https://github.com/sol-eng/singularity-rstudio.git && \
                 cd singularity-rstudio/data/r-session-complete &&

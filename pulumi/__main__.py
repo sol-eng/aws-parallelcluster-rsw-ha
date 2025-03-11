@@ -63,6 +63,16 @@ def get_password(
                           min_upper=1
                           ).result
 
+def get_password2( 
+        name: str
+):  
+    return RandomPassword(name,
+                          length=20,
+                          special=False,   
+                          min_lower=1,     
+                          min_numeric=1,
+                          min_upper=1
+                          ).result
 
 def make_server(
         name: str,
@@ -123,7 +133,7 @@ def main():
 
     
 
-    posit_user_pass = get_password("posit_user_pass")
+    posit_user_pass = get_password2("posit_user_pass")
     pulumi.export("posit_user_pass", pulumi.Output.secret(posit_user_pass))
     posit_user_pass_secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
     secretsmanager.SecretVersion(f"PositUserPassword-{stack_name}",
@@ -145,9 +155,13 @@ def main():
     key_pair_name = f"{config.email}-keypair-for-pulumi-{stack_name}"
 
 
+#    ssh_key = PrivateKey(key_pair_name,
+#        algorithm="ED25519"
+#    )  
+
     ssh_key = PrivateKey(key_pair_name,
-        algorithm="ED25519"
-    )   
+        algorithm="RSA"
+    ) 
 
     # Export the public key in OpenSSH format
     pulumi.export("public_key_ssh", ssh_key.public_key_openssh)
@@ -182,13 +196,13 @@ def main():
 
     # Create a new VPC with 2 availability zones
     # Enable DNS support and hostnames for EFS mounting
-    vpc = awsx.ec2.Vpc(f"pcluster-vpc-{stack_name}", awsx.ec2.VpcArgs(
-        number_of_availability_zones=2,
-        enable_dns_hostnames=True,
-        enable_dns_support=True,
-        tags=tags | {
-        "Name": f"vpc-{stack_name}"},
-    ))
+    # vpc = awsx.ec2.Vpc(f"pcluster-vpc-{stack_name}", awsx.ec2.VpcArgs(
+    #     number_of_availability_zones=2,
+    #     enable_dns_hostnames=True,
+    #     enable_dns_support=True,
+    #     tags=tags | {
+    #     "Name": f"vpc-{stack_name}"},
+    # ))
 
     # guardduty_vpc_endpoint = ec2.VpcEndpoint(
     #     f"pcluster-vpc-{stack_name}",
@@ -198,6 +212,40 @@ def main():
     #     subnet_ids=vpc.private_subnet_ids,
     #     private_dns_enabled=True,  # Enable private DNS for this endpoint
     # )
+
+    vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
+            name="tag:Name",
+            values=["soleng-pcluster"]
+        )])
+    
+
+    public_subnets = ec2.get_subnets(filters=[
+    ec2.GetSubnetsFilterArgs(
+        name="vpc-id",
+        values=[vpc.id]
+    ),
+    ec2.GetSubnetsFilterArgs(
+        name="tag:Name",
+        values=["*public*"]
+    )
+    ])
+
+    # Export the subnet IDs
+    pulumi.export("public_subnet_ids", public_subnets.ids)
+
+    private_subnets = ec2.get_subnets(filters=[
+    ec2.GetSubnetsFilterArgs(
+        name="vpc-id",
+        values=[vpc.id]
+    ),
+    ec2.GetSubnetsFilterArgs(
+        name="tag:Name",
+        values=["*private*"]
+    )
+    ])
+
+    # Export the subnet IDs
+    pulumi.export("private_subnet_ids", private_subnets.ids)
 
     # --------------------------------------------------------------------------
     # ELB access from within AWS ParallelCluster
@@ -261,22 +309,40 @@ def main():
     # --------------------------------------------------------------------------
 
     rsw_security_group = ec2.SecurityGroup(
-        "WorkbenchServer",
-        description="Security group for WorkbenchServer access",
+        "WorkbenchServerHTTPS",
+        description="Security group for WorkbenchServer access (HTTPS and launcher port 5559)",
         ingress=[
             {"protocol": "TCP", "from_port": 443, "to_port": 443,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "WorkbenchServer access"},
+             'cidr_blocks': [vpc.cidr_block], "description": "WorkbenchServer access"},
             {"protocol": "TCP", "from_port": 5559, "to_port": 5559,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "Launcher access"},
+             'cidr_blocks': [vpc.cidr_block], "description": "Launcher access"},
         ],
         egress=[
             {"protocol": "All", "from_port": 0, "to_port": 0,
              'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
         ],
         tags=tags,
-        vpc_id=vpc.vpc_id
+        vpc_id=vpc.id
     )
-    pulumi.export("rsw_security_group", rsw_security_group.id)
+    pulumi.export("rsw_security_group_https", rsw_security_group.id)
+
+    rsw_security_group = ec2.SecurityGroup(
+        "WorkbenchServerNOHTTPS",
+        description="Security group for WorkbenchServer access (workbench port 8787 and launcher port 5559)",
+        ingress=[
+            {"protocol": "TCP", "from_port": 8787, "to_port": 8787,
+             'cidr_blocks': [vpc.cidr_block], "description": "WorkbenchServer access"},
+            {"protocol": "TCP", "from_port": 5559, "to_port": 5559,
+             'cidr_blocks': [vpc.cidr_block], "description": "Launcher access"},
+        ],
+        egress=[
+            {"protocol": "All", "from_port": 0, "to_port": 0,
+             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+        ],
+        tags=tags,
+        vpc_id=vpc.id
+    )
+    pulumi.export("rsw_security_group_nohttps", rsw_security_group.id)
 
 
     # --------------------------------------------------------------------------
@@ -288,19 +354,19 @@ def main():
         description="Security group for PostgreSQL access",
         ingress=[
             {"protocol": "TCP", "from_port": 5432, "to_port": 5432,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "PostgreSQL DB"}
+             'cidr_blocks': [vpc.cidr_block], "description": "PostgreSQL DB"}
         ],
         egress=[
             {"protocol": "All", "from_port": 0, "to_port": 0,
              'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
         ],
         tags=tags,
-        vpc_id=vpc.vpc_id
+        vpc_id=vpc.id
     )
     pulumi.export("rsw_security_group_db", rsw_security_group_db.id)
 
     subnetgroup = rds.SubnetGroup("postgresdbsubnetgroup",
-                                  subnet_ids=vpc.private_subnet_ids,
+                                  subnet_ids=private_subnets.ids,
                                   tags={
                                       "Name": "Postgres subnet group",
                                   })
@@ -341,14 +407,14 @@ def main():
         description="Security group for MySQL access",
         ingress=[
             {"protocol": "TCP", "from_port": 3306, "to_port": 3306,
-             'cidr_blocks': [vpc.vpc.cidr_block], "description": "MySQL DB"}
+             'cidr_blocks': [vpc.cidr_block], "description": "MySQL DB"}
         ],
         egress=[
             {"protocol": "All", "from_port": 0, "to_port": 0,
              'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
         ],
         tags=tags,
-        vpc_id=vpc.vpc_id
+        vpc_id=vpc.id
     )
     pulumi.export("slurm_security_group_db", slurm_security_group_db.id)
 
@@ -407,8 +473,8 @@ def main():
                                     size="Small",
                                     description="Directory for PWB environment",
                                     vpc_settings=directoryservice.DirectoryVpcSettingsArgs(
-                                        vpc_id=vpc.vpc_id,
-                                        subnet_ids=vpc.private_subnet_ids,
+                                        vpc_id=vpc.id,
+                                        subnet_ids=private_subnets.ids,
                                     ),
                                     tags=tags | {"Name": f"pwb-directory-{stack_name}"},
                                     )
@@ -432,7 +498,7 @@ def main():
              'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
         ],
         tags=tags,
-        vpc_id=vpc.vpc_id
+        vpc_id=vpc.id
     )
     pulumi.export("ssh_security_group", ssh_security_group.id)
 
@@ -455,13 +521,13 @@ def main():
         tags=tags | {"Name": f"jump-host-ad-{stack_name}"},
         vpc_group_ids=[ssh_security_group.id],
         instance_type=config.ServerInstanceType,
-        subnet_id=vpc.public_subnet_ids.apply(lambda ids: ids[0]),
+        subnet_id=public_subnets.ids[0],
         ami=ami.id,
         key_name=key_pair.key_name
     )
 
-    pulumi.export("vpc_public_subnet", vpc.public_subnet_ids.apply(lambda ids: ids[0]))
-    pulumi.export("vpc_private_subnet", vpc.private_subnet_ids.apply(lambda ids: ids[0]))
+    pulumi.export("vpc_public_subnet", public_subnets.ids[0])
+    pulumi.export("vpc_private_subnet", private_subnets.ids[0])
     pulumi.export("jump_host_dns", jump_host.public_dns)
     pulumi.export("jump_host_public_ip", jump_host.public_ip)
     pulumi.export("jump_host_instance_id", jump_host.id)
@@ -588,7 +654,7 @@ def main():
     lb_security_group = ec2.SecurityGroup(
         f"public-nlb-secgrp-{stack_name}",
         name=f"public-nlb-secgrp-{stack_name}",
-        vpc_id=vpc.vpc_id,
+        vpc_id=vpc.id,
         ingress=[
             # Allow all 80/443 incoming
             ec2.SecurityGroupIngressArgs(
@@ -604,7 +670,7 @@ def main():
                 from_port=443,
                 to_port=443,
                 protocol="tcp",
-                cidr_blocks=[vpc.vpc.cidr_block]
+                cidr_blocks=[vpc.cidr_block]
             )
         ],
         tags=tags,
@@ -612,32 +678,54 @@ def main():
     )
 
     public_lb = lb.LoadBalancer(
-        f"public-nlb-{stack_name}",
-        name=f"public-nlb-{stack_name}",
+        f"pub-nlb-{stack_name}",
+        name=f"pub-nlb-{stack_name}",
         load_balancer_type="network",
         security_groups=[lb_security_group.id],
-        subnets=vpc.public_subnet_ids,
-        tags=tags ,
-    )
-
-    lb_target_group = lb.TargetGroup(
-        f"public-nlb-tg-{stack_name}",
-        name=f"public-nlb-tg-{stack_name}",
-        port=443,
-        protocol="TCP",
-        target_type="ip",
-        vpc_id=vpc.vpc_id,
+        subnets=public_subnets.ids,
         tags=tags,
     )
 
-    lb_listener = lb.Listener(
-        f"public-nlb-listener-{stack_name}",
+    lb_target_group_https = lb.TargetGroup(
+        f"pub-tg-https-{stack_name}",
+        name=f"pub-tg-https-{stack_name}",
+        port=443,
+        protocol="TCP",
+        target_type="ip",
+        vpc_id=vpc.id,
+        tags=tags,
+    )
+
+    lb_listener_https = lb.Listener(
+        f"pub-listener-https-{stack_name}",
         load_balancer_arn=public_lb.arn,
         port=443,
         protocol="TCP",
         default_actions=[lb.ListenerDefaultActionArgs(
             type="forward",
-            target_group_arn=lb_target_group.arn,
+            target_group_arn=lb_target_group_https.arn,
+        )],
+        tags=tags,
+    )
+
+    lb_target_group_nohttps = lb.TargetGroup(
+        f"pub-tg-nohttps-{stack_name}",
+        name=f"pub-tg-nohttps-{stack_name}",
+        port=8787,
+        protocol="TCP",
+        target_type="ip",
+        vpc_id=vpc.id,
+        tags=tags,
+    )
+
+    lb_listener_nohttps = lb.Listener(
+        f"pub-listener-nohttps-{stack_name}",
+        load_balancer_arn=public_lb.arn,
+        port=8787,
+        protocol="TCP",
+        default_actions=[lb.ListenerDefaultActionArgs(
+            type="forward",
+            target_group_arn=lb_target_group_nohttps.arn,
         )],
         tags=tags,
     )

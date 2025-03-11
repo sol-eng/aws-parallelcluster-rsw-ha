@@ -1,19 +1,17 @@
 #!/bin/bash
 
-CLUSTERNAME="hybrid-launcher"
-STACKNAME="hybrid-launcher"
-PWB_VERSION="2024.12.1-533.pro1"
-#SECURITYGROUP_RSW="sg-04c08af1bcd95449d"
-AMI="ami-04bf99a2f0a089b37"
-AMI="ami-078a7049a04229601"
+CLUSTERNAME="vpc"
+STACKNAME="vpc"
+PWB_VERSION="2024.12.1-563.pro5"
 AMI="ami-09d641c6d0df34503"
+#AMI="ami-0a23aa1812f0b93c8"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
 BENCHMARK_SUPPORT=false
 EASYBUILD_SUPPORT=false
 CONFIG="default"
 HPC_DOMAIN=mayer.cx
-HPC_HOST="hybrid-launcher"
+HPC_HOST="lance-launcher"
 SSL=true
 LOCAL=true
 
@@ -25,7 +23,11 @@ AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $STACKNAME`
 RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $STACKNAME`
 RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $STACKNAME`
 RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $STACKNAME --show-secrets`
-SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group -s $STACKNAME`
+if ($SSL); then 
+  SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group_https -s $STACKNAME`
+else
+  SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group_nohttps -s $STACKNAME`
+fi
 SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $STACKNAME`
 SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $STACKNAME`
 SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $STACKNAME`
@@ -79,6 +81,7 @@ cat scripts/install-pwb-config.sh | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
         sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g" | \
         sed "s#LOCAL#${LOCAL}#g" | \
+        sed "s#SSL#${SSL}#g" | \
         sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
 	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
 	> tmp/install-pwb-config.sh 
@@ -93,10 +96,9 @@ cat scripts/config-login.sh | \
 
 cat scripts/config-compute.sh | \
         sed "s#AD_DNS#${AD_DNS}#g" | \
-	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" \
+	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
+        sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g"\
 	> tmp/config-compute.sh 
-
-aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
 
 cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#PWB_VERSION#${PWB_VERSION}#g" | \
@@ -118,9 +120,10 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#SECURITYGROUP_SSH#${SECURITYGROUP_SSH}#g" | \
         sed "s#ELB_ACCESS#${ELB_ACCESS}#g" | \
 	sed "s#S3_ACCESS#${S3_ACCESS}#g" \
-	> config/cluster-config-wb.yaml
+	> tmp/cluster-config-wb.yaml
 
-aws s3 cp config/cluster-config-wb.yaml s3://${S3_BUCKETNAME}
+aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
+
 
 #echo "Starting deployment"
-pcluster create-cluster --suppress-validators type:CustomSlurmSettingsValidator --cluster-name="$CLUSTERNAME" --cluster-config=config/cluster-config-wb.yaml --rollback-on-failure false 
+pcluster create-cluster --suppress-validators ALL --cluster-name="$CLUSTERNAME" --cluster-config=tmp/cluster-config-wb.yaml --rollback-on-failure false 
