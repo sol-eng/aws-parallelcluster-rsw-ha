@@ -106,8 +106,6 @@ All of the above settings (Instance type, numbers, FsX size) can be changed as n
 
 `ìnstall-compute.sh` script detects the presence of a GPU and then automatically updates the NVIDIA/CUDA driver and installs the CuDNN library for distributed GPU computing. This is more a nice to have but is rsther useful for distributed tensorflow etc...
 
-![Architecture diagram](Benchmark.drawio.png){#architecture}
-
 ## Customisations on top of AWS ParallelCluster
 
 ### Elastic Load Balancer

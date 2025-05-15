@@ -43,7 +43,8 @@ fi
 
 echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
 
-if (EASYBUILD_SUPPORT); then 
+if EASYBUILD_SUPPORT 
+then 
     apt-get update && apt-get install -y lmod 
     cat << EOF > /etc/profile.d/modulepath.sh
 #!/bin/bash

@@ -1,6 +1,6 @@
 Build:
   InstanceType: p2.xlarge 
-  ParentImage: ami-0cae2309e56113b9e
+  ParentImage: ami-0181d6b00c4160daf 
   UpdateOsPackages:
     Enabled: true 
   Iam:
@@ -11,7 +11,7 @@ Build:
       Value: s3://BUCKETNAME/image/install-image.sh
   Imds:
     ImdsSupport: v2.0
-DevSettings:
-  Cookbook:
-    ExtraChefAttributes: |
-      {"cluster": {"nvidia": {"enabled": "yes", "kernel-open": "false"}}}
+#DevSettings:
+#  Cookbook:
+#    ExtraChefAttributes: |
+#      {"cluster": {"nvidia": {"enabled": "yes", "kernel-open": "false"}}}
