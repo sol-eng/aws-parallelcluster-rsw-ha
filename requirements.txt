@@ -66,7 +66,7 @@ idna==3.10
 importlib_resources==6.4.5
 inflection==0.5.1
 itsdangerous==2.2.0
-Jinja2==3.1.5
+Jinja2==3.1.6
 jmespath==0.10.0
 jsii==1.85.0
 jsonschema==4.23.0
