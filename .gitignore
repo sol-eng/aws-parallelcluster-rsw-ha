@@ -3,3 +3,5 @@
 /pulumi/__pycache__/
 /.idea/
 *.iml
+/pulumi/.venv/
+/.venv/
