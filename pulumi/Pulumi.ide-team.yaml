@@ -1,0 +1,3 @@
+config:
+  rsw-ha:email: samcofer@posit.co
+  rsw-ha:billing_code: testing

@@ -96,7 +96,3 @@ dependencies = [
     "werkzeug==2.3.8",
 ]
 
-[tool.uv.workspace]
-members = [
-    "pulumi",
-]
