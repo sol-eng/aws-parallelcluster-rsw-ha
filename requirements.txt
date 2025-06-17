@@ -479,7 +479,7 @@ aws-cdk-region-info==1.204.0
     #   aws-cdk-aws-route53-targets
     #   aws-cdk-core
     #   aws-parallelcluster-rsw-ha
-aws-parallelcluster==3.11.1
+aws-parallelcluster==3.13.1
     # via aws-parallelcluster-rsw-ha
 boto3==1.35.65
     # via
@@ -592,7 +592,7 @@ itsdangerous==2.2.0
     #   aws-parallelcluster-rsw-ha
     #   connexion
     #   flask
-jinja2==3.1.6
+jinja2==3.1.4
     # via
     #   aws-parallelcluster
     #   aws-parallelcluster-rsw-ha
@@ -768,7 +768,7 @@ s3transfer==0.10.3
     # via
     #   aws-parallelcluster-rsw-ha
     #   boto3
-setuptools==78.1.1
+setuptools==75.5.0
     # via
     #   aws-parallelcluster
     #   aws-parallelcluster-rsw-ha

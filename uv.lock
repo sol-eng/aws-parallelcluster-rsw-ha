@@ -1088,7 +1088,7 @@ wheels = [
 
 [[package]]
 name = "aws-parallelcluster"
-version = "3.11.1"
+version = "3.13.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aws-cdk-aws-batch" },
@@ -1120,9 +1120,9 @@ dependencies = [
     { name = "tabulate" },
     { name = "werkzeug" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/88/a8/68cde3c45c5a0ce478f1020bc3d2a8cac6a9ccfd6f31f80a37e880557281/aws-parallelcluster-3.11.1.tar.gz", hash = "sha256:cabb2ae83a4d127f9507344458f3028bad30e682b54bb94ac3f5c7174ca43eed", size = 354664, upload-time = "2024-10-21T16:51:49.604Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/c1/3a85969f91f35946cb71d69f1fd2ec7ca7e4be27c52b2cabf57e2cfb1792/aws_parallelcluster-3.13.1.tar.gz", hash = "sha256:3869524183cc2ea3ac92971841682f3a14226d25d2d113d6327912d347e751dc", size = 357732, upload-time = "2025-06-04T20:17:30.843Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/13/dfe3a46e24399d37c6c1778d7577aef42901c70c167df42244531b7dd56f/aws_parallelcluster-3.11.1-py3-none-any.whl", hash = "sha256:9ce444fe06f73cba2d2a186580e76051acaa1a06cba590253035c09c47a61e6d", size = 512196, upload-time = "2024-10-21T16:51:47.904Z" },
+    { url = "https://files.pythonhosted.org/packages/23/eb/5e0f261044c1f6f330a25e9536167f1fafe1cf88829a6c3d461b814cca30/aws_parallelcluster-3.13.1-py3-none-any.whl", hash = "sha256:31aaa7ad49898217b82ac1ec205850c92b91df996775d7f8342ee7674b636253", size = 514604, upload-time = "2025-06-04T20:17:28.65Z" },
 ]
 
 [[package]]
@@ -1278,7 +1278,7 @@ requires-dist = [
     { name = "aws-cdk-custom-resources", specifier = "==1.204.0" },
     { name = "aws-cdk-cx-api", specifier = "==1.204.0" },
     { name = "aws-cdk-region-info", specifier = "==1.204.0" },
-    { name = "aws-parallelcluster", specifier = "==3.11.1" },
+    { name = "aws-parallelcluster", specifier = "==3.13.1" },
     { name = "boto3", specifier = "==1.35.65" },
     { name = "botocore", specifier = "==1.35.65" },
     { name = "cattrs", specifier = "==23.1.2" },
