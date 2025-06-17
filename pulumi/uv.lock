@@ -240,7 +240,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.2" },
     { name = "requests", specifier = "==2.32.3" },
     { name = "semver", specifier = "==2.13.0" },
-    { name = "setuptools", specifier = "==78.1.1" },
+    { name = "setuptools", specifier = ">=78.1.1" },
     { name = "six", specifier = "==1.16.0" },
     { name = "urllib3", specifier = "==2.2.3" },
     { name = "wheel", specifier = "==0.45.0" },

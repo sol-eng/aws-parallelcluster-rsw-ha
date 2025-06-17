@@ -27,7 +27,7 @@ dependencies = [
     "pyyaml==6.0.2",
     "requests==2.32.3",
     "semver==2.13.0",
-    "setuptools==78.1.1",
+    "setuptools>=78.1.1",
     "six==1.16.0",
     "urllib3==2.2.3",
     "wheel==0.45.0",
