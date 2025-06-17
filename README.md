@@ -17,17 +17,17 @@ Users are advised to read through the docs and follow the instructions there. Th
 
 # Python setup
 
+This folder is managed by uv, please run the following command to initialize the .venv
 ```
-# This folder is managed by uv, please run the following command to initialize the .venv
-
 uv sync
-
-# You may also need to run:
-
-uv self update
-
-# If your version of uv is not able to find Python 3.12.11
 ```
+
+You may also need to run:
+```
+uv self update
+```
+if your version of uv is not able to find Python 3.12.11. 
+
 
 # `uv` setup
 
