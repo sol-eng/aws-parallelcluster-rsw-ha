@@ -14,3 +14,27 @@ Users are advised to read through the docs and follow the instructions there. Th
 1.  Pulumi recipes
 2.  Custom AMI
 3.  AWS ParallelCluster setup
+
+# Python setup
+
+```
+# This folder is managed by uv, please run the following command to initialize the .venv
+
+uv sync
+
+# You may also need to run:
+
+uv self update
+
+# If your version of uv is not able to find Python 3.12.11
+```
+
+# `uv` setup
+
+If `uv` is not available yet, please install it via 
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+and make sure that the install location is part of your `PATH` environment variable. 

@@ -1,3 +1,18 @@
+# Python setup
+
+```
+# This folder is managed by uv, please run the following command to initialize the .venv
+
+uv sync
+
+# You may also need to run:
+
+uv self update
+
+# If your version of uv is not able to find Python 3.12.11
+```
+
+
 # Setup for auxiliary services
 
 ```

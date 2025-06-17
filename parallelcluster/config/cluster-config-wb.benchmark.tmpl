@@ -51,6 +51,8 @@ Scheduling:
           Script: "s3://S3_BUCKETNAME/config-compute.sh"
           Args:
             - "PWB_VERSION"
+      CustomSlurmSettings:
+        OverSubscribe: FORCE:2
       Iam:
         S3Access:
           - BucketName: S3_BUCKETNAME

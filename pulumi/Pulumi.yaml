@@ -3,6 +3,7 @@ runtime:
   name: python
   options:
     virtualenv: .venv
+    toolchain: uv
 description: Deploy Posit Workbench in HA/LB configuration 
 
 config:
