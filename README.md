@@ -28,3 +28,13 @@ uv self update
 
 # If your version of uv is not able to find Python 3.12.11
 ```
+
+# `uv` setup
+
+If `uv` is not available yet, please install it via 
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+and make sure that the install location is part of your `PATH` environment variable. 
