@@ -42,7 +42,7 @@ Scheduling:
       ComputeResources:
         - Name: rstudio 
           InstanceType: c5.24xlarge 
-          MaxCount: 27 
+          MaxCount: 13 
           MinCount: 0
           Efa:
             Enabled: FALSE
@@ -51,6 +51,8 @@ Scheduling:
           Script: "s3://S3_BUCKETNAME/config-compute.sh"
           Args:
             - "PWB_VERSION"
+      CustomSlurmSettings:
+        OverSubscribe: FORCE:2
       Iam:
         S3Access:
           - BucketName: S3_BUCKETNAME
@@ -64,7 +66,7 @@ Scheduling:
       ComputeResources:
         - Name: rstudio 
           InstanceType: c5.24xlarge 
-          MaxCount: 27 
+          MaxCount: 13 
           MinCount: 0
           Efa:
             Enabled: FALSE
