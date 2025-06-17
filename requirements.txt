@@ -755,7 +755,7 @@ referencing==0.35.1
     #   aws-parallelcluster-rsw-ha
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.3
+requests==2.32.4
     # via
     #   aws-parallelcluster-rsw-ha
     #   connexion
