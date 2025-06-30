@@ -538,7 +538,7 @@ def main():
         tags=tags | {"Name": f"jump-host-ad-{stack_name}"},
         vpc_group_ids=[ssh_security_group.id],
         instance_type=config.ServerInstanceType,
-        subnet_id=public_subnets.ids[0],
+        subnet_id=private_subnets.ids[0],
         ami=ami.id,
         key_name=key_pair.key_name
     )
