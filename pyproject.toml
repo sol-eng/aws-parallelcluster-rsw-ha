@@ -56,7 +56,7 @@ dependencies = [
     "aws-cdk-custom-resources==1.204.0",
     "aws-cdk-cx-api==1.204.0",
     "aws-cdk-region-info==1.204.0",
-    "aws-parallelcluster==3.11.1",
+    "aws-parallelcluster==3.13.1",
     "boto3==1.35.65",
     "botocore==1.35.65",
     "cattrs==23.1.2",

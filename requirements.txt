@@ -479,7 +479,7 @@ aws-cdk-region-info==1.204.0
     #   aws-cdk-aws-route53-targets
     #   aws-cdk-core
     #   aws-parallelcluster-rsw-ha
-aws-parallelcluster==3.11.1
+aws-parallelcluster==3.13.1
     # via aws-parallelcluster-rsw-ha
 boto3==1.35.65
     # via
