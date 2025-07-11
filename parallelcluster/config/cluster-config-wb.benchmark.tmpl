@@ -114,7 +114,8 @@ SharedStorage:
   - MountDir: /opt/rstudio
     Name: rstudio
     StorageType: Efs
-    # TODO: Add Encryption and Encryption in Transit
+    Encrypted: true
+    EncryptionInTransit: true
   - MountDir: /scratch
     Name: scratch
     StorageType: Efs
