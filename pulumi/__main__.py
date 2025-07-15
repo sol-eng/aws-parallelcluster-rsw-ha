@@ -94,7 +94,7 @@ def make_server(
         subnet_id=subnet_id,
         key_name=key_name,
         iam_instance_profile="WindowsJoinDomain",
-        associate_public_ip_address=True,
+        associate_public_ip_address=False,
         metadata_options={
             "http_put_response_hop_limit": 1,
             "http_tokens": "required",
@@ -102,8 +102,8 @@ def make_server(
     )
 
     # Export final pulumi variables.
-    pulumi.export(f'{type}_{name}_public_ip', server.public_ip)
-    pulumi.export(f'{type}_{name}_public_dns', server.public_dns)
+    pulumi.export(f'{type}_{name}_private_ip', server.private_ip)
+    pulumi.export(f'{type}_{name}_private_dns', server.private_dns)
 
     return server
 
@@ -376,7 +376,7 @@ def main():
 
     rsw_db = rds.Instance(
         "rsw-db",
-        instance_class="db.t3.micro",
+        instance_class="db.t4g.micro",
         allocated_storage=5,
         backup_retention_period=7,
         username=config.rsw_db_username,
@@ -389,7 +389,8 @@ def main():
         vpc_security_group_ids=[rsw_security_group_db.id],
         db_subnet_group_name=subnetgroup,
         storage_encrypted=True,
-        performance_insights_enabled=True
+        performance_insights_enabled=True, # TODO: Update pro-actively to Database Insights standard
+        copy_tags_to_snapshot=True
     )
     pulumi.export("rsw_db_port", rsw_db.port)
     pulumi.export("rsw_db_address", rsw_db.address)
@@ -427,9 +428,21 @@ def main():
                                            secret_string=slurm_db_pass)
     pulumi.export("slurm_db_pass_arn", slurm_db_pass_sec.arn)
 
+    mysql_param_group = rds.ParameterGroup(
+    "mysql-encryption-param-group",
+    family="mysql8.0",  # adjust to your MySQL version
+    description="Custom MySQL parameter group enforcing encryption in transit",
+    parameters=[
+        rds.ParameterGroupParameterArgs(
+            name="require_secure_transport",
+            value="1",
+        ),
+    ],
+)
+
     slurm_db = rds.Instance(
         "slurm-db",
-        instance_class="db.t3.medium",
+        instance_class="db.t4g.medium",
         allocated_storage=5,
         backup_retention_period=7,
         username=config.slurm_db_username,
@@ -441,9 +454,11 @@ def main():
         tags=tags | {"Name": "slurm-db"},
         vpc_security_group_ids=[slurm_security_group_db.id],
         db_subnet_group_name=subnetgroup,
+        parameter_group_name=mysql_param_group.name,
         performance_insights_enabled=True,
         performance_insights_retention_period=7,
-        storage_encrypted=True
+        storage_encrypted=True,
+        copy_tags_to_snapshot=True
     )
 
     pulumi.export("slurm_db_port", slurm_db.port)
@@ -486,12 +501,14 @@ def main():
     # Jump Host (AD)
     # --------------------------------------------------------------------------
 
+     
+
     ssh_security_group = ec2.SecurityGroup(
         "ssh",
         description="ssh access ",
         ingress=[
             {"protocol": "TCP", "from_port": 22, "to_port": 22,
-             'cidr_blocks': [f"{config.my_ip}/32"], "description": "SSH"},
+             'cidr_blocks': [vpc.cidr_block], "description": "SSH"},
         ],
         egress=[
             {"protocol": "All", "from_port": 0, "to_port": 0,
@@ -521,19 +538,19 @@ def main():
         tags=tags | {"Name": f"jump-host-ad-{stack_name}"},
         vpc_group_ids=[ssh_security_group.id],
         instance_type=config.ServerInstanceType,
-        subnet_id=public_subnets.ids[0],
+        subnet_id=private_subnets.ids[0],
         ami=ami.id,
         key_name=key_pair.key_name
     )
 
     pulumi.export("vpc_public_subnet", public_subnets.ids[0])
     pulumi.export("vpc_private_subnet", private_subnets.ids[0])
-    pulumi.export("jump_host_dns", jump_host.public_dns)
-    pulumi.export("jump_host_public_ip", jump_host.public_ip)
+    pulumi.export("jump_host_dns", jump_host.private_dns)
+    pulumi.export("jump_host_public_ip", jump_host.private_ip)
     pulumi.export("jump_host_instance_id", jump_host.id)
 
     connection = remote.ConnectionArgs(
-        host=jump_host.public_dns,  # host=jump_host.id,
+        host=jump_host.private_ip,  # host=jump_host.id,
         user="ubuntu",
         #private_key=Path(f"{key_pair.key_name}.pem").read_text()
         private_key=ssh_key.private_key_openssh

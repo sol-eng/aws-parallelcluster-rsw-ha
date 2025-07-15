@@ -114,9 +114,13 @@ SharedStorage:
   - MountDir: /opt/rstudio
     Name: rstudio
     StorageType: Efs
+    Encrypted: true
+    EncryptionInTransit: true
   - MountDir: /scratch
     Name: scratch
     StorageType: Efs
+    Encrypted: true
+    EncryptionInTransit: true
 
 DirectoryService:
   DomainName: pwb.posit.co
