@@ -24,18 +24,18 @@ fi
 
 tmpdir=`mktemp -d`
  
-sed "s/BUCKETNAME/$bucketname/" image-config.yaml > $tmpdir/image-config.yaml
-
-
 for i in install*.sh *.R
 do
 sed "s/BUCKETNAME/$bucketname/" $i > $tmpdir/$i
 aws s3 cp $tmpdir/$i s3://$bucketname/image/$i
 done
 
-sed "s/BUCKETNAME/$bucketname/" image-config.yaml > $tmpdir/image-config.yaml
+# Get a compatible ubuntu 2024 (noble) AMI
+my_ami=`pcluster list-official-images |  jq -r '.images[] | select(.os == "ubuntu2404" and .architecture == "x86_64") | .amiId'`
+
+cat image-config.yaml | sed "s/AMI/$my_ami/g" | sed "s/BUCKETNAME/$bucketname/" > $tmpdir/image-config.yaml
 
 pcluster build-image -c $tmpdir/image-config.yaml -i $1 --suppress-validators ALL
 
-rm -rf $tmpdir
+#rm -rf $tmpdir
 

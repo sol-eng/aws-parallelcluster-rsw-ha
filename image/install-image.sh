@@ -1,18 +1,18 @@
 #!/bin/bash
 
-R_VERSION_LIST="4.4.2 4.3.3 4.2.3 4.1.3 4.0.5"
-R_VERSION_DEFAULT=4.4.2
+R_VERSION_LIST="4.5.2 4.4.3 4.3.3 4.2.3 4.1.3 4.0.5"
+R_VERSION_DEFAULT=4.5.2
 
-PYTHON_VERSION_LIST="3.12.7 3.11.10 3.10.15"
-PYTHON_VERSION_DEFAULT=3.12.7
+PYTHON_VERSION_LIST="3.13.5 3.12.10 3.11.13 3.10.18"
+PYTHON_VERSION_DEFAULT=3.13.5
 
-QUARTO_VERSION=1.6.34
+QUARTO_VERSION=1.7.32
 
-APPTAINER_VERSION="1.3.5"
+APPTAINER_VERSION="1.4.1"
 
 QUARTO_VERSION=1.4.555
 
-PWB_VERSION=2024.04.2-764.pro1
+PWB_VERSION=2025.08.0-daily-283.pro2
 
 function setup_something() {
 # $1 - script to be run
@@ -28,7 +28,7 @@ apt-get update
 apt-get upgrade -y
 
 # Disable apparmor
-systemctl stop apparmor && systemctl disable apparmor
+# systemctl stop apparmor && systemctl disable apparmor
 
 # Setup LDAP auth
 setup_something install-dummy.sh

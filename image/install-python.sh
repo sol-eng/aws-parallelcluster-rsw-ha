@@ -18,16 +18,12 @@ apt-get update
 apt-get install -y curl
 fi
 
-if ( ! dpkg -l gdebi-core >& /dev/null); then 
-apt-get update 
-apt-get install -y gdebi
-fi
+curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 for PYTHON_VERSION in ${PYTHON_VERSION_LIST}
 do
-  curl -O https://cdn.rstudio.com/python/ubuntu-2204/pkgs/python-${PYTHON_VERSION}_1_amd64.deb
-  gdebi -n python-${PYTHON_VERSION}_1_amd64.deb
-  rm -f python-${PYTHON_VERSION}_1_amd64.deb
+  /usr/local/bin/uv python install "${PYTHON_VERSION}" --install-dir=/opt/python
+  ln -s /opt/python/cpython-$PYTHON_VERSION-* /opt/python/$PYTHON_VERSION
 done
 
 # Configure Python versions to have 
