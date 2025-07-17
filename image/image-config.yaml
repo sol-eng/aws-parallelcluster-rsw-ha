@@ -1,6 +1,9 @@
 Build:
-  InstanceType: p2.xlarge 
-  ParentImage: ami-0181d6b00c4160daf 
+  InstanceType: t3.xlarge 
+  ParentImage: AMI
+  SubnetId: subnet-0c4a6f8286c9cb9a3 
+  SecurityGroupIds:
+    - sg-08ae344c114a7bb8c  
   UpdateOsPackages:
     Enabled: true 
   Iam:
