@@ -12,6 +12,7 @@ EASYBUILD_SUPPORT=false
 CONFIG="default"
 HPC_DOMAIN=mayer.cx
 HPC_HOST="lance-launcher"
+ALLOWEDIPS="10.32.0.0/16"
 SSL=true
 LOCAL=true
 
@@ -119,6 +120,7 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
 	sed "s#BILLING_CODE#${BILLING_CODE}#g" | \
         sed "s#SECURITYGROUP_SSH#${SECURITYGROUP_SSH}#g" | \
         sed "s#ELB_ACCESS#${ELB_ACCESS}#g" | \
+        sed "s#ALLOWEDIPS#${ALLOWEDIPS}#g" | \
 	sed "s#S3_ACCESS#${S3_ACCESS}#g" \
 	> tmp/cluster-config-wb.yaml
 
