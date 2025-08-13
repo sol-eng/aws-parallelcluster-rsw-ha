@@ -23,7 +23,8 @@ HeadNode:
       Size: 120 
   SharedStorageType: Efs
   Ssh:
-    KeyName: KEY 
+    KeyName: KEY
+    AllowedIps: ALLOWEDIPS
 Image: 
   Os: ubuntu2204
   CustomAmi: AMI
@@ -119,7 +120,8 @@ LoginNodes:
         SubnetIds: 
           - SUBNETID
       Ssh:
-        KeyName: KEY 
+        KeyName: KEY
+        AllowedIps: ALLOWEDIPS
       Iam:
         AdditionalIamPolicies:
           - Policy: S3_ACCESS
