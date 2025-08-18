@@ -19,10 +19,12 @@ HeadNode:
     RootVolume:
       Size: 120 
   SharedStorageType: Efs
+  SharedStorageEfsSettings:
+    Encrypted: True
   Ssh:
     KeyName: KEY 
 Image: 
-  Os: ubuntu2204
+  Os: ubuntu2404
   CustomAmi: AMI
 Region: REGION
 Scheduling: 
