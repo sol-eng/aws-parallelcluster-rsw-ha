@@ -1,5 +1,11 @@
 #!/bin/bash
 
+set -x
+
+mkdir -p /opt/rstudio/config-compute
+exec > /opt/rstudio/config-compute/`hostname`-`date +%s`.log 
+exec 2>&1
+
 # create scratch folder as part of EFS fs
 if ( ! mount | grep /scratch ); then
         # create scratch folder as part of EFS fs
@@ -10,8 +16,8 @@ if ( ! mount | grep /scratch ); then
 fi
 
 # Session components
-apt-get update -y
-apt-get install -y curl libcurl4-gnutls-dev libssl-dev libpq5 rrdtool
+apt -o DPkg::Lock::Timeout=300 update -y
+apt -o DPkg::Lock::Timeout=300 install -y curl libcurl4-gnutls-dev libssl-dev libpq5 rrdtool
 mkdir -p /usr/lib/rstudio-server
 tar xf /opt/rstudio/scripts/rsp-session-jammy-$1-amd64.tar.gz -C /usr/lib/rstudio-server --strip-components=1
 
@@ -32,20 +38,21 @@ if ( lspci | grep NVIDIA ); then
    mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
    add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
-   apt-get update
-   apt-get -y install cuda libcudnn8-dev
+   apt -o DPkg::Lock::Timeout=300 update
+   apt -o DPkg::Lock::Timeout=300 -y install cuda libcudnn8-dev
    rmmod gdrdrv
    rmmod nvidia
    modprobe nvidia
-   apt clean
-   apt install -y nvidia-dkms-560 nvidia-kernel-source-560
+   apt -o DPkg::Lock::Timeout=300 clean
+   apt -o DPkg::Lock::Timeout=300 install -y nvidia-dkms-560 nvidia-kernel-source-560
 fi
 
 echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
 
 if EASYBUILD_SUPPORT 
 then 
-    apt-get update && apt-get install -y lmod 
+    apt -o DPkg::Lock::Timeout=300 update 
+    apt -o DPkg::Lock::Timeout=300 install -y lmod 
     cat << EOF > /etc/profile.d/modulepath.sh
 #!/bin/bash
 
