@@ -215,7 +215,7 @@ def main():
 
     vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
             name="tag:Name",
-            values=["soleng-pcluster"]
+            values=["shared"]
         )])
     
 
@@ -278,6 +278,27 @@ def main():
                         }))
 
     pulumi.export("iam_elb_access", policy.arn)
+
+    # --------------------------------------------------------------------------
+    # Allow headnote to start nodes via ec2:RunInstances
+    # --------------------------------------------------------------------------
+
+    policy = iam.Policy("ec2_runinstances",
+                        path="/",
+                        description="Allow headnode of parallelcluster to start nodes",
+                        policy=json.dumps({
+                            "Version": "2012-10-17",
+                            "Statement": [{
+                                "Action": [
+                                    "ec2:RunInstances"
+                                ],
+                                "Effect": "Allow",
+                                "Resource": "*",
+                            }
+                            ],
+                        }))
+
+    pulumi.export("iam_ec2_runinstances", policy.arn)
 
     # --------------------------------------------------------------------------
     # S3 access from login nodes
@@ -371,6 +392,8 @@ def main():
                                       "Name": "Postgres subnet group",
                                   })
 
+    # Default DB 
+
     rsw_db_pass = get_password("rsw_db_pass")
     pulumi.export("rsw_db_pass", pulumi.Output.secret(rsw_db_pass))
 
@@ -398,6 +421,35 @@ def main():
     pulumi.export("rsw_db_name", rsw_db.db_name)
     pulumi.export("rsw_db_user", config.rsw_db_username)
 
+
+    # Audit DB 
+
+    rsw_audit_db_pass = get_password("rsw_audit_db_pass")
+    pulumi.export("rsw_audit_db_pass", pulumi.Output.secret(rsw_audit_db_pass))
+
+    rsw_audit_db = rds.Instance(
+        "rsw-audit-db",
+        instance_class="db.t4g.micro",
+        allocated_storage=5,
+        backup_retention_period=7,
+        username=config.rsw_db_username,
+        password=rsw_audit_db_pass,
+        db_name="audit",
+        engine="postgres",
+        publicly_accessible=False,
+        skip_final_snapshot=True,
+        tags=tags | {"Name": "pwb-audit-db"},
+        vpc_security_group_ids=[rsw_security_group_db.id],
+        db_subnet_group_name=subnetgroup,
+        storage_encrypted=True,
+        performance_insights_enabled=True, # TODO: Update pro-actively to Database Insights standard
+        copy_tags_to_snapshot=True
+    )
+    pulumi.export("rsw_audit_db_port", rsw_audit_db.port)
+    pulumi.export("rsw_audit_db_address", rsw_audit_db.address)
+    pulumi.export("rsw_audit_db_endpoint", rsw_audit_db.endpoint)
+    pulumi.export("rsw_audit_db_name", rsw_audit_db.db_name)
+    pulumi.export("rsw_audit_db_user", config.rsw_db_username)
 
     # --------------------------------------------------------------------------
     # SLURM Accounting DB (MySQL)

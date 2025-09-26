@@ -1,9 +1,10 @@
 #!/bin/bash
 
-CLUSTERNAME="vpc"
-STACKNAME="vpc"
-PWB_VERSION="2024.12.1-563.pro5"
-AMI="ami-09d641c6d0df34503"
+CLUSTERNAME="demo"
+STACKNAME="demo"
+PWB_VERSION="2025.09.0-387.pro2"
+AMI=ami-0a4b160d31e46676e
+#AMI="ami-09d641c6d0df34503"
 #AMI="ami-0a23aa1812f0b93c8"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
@@ -24,6 +25,9 @@ AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $STACKNAME`
 RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $STACKNAME`
 RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $STACKNAME`
 RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $STACKNAME --show-secrets`
+RSW_AUDIT_DB_HOST=`cd ../pulumi && pulumi stack output rsw_audit_db_address -s $STACKNAME`
+RSW_AUDIT_DB_USER=`cd ../pulumi && pulumi stack output rsw_audit_db_user -s $STACKNAME`
+RSW_AUDIT_DB_PASS=`cd ../pulumi && pulumi stack output rsw_audit_db_pass -s $STACKNAME --show-secrets`
 if ($SSL); then 
   SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group_https -s $STACKNAME`
 else
@@ -38,6 +42,7 @@ BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $STACKNAME`
 ELB_ACCESS=`cd ../pulumi && pulumi stack output iam_elb_access -s $STACKNAME`
 S3_ACCESS=`cd ../pulumi && pulumi stack output iam_s3_access -s $STACKNAME`
 S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $STACKNAME`
+EC2_RUNINSTANCES=`cd ../pulumi && pulumi stack output iam_ec2_runinstances -s $STACKNAME`
 SUBNETID=`cd ../pulumi && pulumi stack output vpc_private_subnet -s $STACKNAME`
 SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output ssh_security_group -s $STACKNAME`
 
@@ -77,6 +82,9 @@ cat scripts/install-pwb-config.sh | \
         sed "s#RSW_DB_HOST#${RSW_DB_HOST}#g" | \
         sed "s#RSW_DB_USER#${RSW_DB_USER}#g" | \
        	sed "s#RSW_DB_PASS#${RSW_DB_PASS}#g" | \
+        sed "s#RSW_AUDIT_DB_HOST#${RSW_AUDIT_DB_HOST}#g" | \
+        sed "s#RSW_AUDIT_DB_USER#${RSW_AUDIT_DB_USER}#g" | \
+	sed "s#RSW_AUDIT_DB_PASS#${RSW_AUDIT_DB_PASS}#g" | \
         sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
         sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
@@ -90,13 +98,15 @@ cat scripts/install-pwb-config.sh | \
 cat scripts/config-login.sh | \
         sed "s#AD_DNS#${AD_DNS}#g" | \
         sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
-        sed "s#HPC_DOMAIN#${HPC_DOMAIN}#g" | \
+        sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
+	sed "s#HPC_DOMAIN#${HPC_DOMAIN}#g" | \
         sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
         sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g" \
         > tmp/config-login.sh 
 
 cat scripts/config-compute.sh | \
         sed "s#AD_DNS#${AD_DNS}#g" | \
+	sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
 	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
         sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g"\
 	> tmp/config-compute.sh 
@@ -121,7 +131,8 @@ cat config/cluster-config-wb.${CONFIG}.tmpl | \
         sed "s#SECURITYGROUP_SSH#${SECURITYGROUP_SSH}#g" | \
         sed "s#ELB_ACCESS#${ELB_ACCESS}#g" | \
         sed "s#ALLOWEDIPS#${ALLOWEDIPS}#g" | \
-	sed "s#S3_ACCESS#${S3_ACCESS}#g" \
+	sed "s#S3_ACCESS#${S3_ACCESS}#g" | \
+        sed "s#EC2_RUNINSTANCES#${EC2_RUNINSTANCES}#g" \
 	> tmp/cluster-config-wb.yaml
 
 aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 

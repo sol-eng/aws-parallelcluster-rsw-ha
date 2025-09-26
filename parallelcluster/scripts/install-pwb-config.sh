@@ -418,16 +418,8 @@ fi
 
 if SINGULARITY_SUPPORT 
 then 
-        my_pwb_version=`rstudio-server version | cut -d "+" -f 1 | sed 's/\.//g'`
-
-        if [[ $my_pwb_version =~ "daily" ]]; then 
-        my_pwb_version=${my_pwb_version/-daily/}
-        fi
-
-        if [ $my_pwb_version -gt 2024000 ]; then
                 echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurmbatch.conf
                 echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurminteractive.conf
-        fi
 fi
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF 
@@ -550,7 +542,17 @@ password=RSW_DB_PASS
 connection-timeout-seconds=10
 EOF
 
-chmod 0600 $PWB_CONFIG_DIR/database.conf
+cat << EOF > $PWB_CONFIG_DIR/audit-database.conf
+provider=postgresql
+host=RSW_AUDIT_DB_HOST
+database=audit
+port=5432
+username=RSW_AUDIT_DB_USER
+password=RSW_AUDIT_DB_PASS
+connection-timeout-seconds=10
+EOF
+
+chmod 0600 $PWB_CONFIG_DIR/audit-database.conf
 
 # Setup crash handler
 cat << EOF > $PWB_CONFIG_DIR/crash-handler.conf
@@ -617,19 +619,29 @@ chmod +x $PWB_BASE_DIR/scripts/rc.pwb
 aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
 chmod +x $PWB_BASE_DIR/scripts/config-login.sh
 
+if SINGULARITY_SUPPORT
+then 
+   APPTAINER_VERSION=1.4.2
+   pushd /tmp 
+   curl -LO https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb
+   curl -LO https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+   apt install -y ./apptainer_${APPTAINER_VERSION}_amd64.deb ./apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+   rm -f ./apptainer_${APPTAINER_VERSION}_amd64.deb ./apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+   popd
+fi
+
 if SINGULARITY_SUPPORT 
 then
         cd /tmp && \
                 git clone https://github.com/sol-eng/singularity-rstudio.git && \
                 cd singularity-rstudio/data/r-session-complete &&
                 export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
-                export pwb_version=`rstudio-server version | awk '{print \$1}' | sed 's/+/-/'` &&
                 sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
-                sed -i "s/PWB_VERSION.*/PWB_VERSION=$pwb_version/" build.env &&
+                sed -i "s/PWB_VERSION.*/PWB_VERSION=$PWB_VERSION/" build.env &&
                 for i in `ls -d */ | grep -v scripts | grep -v rhel | sed 's#/##'`; do \
-		        ( pushd $i && \
+                        ( if [[ ! -f $PWB_BASE_DIR/apptainer/$i.sif ]]; then pushd $i && \
 			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
-                        popd ) & 
+                        popd; fi ) & 
                         if [[ $(jobs -r -p | wc -l) -ge 3 ]]; then
                                 wait -n
                         fi

@@ -171,3 +171,13 @@ if ( ! mount | grep /scratch ); then
         mount -t efs ${efsmount}scratch /scratch
 fi
 
+if SINGULARITY_SUPPORT
+then 
+   APPTAINER_VERSION=1.4.2
+   pushd /tmp 
+   curl -LO https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb
+   curl -LO https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+   apt install -y ./apptainer_${APPTAINER_VERSION}_amd64.deb ./apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+   rm -f ./apptainer_${APPTAINER_VERSION}_amd64.deb ./apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+   popd
+fi
