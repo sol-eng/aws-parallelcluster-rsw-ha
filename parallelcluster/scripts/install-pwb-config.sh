@@ -74,7 +74,7 @@ done
 # ELB URL 
 elb_url=`aws elbv2 describe-load-balancers --load-balancer-arns=$elb | jq -r '.[] | .[] | .DNSName'`
 
-# Targer Group ARN
+# Target Group ARN
 target_arn=`aws elbv2 describe-target-groups --load-balancer-arn=$elb --query TargetGroups[].TargetGroupArn | jq -r '.[]'`
 
 # EC2 IDs attached to Target Group 
@@ -89,11 +89,13 @@ done
 
 # Resolve EC2 IDs into ip addresses and add them as HPC_DOMAIN hostnames into nodes file 
 ctr=0
+ec2_ips=""
 echo "#---do not modify below ---" > $PWB_CONFIG_DIR/nodes
 for i in $ec2_ids; 
         do 
                 ctr=$(($ctr+1))
                 ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
+                ec2_ips="$ip $ec2_ips"
                 echo "$ip node${ctr} node${ctr}.${HPC_DOMAIN}" >> $PWB_CONFIG_DIR/nodes
          done
  
@@ -133,6 +135,21 @@ fi
 #             -pubout > $PWB_CONFIG_DIR/launcher.pub && \
 #     chown rstudio-server:rstudio-server \
 #             $PWB_CONFIG_DIR/launcher.pub
+
+
+
+# Find the target group ARN for the ALB
+pwb_alb_tg_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
+# Register the internal NLB as a target to the ALB's target group
+if [ -n "$pwb_alb_tg_arn" ]; then
+for i in $ec2_ids; 
+do 
+        ec2_ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
+        
+        aws elbv2 register-targets --target-group-arn "$pwb_alb_tg_arn" --targets Id="$ec2_ip",Port=8787
+done
+fi
+
 
 
 # generate secure-cookie-key as a simple UUID

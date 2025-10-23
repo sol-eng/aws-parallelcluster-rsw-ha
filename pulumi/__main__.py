@@ -9,7 +9,8 @@ from typing import Dict, List
 import jinja2
 import pulumi
 import json
-from pulumi_aws import ec2, rds, directoryservice, secretsmanager, iam, s3, Provider, get_region, lb
+from pulumi_aws import ec2, rds, directoryservice, secretsmanager
+from pulumi_aws import iam, s3, Provider, get_region, lb, acm, route53
 import pulumi_awsx as awsx
 from pulumi_command import remote
 from pulumi_random import RandomPassword, RandomUuid
@@ -269,12 +270,12 @@ def main():
                             },
                             {
                                 "Action": [
-                                    "ec2:DescribeNetworkInterfaces"
+                                    "ec2:DescribeNetworkInterfaces",
+                                    "ec2:DescribeSubnets"
                                 ],
                                 "Effect": "Allow",
                                 "Resource": "*",
-                            }
-                            ],
+                            }]
                         }))
 
     pulumi.export("iam_elb_access", policy.arn)
@@ -798,5 +799,115 @@ def main():
         )],
         tags=tags,
     )
+
+    # --------------------------------------------------------------------------
+    # Create ALB, Target Group, and Listener for Posit Workbench
+    # --------------------------------------------------------------------------
+
+    # Security group for the ALB, allowing public HTTPS access
+    alb_sg = ec2.SecurityGroup(
+        f"alb-sg-{stack_name}",
+        description="Security group for public ALB",
+        vpc_id=vpc.id,
+        ingress=[
+            ec2.SecurityGroupIngressArgs(
+                protocol="tcp",
+                from_port=443,
+                to_port=443,
+                cidr_blocks=["0.0.0.0/0"],
+                description="Allow HTTPS from anywhere",
+            )
+        ],
+        egress=[
+            ec2.SecurityGroupEgressArgs(
+                protocol="-1",
+                from_port=0,
+                to_port=0,
+                cidr_blocks=["0.0.0.0/0"],
+                description="Allow all outbound traffic",
+            )
+        ],
+        tags=tags | {"Name": f"alb-sg-{stack_name}"},
+    )
+
+    # Create the Application Load Balancer
+    pwb_alb = lb.LoadBalancer(
+        f"pwb-alb-{stack_name}",
+        internal=False,
+        load_balancer_type="application",
+        security_groups=[alb_sg.id],
+        subnets=public_subnets.ids,
+        tags=tags | {"Name": f"pwb-alb-{stack_name}"},
+    )
+    pulumi.export("pwb_alb_arn", pwb_alb.arn)
+    pulumi.export("pwb_alb_dns_name", pwb_alb.dns_name)
+
+    # Get the ACM certificate
+    cert = acm.get_certificate(domain="*.pcluster.soleng.posit.it",
+                               most_recent=True,
+                               statuses=["ISSUED"])
+
+    # Create a target group for the ALB
+    # The head node will register itself with this target group.
+    alb_target_group = lb.TargetGroup(
+        f"pwb-alb-tg-{stack_name}",
+        port=8787, # The internal NLB from ParallelCluster listens on port 80
+        protocol="HTTP",
+        vpc_id=vpc.id,
+        target_type="ip",
+        health_check=lb.TargetGroupHealthCheckArgs(
+            enabled=True,
+            protocol="HTTP",
+            path="/",
+            port="traffic-port",
+            matcher="302",
+        ),
+        tags=tags | {"Name": f"pwb-alb-tg-{stack_name}"},
+    )
+    pulumi.export("alb_target_group_arn", alb_target_group.arn)
+
+
+    # Create a listener with a fixed response.
+    # This can be updated later by the head node once the service is ready.
+    alb_listener = lb.Listener(
+        f"pwb-alb-listener-{stack_name}",
+        load_balancer_arn=pwb_alb.arn,
+        port=443,
+        protocol="HTTPS",
+        certificate_arn=cert.arn,
+        default_actions=[
+            lb.ListenerDefaultActionArgs(
+                type="forward",
+                target_group_arn=alb_target_group.arn,
+            )
+        ],
+        tags=tags,
+    )
+    pulumi.export("alb_listener_arn", alb_listener.arn)
+
+    # --------------------------------------------------------------------------
+    # Route53 for demo.pcluster.soleng.posit.it
+    # --------------------------------------------------------------------------
+
+    # Get the hosted zone for soleng.posit.it
+    soleng_zone = route53.get_zone(name="soleng.posit.it")
+
+    # Create an A record for demo.pcluster.soleng.posit.it
+    # This assumes you have an ALB resource named 'alb'
+    dns_record = route53.Record(
+        "pwb-dns-record",
+        zone_id=soleng_zone.id,
+        name=stack_name + ".pcluster.soleng.posit.it",
+        type="A",
+        aliases=[route53.RecordAliasArgs(
+            name=pwb_alb.dns_name,
+            zone_id=pwb_alb.zone_id,
+            evaluate_target_health=True,
+        )],
+    )
+
+    pulumi.export("pwb_url", dns_record.fqdn)
+
+
 
 main()
