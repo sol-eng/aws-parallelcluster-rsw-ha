@@ -559,6 +559,8 @@ password=RSW_DB_PASS
 connection-timeout-seconds=10
 EOF
 
+chmod 0600 $PWB_CONFIG_DIR/audit-database.conf
+
 cat << EOF > $PWB_CONFIG_DIR/audit-database.conf
 provider=postgresql
 host=RSW_AUDIT_DB_HOST
