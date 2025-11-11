@@ -720,6 +720,38 @@ def main():
     # Date: 2024-12-13
     #########################################################################
 
+    # Security group for the public ALB
+    alb_sg = ec2.SecurityGroup(
+        f"pwb-alb-sg-{stack_name}",
+        description="Security group for public ALB",
+        vpc_id=vpc.id,
+        ingress=[
+            ec2.SecurityGroupIngressArgs(
+                protocol="tcp",
+                from_port=443,
+                to_port=443,
+                cidr_blocks=["0.0.0.0/0"],
+                description="Allow HTTPS from anywhere",
+            ),
+            ec2.SecurityGroupIngressArgs(
+                protocol="tcp",
+                from_port=8787,
+                to_port=8787,
+                cidr_blocks=["0.0.0.0/0"],
+                description="Allow TCP 8787 from anywhere",
+            ),
+        ],
+        egress=[
+            ec2.SecurityGroupEgressArgs(
+                protocol="-1",
+                from_port=0,
+                to_port=0,
+                cidr_blocks=["0.0.0.0/0"],
+                description="Allow all outbound traffic",
+            )
+        ],
+        tags=tags | {"Name": f"pwb-alb-sg-{stack_name}"},
+    )
 
     lb_security_group = ec2.SecurityGroup(
         f"public-nlb-secgrp-{stack_name}",
@@ -747,143 +779,116 @@ def main():
         opts=pulumi.ResourceOptions(delete_before_replace=True),
     )
 
-    public_lb = lb.LoadBalancer(
-        f"pub-nlb-{stack_name}",
-        name=f"pub-nlb-{stack_name}",
-        load_balancer_type="network",
-        security_groups=[lb_security_group.id],
-        subnets=public_subnets.ids,
-        tags=tags,
-    )
-
-    lb_target_group_https = lb.TargetGroup(
-        f"pub-tg-https-{stack_name}",
-        name=f"pub-tg-https-{stack_name}",
-        port=443,
-        protocol="TCP",
-        target_type="ip",
-        vpc_id=vpc.id,
-        tags=tags,
-    )
-
-    lb_listener_https = lb.Listener(
-        f"pub-listener-https-{stack_name}",
-        load_balancer_arn=public_lb.arn,
-        port=443,
-        protocol="TCP",
-        default_actions=[lb.ListenerDefaultActionArgs(
-            type="forward",
-            target_group_arn=lb_target_group_https.arn,
-        )],
-        tags=tags,
-    )
-
-    lb_target_group_nohttps = lb.TargetGroup(
-        f"pub-tg-nohttps-{stack_name}",
-        name=f"pub-tg-nohttps-{stack_name}",
-        port=8787,
-        protocol="TCP",
-        target_type="ip",
-        vpc_id=vpc.id,
-        tags=tags,
-    )
-
-    lb_listener_nohttps = lb.Listener(
-        f"pub-listener-nohttps-{stack_name}",
-        load_balancer_arn=public_lb.arn,
-        port=8787,
-        protocol="TCP",
-        default_actions=[lb.ListenerDefaultActionArgs(
-            type="forward",
-            target_group_arn=lb_target_group_nohttps.arn,
-        )],
-        tags=tags,
-    )
-
-    # --------------------------------------------------------------------------
-    # Create ALB, Target Group, and Listener for Posit Workbench
-    # --------------------------------------------------------------------------
-
-    # Security group for the ALB, allowing public HTTPS access
-    alb_sg = ec2.SecurityGroup(
-        f"alb-sg-{stack_name}",
-        description="Security group for public ALB",
-        vpc_id=vpc.id,
-        ingress=[
-            ec2.SecurityGroupIngressArgs(
-                protocol="tcp",
-                from_port=443,
-                to_port=443,
-                cidr_blocks=["0.0.0.0/0"],
-                description="Allow HTTPS from anywhere",
-            )
-        ],
-        egress=[
-            ec2.SecurityGroupEgressArgs(
-                protocol="-1",
-                from_port=0,
-                to_port=0,
-                cidr_blocks=["0.0.0.0/0"],
-                description="Allow all outbound traffic",
-            )
-        ],
-        tags=tags | {"Name": f"alb-sg-{stack_name}"},
-    )
-
-    # Create the Application Load Balancer
-    pwb_alb = lb.LoadBalancer(
-        f"pwb-alb-{stack_name}",
-        internal=False,
+    # Create an internal and public(ext) Application Load Balancer
+    pwb_alb_ext = lb.LoadBalancer(
+        f"pwb-alb-ext-{stack_name}",
+        name=f"pwb-alb-ext-{stack_name}",
+        internal=False, # This makes it a public-facing ALB
         load_balancer_type="application",
         security_groups=[alb_sg.id],
-        subnets=public_subnets.ids,
-        tags=tags | {"Name": f"pwb-alb-{stack_name}"},
+        subnets=public_subnets.ids, # Place it in public subnets
+        tags=tags | {"Name": f"pwb-alb-ext-{stack_name}"},
+        opts=pulumi.ResourceOptions(delete_before_replace=True),
     )
-    pulumi.export("pwb_alb_arn", pwb_alb.arn)
-    pulumi.export("pwb_alb_dns_name", pwb_alb.dns_name)
+    pulumi.export("pwb_alb_ext_arn", pwb_alb_ext.arn)
+    pulumi.export("pwb_alb_ext_dns_name", pwb_alb_ext.dns_name)
+
+    pwb_alb_int = lb.LoadBalancer(
+        f"pwb-alb-int-{stack_name}",
+        name=f"pwb-alb-int-{stack_name}",
+        internal=True,
+        load_balancer_type="application",
+        security_groups=[alb_sg.id],
+        subnets=public_subnets.ids, # Place it in public subnets
+        tags=tags | {"Name": f"pwb-alb-int-{stack_name}"},
+        opts=pulumi.ResourceOptions(delete_before_replace=True),
+    )
+    pulumi.export("pwb_alb_int_arn", pwb_alb_int.arn)
+    pulumi.export("pwb_alb_int_dns_name", pwb_alb_int.dns_name)
 
     # Get the ACM certificate
     cert = acm.get_certificate(domain="*.pcluster.soleng.posit.it",
                                most_recent=True,
                                statuses=["ISSUED"])
 
-    # Create a target group for the ALB
+    # Create a target group for the ALB.
     # The head node will register itself with this target group.
-    alb_target_group = lb.TargetGroup(
-        f"pwb-alb-tg-{stack_name}",
-        port=8787, # The internal NLB from ParallelCluster listens on port 80
+    alb_target_group_ext = lb.TargetGroup(
+        f"pwb-alb-tg-ext-{stack_name}",
+        port=8787, # The internal service port
         protocol="HTTP",
         vpc_id=vpc.id,
         target_type="ip",
+        stickiness=lb.TargetGroupStickinessArgs(
+            type="app_cookie",
+            cookie_name="rs-csrf-token",
+            enabled=True,
+        ),
         health_check=lb.TargetGroupHealthCheckArgs(
             enabled=True,
             protocol="HTTP",
             path="/",
             port="traffic-port",
-            matcher="302",
+            matcher="302", # RStudio Workbench redirects with a 302
         ),
-        tags=tags | {"Name": f"pwb-alb-tg-{stack_name}"},
+        tags=tags | {"Name": f"pwb-alb-tg-ext-{stack_name}"},
     )
-    pulumi.export("alb_target_group_arn", alb_target_group.arn)
+    pulumi.export("alb_target_group_ext_arn", alb_target_group_ext.arn)
+
+    alb_target_group_int = lb.TargetGroup(
+        f"pwb-alb-tg-int-{stack_name}",
+        port=8787, # The internal service port
+        protocol="HTTP",
+        vpc_id=vpc.id,
+        target_type="ip",
+        stickiness=lb.TargetGroupStickinessArgs(
+            type="app_cookie",
+            cookie_name="rs-csrf-token",
+            enabled=True,
+        ),
+        health_check=lb.TargetGroupHealthCheckArgs(
+            enabled=True,
+            protocol="HTTP",
+            path="/",
+            port="traffic-port",
+            matcher="302", # RStudio Workbench redirects with a 302
+        ),
+        tags=tags | {"Name": f"pwb-alb-tg-int-{stack_name}"},
+    )
+    pulumi.export("alb_target_group_int_arn", alb_target_group_int.arn)
 
 
-    # Create a listener with a fixed response.
-    # This can be updated later by the head node once the service is ready.
-    alb_listener = lb.Listener(
-        f"pwb-alb-listener-{stack_name}",
-        load_balancer_arn=pwb_alb.arn,
+    # Create a listener for HTTPS traffic
+    alb_listener_ext = lb.Listener(
+        f"pwb-alb-listener-ext-{stack_name}",
+        load_balancer_arn=pwb_alb_ext.arn,
         port=443,
         protocol="HTTPS",
         certificate_arn=cert.arn,
-        default_actions=[
-            lb.ListenerDefaultActionArgs(
-                type="forward",
-                target_group_arn=alb_target_group.arn,
-            )
-        ],
+        default_actions=[lb.ListenerDefaultActionArgs(
+            type="forward",
+            target_group_arn=alb_target_group_ext.arn,
+        )],
         tags=tags,
+        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_ext]),
     )
-    pulumi.export("alb_listener_arn", alb_listener.arn)
+    pulumi.export("alb_listener_ext_arn", alb_listener_ext.arn)
+
+    alb_listener_int = lb.Listener(
+        f"pwb-alb-listener-int-{stack_name}",
+        load_balancer_arn=pwb_alb_int.arn,
+        port=443,
+        protocol="HTTPS",
+        certificate_arn=cert.arn,
+        default_actions=[lb.ListenerDefaultActionArgs(
+            type="forward",
+            target_group_arn=alb_target_group_int.arn,
+        )],
+        tags=tags,
+        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_int]),
+    )
+    pulumi.export("alb_listener_int_arn", alb_listener_int.arn)
+
 
     # --------------------------------------------------------------------------
     # Route53 for demo.pcluster.soleng.posit.it
@@ -894,19 +899,35 @@ def main():
 
     # Create an A record for demo.pcluster.soleng.posit.it
     # This assumes you have an ALB resource named 'alb'
-    dns_record = route53.Record(
-        "pwb-dns-record",
+    dns_record_ext = route53.Record(
+        "pwb-dns-record-ext",
+        zone_id=soleng_zone.id,
+        name=stack_name + "-ext.pcluster.soleng.posit.it",
+        type="A",
+        aliases=[route53.RecordAliasArgs(
+            name=pwb_alb_ext.dns_name,
+            zone_id=pwb_alb_ext.zone_id,
+            evaluate_target_health=True,
+        )],
+        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_ext])
+    )
+
+    pulumi.export("pwb_url_ext", dns_record_ext.fqdn)
+
+    dns_record_int = route53.Record(
+        "pwb-dns-record-int",
         zone_id=soleng_zone.id,
         name=stack_name + ".pcluster.soleng.posit.it",
         type="A",
         aliases=[route53.RecordAliasArgs(
-            name=pwb_alb.dns_name,
-            zone_id=pwb_alb.zone_id,
+            name=pwb_alb_int.dns_name,
+            zone_id=pwb_alb_int.zone_id,
             evaluate_target_health=True,
         )],
+        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_int])
     )
 
-    pulumi.export("pwb_url", dns_record.fqdn)
+    pulumi.export("pwb_url_int", dns_record_int.fqdn)
 
 
 
