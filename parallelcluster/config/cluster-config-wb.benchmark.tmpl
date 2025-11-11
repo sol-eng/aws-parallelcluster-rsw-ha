@@ -27,12 +27,15 @@ HeadNode:
     KeyName: KEY
     AllowedIps: ALLOWEDIPS 
 Image: 
-  Os: ubuntu2204
+  Os: ubuntu2404
   CustomAmi: AMI
 Region: REGION
 Scheduling: 
   Scheduler: slurm
   SlurmSettings:
+    Dns:
+      DisableManagedDns: true
+      UseEc2Hostnames: true
     EnableMemoryBasedScheduling: true
     Database:
       Uri: SLURM_DB_HOST
@@ -117,13 +120,9 @@ SharedStorage:
   - MountDir: /opt/rstudio
     Name: rstudio
     StorageType: Efs
-    Encrypted: true
-    EncryptionInTransit: true
   - MountDir: /scratch
     Name: scratch
     StorageType: Efs
-    Encrypted: true
-    EncryptionInTransit: true
 
 DirectoryService:
   DomainName: pwb.posit.co

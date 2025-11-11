@@ -10,7 +10,8 @@ firstnode=$(aws ec2 describe-instances --filters "Name=tag:parallelcluster:clust
 cmdid=$(aws ssm send-command  --instance-ids $firstnode --document-name "AWS-RunShellScript" --parameters commands="rstudio-server version" --query "Command.CommandId" --output text )
 echo "Posit Workbench Version: `aws ssm list-command-invocations --command-id $cmdid --query 'CommandInvocations[].CommandPlugins[].{Status:Status,Output:Output}' --details | jq -r '.[] | .Output'`"
 echo ""
-echo "ELB URL: https://$dns"
+echo "ALB int URL: https://$clustername.pcluster.soleng.posit.it"
+echo "ALB ext URL: https://${clustername}-ext.pcluster.soleng.posit.it"
 echo ""
 echo "Posit User Password: `export cwd=$CWD && cd ../pulumi && pulumi stack output posit_user_pass -s $clustername --show-secrets && cd $cwd `"
 echo ""

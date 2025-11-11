@@ -102,51 +102,65 @@ for i in $ec2_ids;
 # Append nodes file to /etc/hosts
 cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
 
-# register ELB in private subnet as target for pulumi created ELB in public subnet 
-# Find existing internal LB ARN
-internal_lb_arn=`for arn in $(aws elbv2 describe-load-balancers --query "LoadBalancers[*].LoadBalancerArn" --output text); do
-    tags=$(aws elbv2 describe-tags --resource-arns $arn --query "TagDescriptions[].Tags[?Key=='parallelcluster:cluster-name' && Value=='$cluster_name']" --output text)
-    if [ -n "$tags" ]; then
-        echo "$arn"
-    fi
-done`
+# # register ELB in private subnet as target for pulumi created ELB in public subnet 
+# # Find existing internal LB ARN
+# internal_lb_arn=`for arn in $(aws elbv2 describe-load-balancers --query "LoadBalancers[*].LoadBalancerArn" --output text); do
+#     tags=$(aws elbv2 describe-tags --resource-arns $arn --query "TagDescriptions[].Tags[?Key=='parallelcluster:cluster-name' && Value=='$cluster_name']" --output text)
+#     if [ -n "$tags" ]; then
+#         echo "$arn"
+#     fi
+# done`
 
-# Get the Load balancer name because the name will map to the ENI description
-lb_name=`aws elbv2 describe-load-balancers --load-balancer-arns $internal_lb_arn --query 'LoadBalancers[0].LoadBalancerName' --output text`
+# # Get the Load balancer name because the name will map to the ENI description
+# lb_name=`aws elbv2 describe-load-balancers \
+#         --load-balancer-arns $internal_lb_arn \
+#         --query 'LoadBalancers[0].LoadBalancerName' --output text`
 
-internal_lb_ip=`aws ec2 describe-network-interfaces --filters "Name=interface-type,Values=network_load_balancer" "Name=description,Values=*$lb_name*" --query "NetworkInterfaces[*].[PrivateIpAddress]" --output text`
+# internal_lb_ip=`aws ec2 describe-network-interfaces --filters "Name=interface-type,Values=network_load_balancer" "Name=description,Values=*$lb_name*" --query "NetworkInterfaces[*].[PrivateIpAddress]" --output text`
 
-# Register target (use the ip of the internal  NLB)
-if SSL 
-then
-  aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-https-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip
-else
-  aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-nohttps-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip 
-fi
-# # generate launcher ssl keys
-# openssl genpkey -algorithm RSA \
-#             -out $PWB_CONFIG_DIR/launcher.pem \
-#             -pkeyopt rsa_keygen_bits:2048 && \
-#     chown rstudio-server:rstudio-server \
-#             $PWB_CONFIG_DIR/launcher.pem && \
-#     chmod 0600 $PWB_CONFIG_DIR/launcher.pem
+# # Register target (use the ip of the internal  NLB)
+# if SSL 
+# then
+#   aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-https-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip
+# else
+#   aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-nohttps-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip 
+# fi
+# # # generate launcher ssl keys
+# # openssl genpkey -algorithm RSA \
+# #             -out $PWB_CONFIG_DIR/launcher.pem \
+# #             -pkeyopt rsa_keygen_bits:2048 && \
+# #     chown rstudio-server:rstudio-server \
+# #             $PWB_CONFIG_DIR/launcher.pem && \
+# #     chmod 0600 $PWB_CONFIG_DIR/launcher.pem
 
-# openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
-#             -pubout > $PWB_CONFIG_DIR/launcher.pub && \
-#     chown rstudio-server:rstudio-server \
-#             $PWB_CONFIG_DIR/launcher.pub
+# # openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
+# #             -pubout > $PWB_CONFIG_DIR/launcher.pub && \
+# #     chown rstudio-server:rstudio-server \
+# #             $PWB_CONFIG_DIR/launcher.pub
 
 
 
-# Find the target group ARN for the ALB
-pwb_alb_tg_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
-# Register the internal NLB as a target to the ALB's target group
-if [ -n "$pwb_alb_tg_arn" ]; then
+# Find the target group ARN for the int ALB
+pwb_alb_tg_int_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-int') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
+# Register the internal ALB as a target to the ALB's target group
+if [ -n "$pwb_alb_tg_int_arn" ]; then
 for i in $ec2_ids; 
 do 
         ec2_ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
         
-        aws elbv2 register-targets --target-group-arn "$pwb_alb_tg_arn" --targets Id="$ec2_ip",Port=8787
+        aws elbv2 register-targets --target-group-arn "$pwb_alb_tg_int_arn" --targets Id="$ec2_ip",Port=8787
+done
+fi
+
+# Find the target group ARN for the ext ALB
+pwb_alb_tg_ext_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-ext') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
+## Register the external ALB as a target to the ALB's target group
+if [ -n "$pwb_alb_tg_ext_arn" ]; then
+for i in $ec2_ids; 
+do 
+        ec2_ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
+        
+        aws elbv2 register-targets --target-group-arn "$pwb_alb_tg_ext_arn" --targets Id="$ec2_ip",Port=8787
 done
 fi
 

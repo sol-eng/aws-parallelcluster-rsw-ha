@@ -1,21 +1,22 @@
 #!/bin/bash
 
-CLUSTERNAME="demo"
-STACKNAME="demo"
-PWB_VERSION="2025.09.0-387.pro2"
-AMI=ami-0a4b160d31e46676e
+CLUSTERNAME="benchmark"
+STACKNAME="benchmark"
+PWB_VERSION="2025.12.0-daily-286.pro1"
+AMI=ami-0896bebc4edc2cfd6
+#AMI=ami-0a4b160d31e46676e
 #AMI="ami-09d641c6d0df34503"
 #AMI="ami-0a23aa1812f0b93c8"
 REGION="eu-west-1"
 SINGULARITY_SUPPORT=false
-BENCHMARK_SUPPORT=false
+BENCHMARK_SUPPORT=true
 EASYBUILD_SUPPORT=false
-CONFIG="default"
+CONFIG="benchmark"
 HPC_DOMAIN=mayer.cx
-HPC_HOST="lance-launcher"
+HPC_HOST="benchmark"
 ALLOWEDIPS="10.32.0.0/16"
 SSL=true
-LOCAL=true
+LOCAL=false
 
 echo "Extracting values from pulumi setup"
 KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $STACKNAME`
