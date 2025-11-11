@@ -1,9 +1,10 @@
 Build:
-  InstanceType: t3.xlarge 
+  InstanceType: g5.2xlarge 
   ParentImage: AMI
-  SubnetId: subnet-0c4a6f8286c9cb9a3 
+  # private-0 | shared
+  SubnetId: subnet-08a17fc2026b879b6 
   SecurityGroupIds:
-    - sg-08ae344c114a7bb8c  
+    - sg-01f2cc3bfe3a4c675
   UpdateOsPackages:
     Enabled: true 
   Iam:
