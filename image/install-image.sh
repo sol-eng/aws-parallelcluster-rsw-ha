@@ -46,6 +46,9 @@ setup_something install-os-deps.sh
 # Install Apptainer
 setup_something install-apptainer.sh $APPTAINER_VERSION
 
+# Install NVIDIA Driver
+setup_something install-nvidia.sh 
+
 # Cronjob to ensure login nodes are set up 
 #  and service restarts can be automated via state fles
 (crontab -l ; echo "0-59/1 * * * * /opt/rstudio/scripts/rc.pwb")| crontab -
