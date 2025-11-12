@@ -23,6 +23,8 @@ HeadNode:
     RootVolume:
       Size: 120 
   SharedStorageType: Efs
+  SharedStorageEfsSettings:
+    Encrypted: true
   Ssh:
     KeyName: KEY
     AllowedIps: ALLOWEDIPS
@@ -93,8 +95,8 @@ Scheduling:
     - Name: gpu 
       ComputeResources:
         - Name: large
-          InstanceType: p3.2xlarge
-          MaxCount: 1
+          InstanceType: g4dn.xlarge 
+          MaxCount: 5 
           MinCount: 0
           Efa:
             Enabled: FALSE
