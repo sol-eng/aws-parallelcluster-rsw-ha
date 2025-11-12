@@ -260,6 +260,12 @@ workbench-api-admin-enabled=1
 
 # Enable super-admin level tokens
 workbench-api-super-admin-enabled=1
+
+# Enable audited jobs
+audited-jobs=1
+audited-jobs-storage-path=/home/rstudio/shared-storage/audited-jobs
+
+
 EOF
 
 if LOCAL 
