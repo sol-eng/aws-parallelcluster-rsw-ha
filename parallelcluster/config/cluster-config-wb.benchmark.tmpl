@@ -123,6 +123,9 @@ SharedStorage:
   - MountDir: /scratch
     Name: scratch
     StorageType: Efs
+    EfsSettings:
+      Encrypted: true
+      EncryptionInTransit: true
 
 DirectoryService:
   DomainName: pwb.posit.co

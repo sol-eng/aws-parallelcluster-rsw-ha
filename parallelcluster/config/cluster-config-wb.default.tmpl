@@ -147,6 +147,9 @@ SharedStorage:
   - MountDir: /opt/rstudio
     Name: rstudio
     StorageType: Efs
+    EfsSettings:
+      Encrypted: true
+      EncryptionInTransit: true
 
 DirectoryService:
   DomainName: pwb.posit.co
