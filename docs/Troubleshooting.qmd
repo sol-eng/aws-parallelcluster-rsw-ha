@@ -31,6 +31,8 @@ The nodes are in private subnets. Use SSM Session Manager (`aws ssm start-sessio
 
 **`rstudio-server list-nodes` shows nodes that no longer exist.** They are removed when the next login node boots. To remove them right away, run `sudo pwb-lb cleanup` on a login node (log: `/var/log/pwb-lb.log`). Note that `list-nodes` shows stored state; `rstudio-server node-status` probes the nodes.
 
+**Workbench says it is unlicensed or the evaluation has expired.** Check `/var/log/config-login.log` on the login node for a license warning. Run `sudo /usr/lib/rstudio-server/bin/license-manager status`. Is `pwb_license_key` or `pwb_license_file` set in the Pulumi stack (`pulumi config`)? To activate a running node by hand, run `sudo rstudio-server license-manager activate <key>`, or copy the `.lic` file to `/var/lib/rstudio-server/` and run `sudo rstudio-server restart`.
+
 **Users cannot log in.** Check that the user exists (`id posit0001` on a login node) and that `sssd` is running. Users are created by `just create-users` in `pulumi/`, which needs SSH access to the jump host.
 
 **SimpleAD creation fails.** SimpleAD needs two private subnets in different availability zones. Pulumi takes the first private subnet of each AZ, so the VPC must have private subnets in at least two AZs.

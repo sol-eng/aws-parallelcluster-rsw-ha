@@ -51,6 +51,15 @@ ParallelCluster replaces failed login nodes automatically, and the replacements 
 
 The cleanup works from EC2 data, not from Workbench's view alone. `list-nodes` keeps showing a node that disappeared as `Online`, and a node that is merely restarting can be briefly unreachable. If EC2 can't be queried, nothing is removed. The node running the cleanup never removes itself. Logs are in `/var/log/pwb-lb.log`; `pwb-lb cleanup` can also be run by hand.
 
+# Licensing {#sec-licensing}
+
+Only the login nodes run Workbench, so only they need a license. The license comes from the Pulumi config (`pwb_license_key` or `pwb_license_file`). It is stored in AWS Secrets Manager (`PwbLicense-<stack>`), and only the login nodes can read it. On every boot, `config-login.sh` reads the secret:
+
+-   **License key:** activated online with `license-manager activate`. Each login node uses one activation. To keep replaced login nodes from using up activations, `pwb-lb` deactivates the key when a node shuts down. A node that disappears abruptly can't do that; Posit support can reset such activations.
+-   **License file:** written to `/var/lib/rstudio-server/license.lic`. No activation or deactivation is involved, which makes it the better fit for automatically replaced login nodes.
+
+Without a license, or if the secret can't be read, the node runs unlicensed and logs a warning in `/var/log/config-login.log`. The key itself is never written to any log.
+
 # Storage
 
 | Mount | Type | Content |

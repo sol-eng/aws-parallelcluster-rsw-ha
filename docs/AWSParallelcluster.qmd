@@ -96,7 +96,7 @@ Placeholders in the templates and scripts look like `@@NAME@@`. To add one, use 
 
 It touches `/etc/head-node`, so `rc.pwb` can tell the head node apart from login nodes.
 
-**`config-login.sh`** waits for that configuration, installs Workbench and copies the configuration to `/etc/rstudio`. It sets the node's `www-host-name` to its EC2 private DNS name, mounts `/scratch` and starts `rstudio-launcher` and `rstudio-server`. Finally it installs `pwb-lb.sh` as the `pwb-lb` systemd unit, which registers the node with the ALBs and cleans up after replaced login nodes (see [Keeping the load balancers in sync](Architecture.qmd#sec-lb-sync)).
+**`config-login.sh`** waits for that configuration, installs Workbench, activates the license (see [Licensing](Architecture.qmd#sec-licensing)) and copies the configuration to `/etc/rstudio`. It sets the node's `www-host-name` to its EC2 private DNS name, mounts `/scratch` and starts `rstudio-launcher` and `rstudio-server`. Finally it installs `pwb-lb.sh` as the `pwb-lb` systemd unit, which registers the node with the ALBs and cleans up after replaced login nodes (see [Keeping the load balancers in sync](Architecture.qmd#sec-lb-sync)).
 
 **`config-compute.sh`** mounts the session components image and `/scratch`.
 

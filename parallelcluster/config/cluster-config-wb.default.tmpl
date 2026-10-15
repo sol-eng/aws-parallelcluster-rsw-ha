@@ -136,6 +136,8 @@ LoginNodes:
           - Policy: @@S3_ACCESS@@
           # register/deregister with the ALB target groups (pwb-lb.sh)
           - Policy: @@ELB_ACCESS@@
+          # read the Workbench license secret (config-login.sh)
+          - Policy: @@LICENSE_ACCESS@@
 
 DevSettings:
   Timeouts:

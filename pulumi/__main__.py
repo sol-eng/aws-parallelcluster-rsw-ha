@@ -52,6 +52,9 @@ class ConfigValues:
             self.config.get("jumphost_instance_profile") or None
         )
         self.jumphost_ubuntu = self.config.get("jumphost_ubuntu") or "noble"
+        # Posit Workbench license: a key (Pulumi secret) or a path to a .lic file
+        self.pwb_license_key = self.config.get_secret("pwb_license_key")
+        self.pwb_license_file = self.config.get("pwb_license_file") or None
 
 
 def create_template(path: str) -> jinja2.Template:
@@ -585,6 +588,53 @@ def main():
         f"SimpleADPassword-{stack_name}", secret_id=secret.id, secret_string=ad_password
     )
     pulumi.export("ad_password_arn", ad_password_sec.arn)
+
+    # --------------------------------------------------------------------------
+    # Posit Workbench license, read by the login nodes at boot (config-login.sh)
+    # --------------------------------------------------------------------------
+
+    def license_json(key):
+        if key and config.pwb_license_file:
+            raise ValueError("Set only one of pwb_license_key and pwb_license_file")
+        if key:
+            return json.dumps({"type": "key", "value": key})
+        if config.pwb_license_file:
+            with open(config.pwb_license_file) as f:
+                return json.dumps({"type": "file", "value": f.read()})
+        return json.dumps({"type": "none"})
+
+    license_value = pulumi.Output.secret(
+        pulumi.Output.from_input(config.pwb_license_key or "").apply(license_json)
+    )
+
+    license_secret = secretsmanager.Secret(f"PwbLicense-{stack_name}")
+    secretsmanager.SecretVersion(
+        f"PwbLicense-{stack_name}",
+        secret_id=license_secret.id,
+        secret_string=license_value,
+    )
+    pulumi.export("pwb_license_secret_arn", license_secret.arn)
+
+    license_policy = iam.Policy(
+        "pwb-license-read",
+        path="/",
+        description="Read the Posit Workbench license secret (login nodes)",
+        policy=license_secret.arn.apply(
+            lambda arn: json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": ["secretsmanager:GetSecretValue"],
+                            "Effect": "Allow",
+                            "Resource": arn,
+                        }
+                    ],
+                }
+            )
+        ),
+    )
+    pulumi.export("iam_license_access", license_policy.arn)
 
     ad = directoryservice.Directory(
         "pwb_directory",

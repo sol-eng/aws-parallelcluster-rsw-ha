@@ -20,6 +20,14 @@ config:
     type: string
     description: Name of Domain to be used for AD 
     default: pwb.posit.co
+  pwb_license_key:
+    type: string
+    description: Posit Workbench license key, set with 'pulumi config set --secret pwb_license_key ...'
+    default: ""
+  pwb_license_file:
+    type: string
+    description: Path to a Posit Workbench license file (.lic); alternative to pwb_license_key
+    default: ""
   rsw_db_username:
     type: string
     description: Username for the PostgreSQL db

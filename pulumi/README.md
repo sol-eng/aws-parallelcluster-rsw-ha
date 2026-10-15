@@ -20,6 +20,7 @@ pulumi config set email you@example.com
 pulumi config set billing_code my-project
 pulumi config set dns_zone example.com
 pulumi config set dns_subdomain hpc     # optional: <stack>.hpc.example.com
+pulumi config set --secret pwb_license_key XXXX-...   # or: pulumi config set pwb_license_file workbench.lic
 just up                                 # pulumi up -y && just create-users
 ```
 

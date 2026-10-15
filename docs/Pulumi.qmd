@@ -41,6 +41,14 @@ pulumi config set dns_zone example.com
 pulumi config set dns_subdomain hpc          # optional
 ```
 
+Add your Workbench license, either as a key or as a license file. It is stored in AWS Secrets Manager, and only the login nodes can read it:
+
+``` bash
+pulumi config set --secret pwb_license_key XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+# or
+pulumi config set pwb_license_file /path/to/workbench.lic
+```
+
 Then deploy everything and create 10 users:
 
 ``` bash
@@ -64,6 +72,8 @@ just up
 | `ServerInstanceType` | Instance type of the jump host | `t3.medium` |
 | `jumphost_ubuntu` | Ubuntu release of the jump host (`focal`, `jammy`, `noble`) | `noble` |
 | `jumphost_instance_profile` | Optional IAM instance profile for the jump host (e.g. for SSM) | none |
+| `pwb_license_key` | Posit Workbench license key (set with `--secret`) | none |
+| `pwb_license_file` | Path to a Workbench license file (`.lic`), alternative to the key | none |
 | `rsw_db_username` | PostgreSQL admin user | `pwb_db_admin` |
 | `slurm_db_username` | MySQL admin user | `slurm_db_admin` |
 
@@ -104,6 +114,7 @@ User creation is done by `server-side-files/config/useradd.sh` on the jump host.
 | `secure_cookie_key` | Workbench `secure-cookie-key` |
 | `pwb_url_ext`, `pwb_url_int` | Workbench URLs, session callback address |
 | `alb_target_group_ext_arn`, `alb_target_group_int_arn` | target groups the login nodes register with |
+| `pwb_license_secret_arn`, `iam_license_access` | Workbench license secret and the policy that lets login nodes read it |
 | `jump_host_private_ip`, `private_key_ssh` | SSH access to the jump host |
 
 Run `pulumi stack output` to see all of them.

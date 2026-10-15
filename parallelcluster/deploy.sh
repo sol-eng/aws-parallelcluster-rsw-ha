@@ -161,6 +161,8 @@ TPL_SECURITYGROUP_SSH=$(out ssh_security_group); export TPL_SECURITYGROUP_SSH
 TPL_PWB_URL_INT=$(out pwb_url_int); export TPL_PWB_URL_INT
 TPL_ALB_TG_EXT_ARN=$(out alb_target_group_ext_arn); export TPL_ALB_TG_EXT_ARN
 TPL_ALB_TG_INT_ARN=$(out alb_target_group_int_arn); export TPL_ALB_TG_INT_ARN
+TPL_LICENSE_SECRET_ARN=$(out pwb_license_secret_arn); export TPL_LICENSE_SECRET_ARN
+TPL_LICENSE_ACCESS=$(out iam_license_access); export TPL_LICENSE_ACCESS
 
 # render <in> <out>: replace @@NAME@@ tokens literally, fail on unknown tokens
 render() {

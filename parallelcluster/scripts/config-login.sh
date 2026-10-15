@@ -65,6 +65,42 @@ if ( ! dpkg -l gdebi-core >& /dev/null); then
 fi
 gdebi -n /opt/rstudio/scripts/rstudio-workbench-${PWB_VERSION}-amd64.deb
 
+# Posit Workbench license from AWS Secrets Manager (created by Pulumi):
+# {"type":"key","value":...} | {"type":"file","value":...} | {"type":"none"}
+# Not traced (set +x) so the key never ends up in the log.
+LICENSE_MANAGER=/usr/lib/rstudio-server/bin/license-manager
+set +x
+command -v jq >/dev/null || apt-get -o DPkg::Lock::Timeout=300 install -y jq
+license_json=$(aws secretsmanager get-secret-value --region @@REGION@@ \
+    --secret-id "@@LICENSE_SECRET_ARN@@" --query SecretString --output text) || license_json='{"type":"unreadable"}'
+license_type=$(jq -r '.type // "none"' <<<"$license_json" 2>/dev/null)
+case "$license_type" in
+    key)
+        if $LICENSE_MANAGER activate "$(jq -r .value <<<"$license_json")" >/dev/null; then
+            touch /var/lib/rstudio-server/.license-activated-by-key
+            echo "Workbench license key activated"
+        else
+            echo "WARNING: Workbench license key activation failed, running unlicensed"
+        fi
+        ;;
+    file)
+        mkdir -p /var/lib/rstudio-server
+        jq -r .value <<<"$license_json" > /var/lib/rstudio-server/license.lic
+        chown root:rstudio-server /var/lib/rstudio-server/license.lic
+        chmod 0640 /var/lib/rstudio-server/license.lic
+        echo "Workbench license file installed"
+        ;;
+    unreadable)
+        echo "WARNING: could not read the Workbench license secret (IAM policy / network?), running unlicensed"
+        ;;
+    *)
+        echo "WARNING: no Workbench license configured (pwb_license_key / pwb_license_file in Pulumi), running unlicensed"
+        ;;
+esac
+unset license_json
+set -x
+$LICENSE_MANAGER status
+
 cat << EOF > /etc/logrotate.d/rstudio
 /var/log/rstudio/rstudio-server/*.log {
     daily

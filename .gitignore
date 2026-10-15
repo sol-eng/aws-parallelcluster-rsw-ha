@@ -34,6 +34,7 @@ cluster-config-wb.yaml
 *.pem
 *.priv
 *.crt
+*.lic
 id_rsa*
 
 # Logs and scratch

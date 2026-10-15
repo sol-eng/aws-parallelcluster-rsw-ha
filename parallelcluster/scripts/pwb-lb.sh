@@ -7,7 +7,8 @@
 #   register    (unit start, i.e. boot) register this node with the ALB target
 #               groups, then run cleanup
 #   deregister  (unit stop, i.e. shutdown) remove this node from the target
-#               groups and mark it offline in Workbench
+#               groups, mark it offline in Workbench and deactivate a
+#               key-based Workbench license
 #   cleanup     remove ALB targets and Workbench nodes that no longer belong
 #               to a running login node of this cluster
 #
@@ -64,6 +65,13 @@ deregister() {
     done
     # Same as 'rstudio-server stop' does: mark this node offline
     [ -x $RSERVER_DB ] && $RSERVER_DB stop-node
+    # Give a key-based license activation back, so replacement login nodes
+    # don't use up activations (license files need no deactivation)
+    if [ -f /var/lib/rstudio-server/.license-activated-by-key ]; then
+        /usr/lib/rstudio-server/bin/license-manager deactivate >/dev/null \
+            && rm -f /var/lib/rstudio-server/.license-activated-by-key \
+            && echo "Workbench license deactivated"
+    fi
 }
 
 cleanup() {
