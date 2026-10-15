@@ -44,7 +44,7 @@ $EDITOR envs/<clustername>.env
 | `STACKNAME` | Pulumi stack to read from (default: `CLUSTERNAME`) |
 | `REGION` | AWS region |
 | `AMI` | Custom AMI from `image/build-image.sh`. Empty: official ParallelCluster Ubuntu 24.04 image (needs `SINGULARITY_SUPPORT=true`). |
-| `PWB_VERSION` | Posit Workbench version, e.g. `2026.04.0-526.pro2` |
+| `PWB_VERSION` | Posit Workbench version, e.g. `2026.10.0-233.pro1` |
 | `CONFIG` | Cluster template `config/cluster-config-wb.<CONFIG>.tmpl`: `default` or `easybuild` |
 | `APPS_EFS_ID` | Existing EFS with the EasyBuild stack (`CONFIG=easybuild` only) |
 | `ALLOWEDIPS` | CIDR allowed to SSH into head and login nodes |

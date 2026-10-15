@@ -73,6 +73,21 @@ for cmd in pulumi jq aws perl pcluster; do
     }
 done
 
+# Without CustomAmi, ParallelCluster itself picks its official ubuntu2404 AMI
+# for the installed CLI version. Look it up here so the deployment logs which
+# AMI is used and fails early if there is none for this region/version.
+if [ -z "$AMI" ]; then
+    pcluster_version=$(pcluster version | jq -r .version)
+    images_json=$(pcluster list-official-images --region "$REGION" --os ubuntu2404 --architecture x86_64 || true)
+    official_ami=$(jq -r --arg v "$pcluster_version" '[(.images // [])[] | select(.version == $v)] | first | .amiId // empty' <<<"$images_json")
+    if [ -z "$official_ami" ]; then
+        echo "ERROR: no official ParallelCluster $pcluster_version ubuntu2404 AMI found in $REGION" >&2
+        jq -r '.message // empty' <<<"$images_json" >&2 || true
+        exit 1
+    fi
+    echo "No AMI set: using official ParallelCluster $pcluster_version ubuntu2404 AMI $official_ami"
+fi
+
 # ------------------------------------------------------------------------------
 # Pulumi outputs
 # ------------------------------------------------------------------------------
@@ -183,7 +198,7 @@ for f in "${UPLOADS[@]}"; do
 done
 render "$TEMPLATE" tmp/cluster-config-wb.yaml
 if [ -z "$AMI" ]; then
-    echo "No AMI set: using the official ParallelCluster ubuntu2404 image"
+    # official AMI (resolved above): drop CustomAmi so ParallelCluster uses it
     sed -i.bak '/^  CustomAmi: *$/d' tmp/cluster-config-wb.yaml && rm -f tmp/cluster-config-wb.yaml.bak
 fi
 if $SSL; then

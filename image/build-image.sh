@@ -40,9 +40,13 @@ done
 
 # Official ParallelCluster Ubuntu 24.04 (noble) AMI for the installed pcluster version
 pcluster_version=$(pcluster version | jq -r .version)
-my_ami=$(pcluster list-official-images --os ubuntu2404 --architecture x86_64 \
-    | jq -r --arg v "$pcluster_version" '[.images[] | select(.version == $v)] | first | .amiId // empty')
-[ -n "$my_ami" ] || { echo "ERROR: no official ubuntu2404 AMI found for pcluster $pcluster_version" >&2; exit 1; }
+images_json=$(pcluster list-official-images --os ubuntu2404 --architecture x86_64 || true)
+my_ami=$(jq -r --arg v "$pcluster_version" '[(.images // [])[] | select(.version == $v)] | first | .amiId // empty' <<<"$images_json")
+if [ -z "$my_ami" ]; then
+    echo "ERROR: no official ubuntu2404 AMI found for pcluster $pcluster_version" >&2
+    jq -r '.message // empty' <<<"$images_json" >&2 || true
+    exit 1
+fi
 echo "Parent image: $my_ami (pcluster $pcluster_version)"
 
 sed -e "s/@@PARENT_AMI@@/$my_ami/" \

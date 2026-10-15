@@ -13,7 +13,7 @@ The same AMI is used for the head node, the login nodes and the compute nodes.
 
 The custom AMI provides R, Python, Quarto and system libraries on the hosts. It is needed when sessions run directly on the compute nodes (`SINGULARITY_SUPPORT=false`).
 
-When all sessions run in Apptainer containers (`SINGULARITY_SUPPORT=true`), R and Python come from the container images instead. You can then leave `AMI=` empty in the env file, and the cluster uses the official ParallelCluster Ubuntu 24.04 image. The node scripts install what is missing at boot:
+When all sessions run in Apptainer containers (`SINGULARITY_SUPPORT=true`), R and Python come from the container images instead. You can then leave `AMI=` empty in the env file, and the cluster uses the official ParallelCluster Ubuntu 24.04 image. ParallelCluster selects the official AMI that matches the installed CLI version (pinned in `pyproject.toml`) in your region. `deploy.sh` looks it up beforehand, prints its ID, and stops if there is none. The node scripts install what is missing at boot:
 
 -   Apptainer (version `APPTAINER_VERSION` from the env file) on the login and compute nodes.
 -   The build tools for the Slurm SPANK plugin, and `squashfs-tools`, on the head node.
