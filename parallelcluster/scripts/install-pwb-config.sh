@@ -1,9 +1,16 @@
 #!/bin/bash
+#
+# Head node OnNodeConfigured action (see config/cluster-config-wb.*.tmpl).
+#
+# Writes the complete Posit Workbench configuration to the shared
+# /opt/rstudio EFS, registers the login nodes with the Pulumi-managed ALBs
+# and drops /opt/rstudio/scripts/rc.pwb, which the per-minute cron job baked
+# into the AMI runs on every login node to install and (re)start Workbench.
+#
+# Args: $1 PWB_VERSION  $2 HPC_DOMAIN  $3 HPC_HOST
+# Placeholders wrapped in double @ signs are filled in by deploy.sh before upload.
 
-# This script is run on the head node, we temporarily need to mount the shared directory 
-# for the shared_login_nodes in order to populate the rstudio config
-
-set -x 
+set -x
 
 exec > /var/log/install-pwb-config.log
 exec 2>&1
@@ -33,21 +40,23 @@ HPC_HOST=$3
 touch /etc/head-node
 
 # Download session components and store them in $PWB_BASE_DIR/scripts
-
+# Posit publishes Workbench builds for Ubuntu 22.04 (jammy) only; these are
+# the supported packages for Ubuntu 24.04 (noble) as well.
+PWB_DIST=jammy
 pushd $PWB_BASE_DIR/scripts
-curl -O https://s3.amazonaws.com/rstudio-ide-build/session/jammy/amd64/rsp-session-jammy-${PWB_VERSION}-amd64.tar.gz
-curl -O https://s3.amazonaws.com/rstudio-ide-build/server/jammy/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb 
+curl -fsSLO https://s3.amazonaws.com/rstudio-ide-build/session/${PWB_DIST}/amd64/rsp-session-${PWB_DIST}-${PWB_VERSION}-amd64.tar.gz
+curl -fsSLO https://s3.amazonaws.com/rstudio-ide-build/server/${PWB_DIST}/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb
 popd
 
-if ( ! grep AD_DNS /etc/hosts >& /dev/null ); then
-        echo "AD_DNS pwb.posit.co" >> /etc/hosts
+if ( ! grep "@@AD_DNS@@" /etc/hosts >& /dev/null ); then
+        echo "@@AD_DNS@@ @@AD_DOMAIN@@" >> /etc/hosts
 fi
 
-if ( ! grep posit0001 /etc/sudoers >& /dev/null ); then
-        echo "posit0001   ALL=NOPASSWD: ALL" >> /etc/sudoers
-fi
+# Demo admin user gets passwordless sudo
+echo "posit0001   ALL=NOPASSWD: ALL" > /etc/sudoers.d/posit0001
+chmod 0440 /etc/sudoers.d/posit0001
 
-# Add SLURM integration 
+# Add SLURM integration
 
 # wait until ELB is available and then set this to make sure workbench jobs are working
 
@@ -62,112 +71,69 @@ login_nodes_number=`cat /opt/parallelcluster/shared/cluster-config.yaml | yq .Lo
 
 echo "login nodes": $login_nodes_number
 
-#First, let's get the ELB ARN
+# Give up waiting for AWS resources after this many seconds
+WAIT_TIMEOUT=3600
+
+# First, get the ARN of the login node NLB that ParallelCluster creates
 elb=""
+SECONDS=0
 while true
 do
-        elb=`for i in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[].LoadBalancerArn'); do if ( aws elbv2 describe-tags --resource-arns "\$i" | jq --arg cluster_name "$cluster_name" -ce '.TagDescriptions[].Tags[] | select( .Key == "parallelcluster:cluster-name" and .Value==$cluster_name)' > /dev/null); then echo $i; fi; done `
-        if [ ! -z $elb ]; then break; fi
-        sleep 2
+        elb=`for i in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[].LoadBalancerArn'); do if ( aws elbv2 describe-tags --resource-arns "$i" | jq --arg cluster_name "$cluster_name" -ce '.TagDescriptions[].Tags[] | select( .Key == "parallelcluster:cluster-name" and .Value==$cluster_name)' > /dev/null); then echo $i; fi; done `
+        if [ -n "$elb" ]; then break; fi
+        if [ $SECONDS -ge $WAIT_TIMEOUT ]; then echo "ERROR: login node load balancer not found"; exit 1; fi
+        sleep 10
 done
 
-# ELB URL 
+# ELB URL
 elb_url=`aws elbv2 describe-load-balancers --load-balancer-arns=$elb | jq -r '.[] | .[] | .DNSName'`
 
 # Target Group ARN
 target_arn=`aws elbv2 describe-target-groups --load-balancer-arn=$elb --query TargetGroups[].TargetGroupArn | jq -r '.[]'`
 
-# EC2 IDs attached to Target Group 
+# EC2 IDs attached to Target Group
 ec2_ids=""
+SECONDS=0
 while true
 do
         ec2_ids=`aws elbv2 describe-target-health --target-group-arn $target_arn --query 'TargetHealthDescriptions[*].Target.Id' | jq -r '.[]'`
         nr_ids=`set -- $ec2_ids && echo $#`
-        if [ $nr_ids == $login_nodes_number ]; then break; fi
-        sleep 2
+        if [ "$nr_ids" == "$login_nodes_number" ]; then break; fi
+        if [ $SECONDS -ge $WAIT_TIMEOUT ]; then echo "ERROR: only $nr_ids of $login_nodes_number login nodes registered"; exit 1; fi
+        sleep 10
 done
 
-# Resolve EC2 IDs into ip addresses and add them as HPC_DOMAIN hostnames into nodes file 
+# Resolve EC2 IDs into ip addresses and add them as HPC_DOMAIN hostnames into nodes file
 ctr=0
 ec2_ips=""
 echo "#---do not modify below ---" > $PWB_CONFIG_DIR/nodes
-for i in $ec2_ids; 
-        do 
+for i in $ec2_ids;
+        do
                 ctr=$(($ctr+1))
                 ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
                 ec2_ips="$ip $ec2_ips"
                 echo "$ip node${ctr} node${ctr}.${HPC_DOMAIN}" >> $PWB_CONFIG_DIR/nodes
          done
- 
+
 # Append nodes file to /etc/hosts
 cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
 
-# # register ELB in private subnet as target for pulumi created ELB in public subnet 
-# # Find existing internal LB ARN
-# internal_lb_arn=`for arn in $(aws elbv2 describe-load-balancers --query "LoadBalancers[*].LoadBalancerArn" --output text); do
-#     tags=$(aws elbv2 describe-tags --resource-arns $arn --query "TagDescriptions[].Tags[?Key=='parallelcluster:cluster-name' && Value=='$cluster_name']" --output text)
-#     if [ -n "$tags" ]; then
-#         echo "$arn"
-#     fi
-# done`
-
-# # Get the Load balancer name because the name will map to the ENI description
-# lb_name=`aws elbv2 describe-load-balancers \
-#         --load-balancer-arns $internal_lb_arn \
-#         --query 'LoadBalancers[0].LoadBalancerName' --output text`
-
-# internal_lb_ip=`aws ec2 describe-network-interfaces --filters "Name=interface-type,Values=network_load_balancer" "Name=description,Values=*$lb_name*" --query "NetworkInterfaces[*].[PrivateIpAddress]" --output text`
-
-# # Register target (use the ip of the internal  NLB)
-# if SSL 
-# then
-#   aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-https-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip
-# else
-#   aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --names pub-tg-nohttps-$cluster_name --query 'TargetGroups[0].TargetGroupArn' --output text) --targets Id=$internal_lb_ip 
-# fi
-# # # generate launcher ssl keys
-# # openssl genpkey -algorithm RSA \
-# #             -out $PWB_CONFIG_DIR/launcher.pem \
-# #             -pkeyopt rsa_keygen_bits:2048 && \
-# #     chown rstudio-server:rstudio-server \
-# #             $PWB_CONFIG_DIR/launcher.pem && \
-# #     chmod 0600 $PWB_CONFIG_DIR/launcher.pem
-
-# # openssl rsa -in $PWB_CONFIG_DIR/launcher.pem \
-# #             -pubout > $PWB_CONFIG_DIR/launcher.pub && \
-# #     chown rstudio-server:rstudio-server \
-# #             $PWB_CONFIG_DIR/launcher.pub
-
-
-
-# Find the target group ARN for the int ALB
-pwb_alb_tg_int_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-int') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
-# Register the internal ALB as a target to the ALB's target group
-if [ -n "$pwb_alb_tg_int_arn" ]; then
-for i in $ec2_ids; 
-do 
-        ec2_ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
-        
-        aws elbv2 register-targets --target-group-arn "$pwb_alb_tg_int_arn" --targets Id="$ec2_ip",Port=8787
+# Register the login nodes (port 8787) with the internal and external ALB
+# target groups created by Pulumi (pwb-alb-tg-{int,ext}-<cluster_name>)
+for tg in int ext
+do
+        tg_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-$tg') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
+        if [ -z "$tg_arn" ]; then echo "WARNING: no pwb-alb-tg-$tg target group for $cluster_name"; continue; fi
+        for ip in $ec2_ips
+        do
+                aws elbv2 register-targets --target-group-arn "$tg_arn" --targets Id="$ip",Port=8787
+        done
 done
-fi
-
-# Find the target group ARN for the ext ALB
-pwb_alb_tg_ext_arn=$(aws elbv2 describe-target-groups --query "TargetGroups[?starts_with(TargetGroupName, 'pwb-alb-tg-ext') && contains(TargetGroupName, '$cluster_name')].TargetGroupArn" --output text)
-## Register the external ALB as a target to the ALB's target group
-if [ -n "$pwb_alb_tg_ext_arn" ]; then
-for i in $ec2_ids; 
-do 
-        ec2_ip=`aws ec2 describe-instances --filters "Name=instance-id,Values=$i" --query 'Reservations[*].Instances[*].[PrivateIpAddress]' --output text`
-        
-        aws elbv2 register-targets --target-group-arn "$pwb_alb_tg_ext_arn" --targets Id="$ec2_ip",Port=8787
-done
-fi
 
 
 
-# generate secure-cookie-key as a simple UUID
-sh -c "echo SECURE_COOKIE_KEY > $PWB_CONFIG_DIR/secure-cookie-key"
+# secure-cookie-key (a UUID generated by Pulumi)
+echo "@@SECURE_COOKIE_KEY@@" > $PWB_CONFIG_DIR/secure-cookie-key
 chmod 0600 $PWB_CONFIG_DIR/secure-cookie-key
 
 cat > $PWB_CONFIG_DIR/launcher-env << EOF
@@ -181,14 +147,14 @@ log-level=info
 logger-type=file
 rotate=0
 EOF
- 
+
 cat > $PWB_CONFIG_DIR/rserver.conf << EOF
 # Shared storage
 server-shared-storage-path=$SHARED_DATA
 
 # prevent singularity to attempt creating a user in the container (admin rights)
 launcher-sessions-create-container-user=0
-# forward environment variables into the container 
+# forward environment variables into the container
 launcher-sessions-forward-container-environment=1
 
 # enable load-balancing
@@ -204,11 +170,13 @@ launcher-sessions-enabled=1
 launcher-default-cluster=Slurm
 EOF
 
-if SSL 
+# Sessions on compute nodes call back into Workbench. Without SSL on the
+# login nodes this goes through the internal HTTPS ALB (Route53 name from Pulumi).
+if [ "@@SSL@@" = true ]
 then
         echo "launcher-sessions-callback-address=https://$HPC_HOST.$HPC_DOMAIN" >> $PWB_CONFIG_DIR/rserver.conf
 else
-        echo "launcher-sessions-callback-address=http://$internal_lb_ip:8787" >> $PWB_CONFIG_DIR/rserver.conf
+        echo "launcher-sessions-callback-address=https://@@PWB_URL_INT@@" >> $PWB_CONFIG_DIR/rserver.conf
 fi
 
 cat >> $PWB_CONFIG_DIR/rserver.conf << EOF
@@ -216,7 +184,7 @@ cat >> $PWB_CONFIG_DIR/rserver.conf << EOF
 # Disable R Versions scanning
 #r-versions-scan=0
 
-# Location of r-versions JSON file 
+# Location of r-versions JSON file
 r-versions-path=$SHARED_DATA/r-versions
 
 auth-pam-sessions-enabled=1
@@ -244,14 +212,14 @@ monitor-data-path=$SHARED_DATA/head-node/monitor-data
 # secure cookie key
 secure-cookie-key-file=/etc/rstudio/secure-cookie-key
 
-# scalability 
+# scalability
 auth-timeout-minutes=120
 www-thread-pool-size=8
 
 # performance optimisations
 rsession-proxy-max-wait-secs=30
 
-# Workbench API 
+# Workbench API
 # Enable user level tokens
 workbench-api-enabled=1
 
@@ -268,8 +236,8 @@ audited-jobs-storage-path=/home/rstudio/shared-storage/audited-jobs
 
 EOF
 
-if LOCAL 
-then 
+if [ "@@LOCAL@@" = true ]
+then
 cat >> $PWB_CONFIG_DIR/rserver.conf << EOF
 
 # multiple launchers
@@ -285,12 +253,12 @@ launcher-adhoc-clusters=slurmbatch
 EOF
 fi
 
-# Positron support 
+# Positron support
 cat << EOF > $PWB_CONFIG_DIR/positron.conf
 enabled=1
 exe=/usr/lib/rstudio-server/bin/positron-server/bin/positron-server
 EOF
- 
+
 cat << EOF > $PWB_CONFIG_DIR/positron.extensions.conf
 posit.shiny
 posit.publisher
@@ -300,30 +268,30 @@ EOF
 mkdir -p $SHARED_DATA/head-node/{audit-data,monitor-data}
 chown -R rstudio-server $SHARED_DATA/head-node/
 
-if SSL 
-then 
+if [ "@@SSL@@" = true ]
+then
     cat << EOF >> $PWB_CONFIG_DIR/rserver.conf
 
 # Ssl Certificate
 ssl-enabled=1
 ssl-certificate=$PWB_BASE_DIR/etc/$HPC_DOMAIN.crt
-ssl-certificate-key=$PWB_BASE_DIR/etc/$HPC_DOMAIN.key  
+ssl-certificate-key=$PWB_BASE_DIR/etc/$HPC_DOMAIN.key
 EOF
 
-        aws s3 cp s3://S3_BUCKETNAME/$HPC_DOMAIN.crt $PWB_BASE_DIR/etc
-        aws s3 cp s3://S3_BUCKETNAME/$HPC_DOMAIN.key $PWB_BASE_DIR/etc
-        chmod 0600 $PWB_BASE_DIR/etc/$HPC_DOMAIN.key 
+        aws s3 cp s3://@@S3_PREFIX@@/$HPC_DOMAIN.crt $PWB_BASE_DIR/etc
+        aws s3 cp s3://@@S3_PREFIX@@/$HPC_DOMAIN.key $PWB_BASE_DIR/etc
+        chmod 0600 $PWB_BASE_DIR/etc/$HPC_DOMAIN.key
 fi
 
-if EASYBUILD_SUPPORT 
-then 
+if [ "@@EASYBUILD_SUPPORT@@" = true ]
+then
 
     # get rid of modules.sh (left-over from environment-modules)
-    rm -rf /etc/profile.d/modules.sh 
-    
+    rm -rf /etc/profile.d/modules.sh
+
     #disable r-versions-scan
     sed -i 's/#r-versions-scan=.*/r-versions-scan=0/' $PWB_CONFIG_DIR/rserver.conf
-    
+
     # add modules-bin-path
     echo "modules-bin-path=$PWB_CONFIG_DIR/modules.sh" >> $PWB_CONFIG_DIR/rserver.conf
 
@@ -334,7 +302,7 @@ then
 export MODULEPATH=/opt/apps/easybuild/modules/all
 EOF
 
-    # add entries for each version to r-versions 
+    # add entries for each version to r-versions
     for i in 4.0.5 4.1.2 4.2.1
     do
         echo "Module: R/$i-foss-2022a" >> $PWB_CONFIG_DIR/r-versions
@@ -354,10 +322,10 @@ thread-pool-size=4
 enable-debug-logging=1
 EOF
 
-if LOCAL 
-then 
+if [ "@@LOCAL@@" = true ]
+then
     echo "enable-cgroups=1" >>  $PWB_CONFIG_DIR/launcher.conf
-fi 
+fi
 
 cat >> $PWB_CONFIG_DIR/launcher.conf<<EOF
 
@@ -372,8 +340,8 @@ type=Slurm
 config-file=/etc/rstudio/launcher.slurmbatch.conf
 EOF
 
-if LOCAL 
-then 
+if [ "@@LOCAL@@" = true ]
+then
 cat >> $PWB_CONFIG_DIR/launcher.conf<<EOF
 
 [cluster]
@@ -384,7 +352,7 @@ fi
 
 mkdir -p $PWB_CONFIG_DIR/apptainer
 
-cat > $PWB_CONFIG_DIR/launcher.slurminteractive.conf << EOF 
+cat > $PWB_CONFIG_DIR/launcher.slurminteractive.conf << EOF
 # Enable debugging
 enable-debug-logging=1
 
@@ -394,7 +362,7 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
-gpu-types=v100
+gpu-types=t4
 
 # User/group and resource profiles
 profile-config=/etc/rstudio/launcher.slurminteractive.profiles.conf
@@ -402,7 +370,7 @@ resource-profile-config=/etc/rstudio/launcher.slurminteractive.resources.conf
 
 EOF
 
-cat > $PWB_CONFIG_DIR/launcher.slurmbatch.conf << EOF 
+cat > $PWB_CONFIG_DIR/launcher.slurmbatch.conf << EOF
 # Enable debugging
 enable-debug-logging=1
 
@@ -412,7 +380,7 @@ slurm-bin-path=/opt/slurm/bin
 
 # GPU specifics
 enable-gpus=1
-gpu-types=v100
+gpu-types=t4
 
 # User/group and resource profiles
 profile-config=/etc/rstudio/launcher.slurmbatch.profiles.conf
@@ -420,46 +388,46 @@ resource-profile-config=/etc/rstudio/launcher.slurmbatch.resources.conf
 
 EOF
 
-if LOCAL 
-then 
-cat > $PWB_CONFIG_DIR/launcher.local.conf << EOF 
+if [ "@@LOCAL@@" = true ]
+then
+cat > $PWB_CONFIG_DIR/launcher.local.conf << EOF
 scratch-path=/home/rstudio/shared-storage/Local
 load-balancer-preference=nfs
 EOF
- 
-cat > $PWB_CONFIG_DIR/launcher.local.profiles.conf << EOF 
+
+cat > $PWB_CONFIG_DIR/launcher.local.profiles.conf << EOF
 [*]
 max-cpus=4
 max-mem-mb=15000
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.local.resources.conf<<EOF
-# memory limits calculated based on 90% of total t3.xlarge memory
+# memory limits sized for t3.xlarge (4 vCPU, 16 GB) nodes
 [small]
 name = "Small (1 cpu, 1 GB mem)"
 cpus=1
 mem-mb=899
 [medium]
-name = "Medium (2 cpu, 2 GB mem)"
+name = "Medium (2 cpu, 4 GB mem)"
 cpus=2
 mem-mb=3873
 [large]
-name = "Large (4 cpu, 4 GB mem)"
+name = "Large (4 cpu, 8 GB mem)"
 cpus=4
 mem-mb=7746
 
 EOF
 
 fi
- 
 
-if SINGULARITY_SUPPORT 
-then 
+
+if [ "@@SINGULARITY_SUPPORT@@" = true ]
+then
                 echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurmbatch.conf
                 echo -e "# Default GPU brand\ndefault-gpu-brand=nvidia\n" >> $PWB_CONFIG_DIR/launcher.slurminteractive.conf
 fi
 
-cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF 
+cat > $PWB_CONFIG_DIR/launcher.slurminteractive.profiles.conf<<EOF
 [*]
 allowed-partitions=interactive,gpu
 #singularity-image-directory=${PWB_BASE_DIR}/apptainer
@@ -469,7 +437,7 @@ allowed-partitions=interactive,gpu
 #max-mem-mb=1024
 EOF
 
-cat > $PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf<<EOF 
+cat > $PWB_CONFIG_DIR/launcher.slurmbatch.profiles.conf<<EOF
 [*]
 allowed-partitions=all,gpu
 #singularity-image-directory=${PWB_BASE_DIR}/apptainer
@@ -480,24 +448,24 @@ allowed-partitions=all,gpu
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf<<EOF
-# memory limits calculated based on 90% of total t3.xlarge memory
+# memory limits sized for t3.xlarge (4 vCPU, 16 GB) nodes
 [small]
 name = "Small (1 cpu, 1 GB mem)"
 cpus=1
 mem-mb=899
 [medium]
-name = "Medium (2 cpu, 2 GB mem)"
+name = "Medium (2 cpu, 4 GB mem)"
 cpus=2
 mem-mb=3873
 [large]
-name = "Large (4 cpu, 4 GB mem)"
+name = "Large (4 cpu, 8 GB mem)"
 cpus=4
 mem-mb=7746
 
 EOF
 
 cat > $PWB_CONFIG_DIR/launcher.slurmbatch.resources.conf<<EOF
-# memory limits calculated based on 90% of total t3.xlarge memory
+# memory limits sized for t3.xlarge (4 vCPU, 16 GB) nodes
 [small]
 name = "Small (1 cpu, 4 GB mem)"
 cpus=1
@@ -513,8 +481,8 @@ mem-mb=14386
 
 EOF
 
-if BENCHMARK_SUPPORT
-then 
+if [ "@@BENCHMARK_SUPPORT@@" = true ]
+then
 cat > $PWB_CONFIG_DIR/launcher.slurminteractive.resources.conf<<EOF
 [small]
 name = "Small (1 cpu, 1 GB mem)"
@@ -548,7 +516,7 @@ chmod a+rx /usr/local/rstudio/code-server
 
 cat > $PWB_CONFIG_DIR/vscode.conf << EOF
 enabled=1
-exe=/usr/lib/rstudio-server/bin/code-server/bin/code-server
+exe=/usr/lib/rstudio-server/bin/pwb-code-server/bin/code-server
 args=--verbose --host=0.0.0.0 --extensions-dir=$VSCODE_EXTDIR
 EOF
 
@@ -569,25 +537,25 @@ setfacl -R --set-file=$tmpfile /home/renv
 rm -rf $tmpfile
 
 
-cat << EOF > $PWB_CONFIG_DIR/database.conf
+cat << 'EOF' > $PWB_CONFIG_DIR/database.conf
 provider=postgresql
-host=RSW_DB_HOST
+host=@@RSW_DB_HOST@@
 database=pwb
 port=5432
-username=RSW_DB_USER
-password=RSW_DB_PASS
+username=@@RSW_DB_USER@@
+password=@@RSW_DB_PASS@@
 connection-timeout-seconds=10
 EOF
 
-chmod 0600 $PWB_CONFIG_DIR/audit-database.conf
+chmod 0600 $PWB_CONFIG_DIR/database.conf
 
-cat << EOF > $PWB_CONFIG_DIR/audit-database.conf
+cat << 'EOF' > $PWB_CONFIG_DIR/audit-database.conf
 provider=postgresql
-host=RSW_AUDIT_DB_HOST
+host=@@RSW_AUDIT_DB_HOST@@
 database=audit
 port=5432
-username=RSW_AUDIT_DB_USER
-password=RSW_AUDIT_DB_PASS
+username=@@RSW_AUDIT_DB_USER@@
+password=@@RSW_AUDIT_DB_PASS@@
 connection-timeout-seconds=10
 EOF
 
@@ -602,13 +570,13 @@ EOF
 mkdir -p $SHARED_DATA/crash-dumps
 chmod 777 $SHARED_DATA/crash-dumps
 
-aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
+aws s3 cp s3://@@S3_PREFIX@@/config-login.sh  $PWB_BASE_DIR/scripts
 chmod +x $PWB_BASE_DIR/scripts/config-login.sh
 
-cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb 
+cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb
 #!/bin/bash
 
-set -x 
+set -x
 
 exec >> /var/log/rc.pwb.log
 exec 2>&1
@@ -619,68 +587,58 @@ echo "Running rc.pwb on \$(hostname)"
 echo "Date: \$(date)"
 echo ""
 echo "----"
-echo "" 
+echo ""
 
-if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then 
-        # yay - we are on a login node 
+if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
+        # yay - we are on a login node
         if [ ! -f /etc/login-node-is-setup ]; then
                 #  we have not set up workbench so let's do it
                 touch /etc/login-node-is-setup
                 # we need to loop until the config-login.sh script is deployed
                 config_not_found=true
                 while \$config_not_found
-                do 
+                do
                    sleep 5
-                   if [ -f $PWB_BASE_DIR/scripts/config-login.sh ]; then 
+                   if [ -f $PWB_BASE_DIR/scripts/config-login.sh ]; then
                        config_not_found=false
                    fi
                 done
-                # Now we can run the config scrip      
+                # Now we can run the config scrip
                 $PWB_BASE_DIR/scripts/config-login.sh $PWB_CONFIG_DIR $PWB_VERSION
         fi
 
-        if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then 
+        if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then
                 # Something wants us to restart so let's do it
-                systemctl stop rstudio-server 
+                systemctl stop rstudio-server
                 systemctl stop rstudio-launcher
                 killall apache2
                 logrotate -f /etc/logrotate.d/rstudio
-                chmod 0600 /opt/rstudio/etc/rstudio/launcher.pem 
                 systemctl start rstudio-launcher
-                systemctl start rstudio-server 
+                systemctl start rstudio-server
                 touch /opt/rstudio/workbench-\`hostname\`.state
         fi
 fi
 EOF
 
-chmod +x $PWB_BASE_DIR/scripts/rc.pwb 
+chmod +x $PWB_BASE_DIR/scripts/rc.pwb
 
-aws s3 cp s3://S3_BUCKETNAME/config-login.sh  $PWB_BASE_DIR/scripts
-chmod +x $PWB_BASE_DIR/scripts/config-login.sh
 
-if SINGULARITY_SUPPORT
-then 
-   APPTAINER_VERSION=1.4.2
-   pushd /tmp 
-   curl -LO https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb
-   curl -LO https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer-suid_${APPTAINER_VERSION}_amd64.deb
-   apt install -y ./apptainer_${APPTAINER_VERSION}_amd64.deb ./apptainer-suid_${APPTAINER_VERSION}_amd64.deb
-   rm -f ./apptainer_${APPTAINER_VERSION}_amd64.deb ./apptainer-suid_${APPTAINER_VERSION}_amd64.deb
-   popd
-fi
-
-if SINGULARITY_SUPPORT 
+if [ "@@SINGULARITY_SUPPORT@@" = true ]
 then
-#        cd /tmp && \
-#                git clone https://github.com/sol-eng/singularity-rstudio.git && \
-#                cd singularity-rstudio/data/r-session-complete &&
-#                export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
+        # Apptainer itself is installed in the AMI (image/install-apptainer.sh)
+        rm -rf /tmp/singularity-rstudio
+        git clone --depth 1 https://github.com/sol-eng/singularity-rstudio.git /tmp/singularity-rstudio
+
+        # Building the r-session-complete SIF images takes well over an hour and
+        # is disabled. To enable it, uncomment the loop below.
+#                cd /tmp/singularity-rstudio/data/r-session-complete &&
+#                export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` &&
 #                sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
 #                sed -i "s/PWB_VERSION.*/PWB_VERSION=$PWB_VERSION/" build.env &&
 #                for i in `ls -d */ | grep -v scripts | grep -v rhel | sed 's#/##'`; do \
 #                        ( if [[ ! -f $PWB_BASE_DIR/apptainer/$i.sif ]]; then pushd $i && \
 #			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
-#                        popd; fi ) & 
+#                        popd; fi ) &
 #                        if [[ $(jobs -r -p | wc -l) -ge 3 ]]; then
 #                                wait -n
 #                        fi

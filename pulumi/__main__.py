@@ -119,6 +119,8 @@ def main():
     }
 
     pulumi.export("billing_code", config.billing_code)
+    pulumi.export("email", config.email)
+    pulumi.export("ad_domain", config.domain_name)
 
     # --------------------------------------------------------------------------
     # Print Pulumi stack name for better visibility

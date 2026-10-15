@@ -1,46 +1,52 @@
-HeadNode: 
-  CustomActions: 
-    OnNodeConfigured: 
-      Script: "s3://S3_BUCKETNAME/install-pwb-config.sh"
+HeadNode:
+  CustomActions:
+    OnNodeConfigured:
+      Script: "s3://@@S3_PREFIX@@/install-pwb-config.sh"
       Args:
-        - "PWB_VERSION"
-  Iam: 
-    S3Access: 
-      - BucketName: S3_BUCKETNAME
+        - "@@PWB_VERSION@@"
+        - "@@HPC_DOMAIN@@"
+        - "@@HPC_HOST@@"
+  Iam:
+    S3Access:
+      - BucketName: @@S3_BUCKETNAME@@
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      - Policy: ELB_ACCESS
-      - Policy: EC2_RUNINSTANCES
+      - Policy: @@ELB_ACCESS@@
+      - Policy: @@EC2_RUNINSTANCES@@
   InstanceType: t3.xlarge
-  Networking: 
-    SubnetId: SUBNETID
-    AdditionalSecurityGroups: 
-      - SECURITYGROUP_SSH
+  Networking:
+    SubnetId: @@SUBNETID@@
+    AdditionalSecurityGroups:
+      - @@SECURITYGROUP_SSH@@
   LocalStorage:
     RootVolume:
-      Size: 120 
+      Size: 120
   SharedStorageType: Efs
+  SharedStorageEfsSettings:
+    Encrypted: true
   Ssh:
-    KeyName: KEY 
-    AllowedIps: ALLOWEDIPS
-Image: 
-  Os: ubuntu2204
-  CustomAmi: AMI
-Region: REGION
-Scheduling: 
+    AllowedIps: @@ALLOWEDIPS@@
+Image:
+  Os: ubuntu2404
+  CustomAmi: @@AMI@@
+Region: @@REGION@@
+Scheduling:
   Scheduler: slurm
   SlurmSettings:
+    Dns:
+      DisableManagedDns: true
+      UseEc2Hostnames: true
     EnableMemoryBasedScheduling: true
     Database:
-      Uri: SLURM_DB_HOST
-      UserName: SLURM_DB_USER
-      PasswordSecretArn: SLURM_DB_PASS_ARN
-      DatabaseName: SLURM_DB_NAME    
-  SlurmQueues: 
+      Uri: @@SLURM_DB_HOST@@
+      UserName: @@SLURM_DB_USER@@
+      PasswordSecretArn: @@SLURM_DB_PASS_ARN@@
+      DatabaseName: @@SLURM_DB_NAME@@
+  SlurmQueues:
 
     - Name: interactive
       ComputeResources:
-        - Name: rstudio 
+        - Name: rstudio
           InstanceType: t3.xlarge
           MaxCount: 5
           MinCount: 1
@@ -50,21 +56,21 @@ Scheduling:
         OverSubscribe: FORCE:2
       CustomActions:
         OnNodeConfigured:
-          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Script: "s3://@@S3_PREFIX@@/config-compute.sh"
           Args:
-            - "PWB_VERSION"
+            - "@@PWB_VERSION@@"
       Iam:
         S3Access:
-          - BucketName: S3_BUCKETNAME
+          - BucketName: @@S3_BUCKETNAME@@
       Networking:
         PlacementGroup:
           Enabled: FALSE
         SubnetIds:
-          - SUBNETID
+          - @@SUBNETID@@
 
-    - Name: all 
+    - Name: all
       ComputeResources:
-        - Name: rstudio 
+        - Name: rstudio
           InstanceType: t3.xlarge
           MaxCount: 10
           MinCount: 0
@@ -72,54 +78,56 @@ Scheduling:
             Enabled: FALSE
       CustomActions:
         OnNodeConfigured:
-          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Script: "s3://@@S3_PREFIX@@/config-compute.sh"
           Args:
-            - "PWB_VERSION"
+            - "@@PWB_VERSION@@"
       Iam:
         S3Access:
-          - BucketName: S3_BUCKETNAME
+          - BucketName: @@S3_BUCKETNAME@@
       Networking:
         PlacementGroup:
           Enabled: FALSE
         SubnetIds:
-          - SUBNETID
+          - @@SUBNETID@@
 
-    - Name: gpu 
+    - Name: gpu
       ComputeResources:
         - Name: large
-          InstanceType: p3.2xlarge
-          MaxCount: 1
+          InstanceType: g4dn.xlarge
+          MaxCount: 5
           MinCount: 0
           Efa:
             Enabled: FALSE
       CustomActions:
         OnNodeConfigured:
-          Script: "s3://S3_BUCKETNAME/config-compute.sh"
+          Script: "s3://@@S3_PREFIX@@/config-compute.sh"
           Args:
-            - "PWB_VERSION"
+            - "@@PWB_VERSION@@"
       Iam:
         S3Access:
-          - BucketName: S3_BUCKETNAME
+          - BucketName: @@S3_BUCKETNAME@@
       Networking:
         PlacementGroup:
           Enabled: FALSE
-        SubnetIds: 
-          - SUBNETID
+        SubnetIds:
+          - @@SUBNETID@@
 
 
 LoginNodes:
   Pools:
     - Name: login
-      Count: 2 
+      Count: 2
       InstanceType: t3.xlarge
       Networking:
-        AdditionalSecurityGroups: 
-          - SECURITYGROUP_RSW
-        SubnetIds: 
-          - SUBNETID
+        AdditionalSecurityGroups:
+          - @@SECURITYGROUP_RSW@@
+        SubnetIds:
+          - @@SUBNETID@@
       Ssh:
-        KeyName: KEY
-        AllowedIps: ALLOWEDIPS 
+        AllowedIps: @@ALLOWEDIPS@@
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: @@S3_ACCESS@@
 
 DevSettings:
   Timeouts:
@@ -129,26 +137,30 @@ DevSettings:
 SharedStorage:
   - MountDir: /home
     Name: home
-    StorageType: FsxLustre
-    FsxLustreSettings:
-      StorageCapacity: 1200
-      DeploymentType: SCRATCH_2
+    StorageType: Efs
+    EfsSettings:
+      Encrypted: true
+      EncryptionInTransit: true
   - MountDir: /opt/rstudio
     Name: rstudio
     StorageType: Efs
+    EfsSettings:
+      Encrypted: true
+      EncryptionInTransit: true
+  # Pre-existing EFS holding the EasyBuild software stack (modules in /opt/apps/easybuild)
   - MountDir: /opt/apps
     Name: appstack
     StorageType: Efs
     EfsSettings:
-      FileSystemId: fs-0205fa68faced78c2 
+      FileSystemId: @@APPS_EFS_ID@@
 
 DirectoryService:
-  DomainName: pwb.posit.co
-  DomainAddr: ldap://pwb.posit.co
-  PasswordSecretArn: ADPWSecret 
-  DomainReadOnlyUser: cn=Administrator,cn=Users,dc=pwb,dc=posit,dc=co
+  DomainName: @@AD_DOMAIN@@
+  DomainAddr: ldap://@@AD_DOMAIN@@
+  PasswordSecretArn: @@AD_PASSWORD_ARN@@
+  DomainReadOnlyUser: cn=Administrator,cn=Users,@@AD_BASE_DN@@
   GenerateSshKeysForUsers: true
-  AdditionalSssdConfigs: 
+  AdditionalSssdConfigs:
     override_homedir : /home/%u
     ldap_id_use_start_tls : false
     ldap_tls_reqcert : never
@@ -158,8 +170,8 @@ Tags:
   - Key: rs:environment
     Value: development
   - Key: rs:owner
-    Value: EMAIL 
+    Value: @@EMAIL@@
   - Key: rs:project
     Value: solutions
   - Key: rs:subsystem
-    Value: BILLING_CODE
+    Value: @@BILLING_CODE@@
