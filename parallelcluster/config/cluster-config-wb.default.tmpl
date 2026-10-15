@@ -118,6 +118,12 @@ LoginNodes:
     - Name: login
       Count: 2
       InstanceType: t3.xlarge
+      CustomActions:
+        OnNodeConfigured:
+          Script: "s3://@@S3_PREFIX@@/config-login.sh"
+          Args:
+            - "/opt/rstudio/etc/rstudio"
+            - "@@PWB_VERSION@@"
       Networking:
         AdditionalSecurityGroups:
           - @@SECURITYGROUP_RSW@@

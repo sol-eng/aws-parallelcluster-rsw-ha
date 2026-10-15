@@ -53,9 +53,8 @@ setup_something install-apptainer.sh $APPTAINER_VERSION
 # Install NVIDIA Driver
 setup_something install-nvidia.sh
 
-# Cronjob to ensure login nodes are set up
-#  and service restarts can be automated via state fles
-(crontab -l ; echo "0-59/1 * * * * /opt/rstudio/scripts/rc.pwb")| crontab -
+# Login nodes are set up by their OnNodeConfigured action (config-login.sh),
+# which also registers the rc.pwb restart cron job; nothing to do here.
 
 if [ -n "$FAILED" ]; then
   echo "WARNING: the following steps reported errors:$FAILED (logs in /opt/*-install.log)"

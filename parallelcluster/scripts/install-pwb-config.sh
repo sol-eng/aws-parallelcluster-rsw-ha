@@ -590,9 +590,9 @@ EOF
 mkdir -p $SHARED_DATA/crash-dumps
 chmod 777 $SHARED_DATA/crash-dumps
 
-aws s3 cp s3://@@S3_PREFIX@@/config-login.sh  $PWB_BASE_DIR/scripts
-chmod +x $PWB_BASE_DIR/scripts/config-login.sh
-
+# rc.pwb: run every minute by cron on the login nodes (installed by
+# config-login.sh). Restarts Workbench on a login node whenever its
+# /opt/rstudio/workbench-<hostname>.state file is removed.
 cat << EOF > $PWB_BASE_DIR/scripts/rc.pwb
 #!/bin/bash
 
@@ -609,24 +609,8 @@ echo ""
 echo "----"
 echo ""
 
-if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ]; then
-        # yay - we are on a login node
-        if [ ! -f /etc/login-node-is-setup ]; then
-                #  we have not set up workbench so let's do it
-                touch /etc/login-node-is-setup
-                # we need to loop until the config-login.sh script is deployed
-                config_not_found=true
-                while \$config_not_found
-                do
-                   sleep 5
-                   if [ -f $PWB_BASE_DIR/scripts/config-login.sh ]; then
-                       config_not_found=false
-                   fi
-                done
-                # Now we can run the config scrip
-                $PWB_BASE_DIR/scripts/config-login.sh $PWB_CONFIG_DIR $PWB_VERSION
-        fi
-
+# Only on login nodes, and only once config-login.sh (OnNodeConfigured) is done
+if (mount | grep login_nodes >&/dev/null) && [ ! -f /etc/head-node ] && [ -f /etc/login-node-is-setup ]; then
         if [ -f /opt/rstudio/etc/rstudio/rserver.conf ] && [ ! -f /opt/rstudio/workbench-\`hostname\`.state ]; then
                 # Something wants us to restart so let's do it
                 systemctl stop rstudio-server
@@ -645,26 +629,24 @@ chmod +x $PWB_BASE_DIR/scripts/rc.pwb
 
 if [ "@@SINGULARITY_SUPPORT@@" = true ]
 then
-        # Apptainer itself is installed in the AMI (image/install-apptainer.sh)
+        # Container images are not built here: copy your .sif images (e.g.
+        # converted from rstudio/r-session-complete) into $PWB_BASE_DIR/apptainer
+        # (singularity-image-directory). Apptainer itself comes from the custom
+        # AMI or is installed on the compute nodes by config-compute.sh.
+
+        # Build tools for the SPANK plugin (not in the official ParallelCluster AMI)
+        for pkg in git cmake g++ make; do
+                command -v $pkg >/dev/null || NEED_PKGS="$NEED_PKGS $pkg"
+        done
+        if [ -n "$NEED_PKGS" ]; then
+                apt-get -o DPkg::Lock::Timeout=300 update
+                apt-get -o DPkg::Lock::Timeout=300 install -y $NEED_PKGS
+        fi
+
         rm -rf /tmp/singularity-rstudio
         git clone --depth 1 https://github.com/sol-eng/singularity-rstudio.git /tmp/singularity-rstudio
 
-        # Building the r-session-complete SIF images takes well over an hour and
-        # is disabled. To enable it, uncomment the loop below.
-#                cd /tmp/singularity-rstudio/data/r-session-complete &&
-#                export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` &&
-#                sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
-#                sed -i "s/PWB_VERSION.*/PWB_VERSION=$PWB_VERSION/" build.env &&
-#                for i in `ls -d */ | grep -v scripts | grep -v rhel | sed 's#/##'`; do \
-#                        ( if [[ ! -f $PWB_BASE_DIR/apptainer/$i.sif ]]; then pushd $i && \
-#			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
-#                        popd; fi ) &
-#                        if [[ $(jobs -r -p | wc -l) -ge 3 ]]; then
-#                                wait -n
-#                        fi
-#                done
-
-        # We also need to build the SPANK plugin for singularity
+        # SPANK plugin so Slurm jobs can run inside the containers
 
         cd /tmp/singularity-rstudio/slurm-singularity-exec/ && \
                 cmake -S . -B build -D CMAKE_INSTALL_PREFIX=/opt/slurm -DINSTALL_PLUGSTACK_CONF=ON && \
