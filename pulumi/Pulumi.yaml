@@ -4,7 +4,7 @@ runtime:
   options:
     virtualenv: .venv
     toolchain: uv
-description: Deploy Posit Workbench in HA/LB configuration 
+description: Auxiliary infrastructure for Posit Workbench on AWS ParallelCluster
 
 config:
   region:
@@ -28,8 +28,33 @@ config:
     type: string
     description: Username for the MySQL db
     default: slurm_db_admin 
-  my_ip:
+  email:
     type: string
-    description: Local IP address for AWS access
-    default: my_ip
+    description: Owner e-mail, used for tagging and the EC2 key pair name (required)
+  billing_code:
+    type: string
+    description: Billing code, used for the rs:subsystem tag (required)
+  dns_zone:
+    type: string
+    description: Existing Route53 hosted zone, e.g. example.com (required)
+  dns_subdomain:
+    type: string
+    description: Optional label between stack name and zone, records become <stack>.<dns_subdomain>.<dns_zone>
+    default: ""
+  acm_domain:
+    type: string
+    description: Domain of an ISSUED ACM certificate for the ALBs, defaults to *.<dns_subdomain>.<dns_zone>
+    default: ""
+  vpc_name_tag:
+    type: string
+    description: Name tag of the existing VPC to deploy into
+    default: shared
+  jumphost_instance_profile:
+    type: string
+    description: Optional IAM instance profile for the AD jump host (e.g. for SSM access)
+    default: ""
+  jumphost_ubuntu:
+    type: string
+    description: Ubuntu release for the AD jump host (focal, jammy or noble). Changing it replaces the jump host.
+    default: noble
 

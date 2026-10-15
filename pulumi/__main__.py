@@ -1,17 +1,22 @@
 """An AWS Python Pulumi program"""
 
 import hashlib
+import json
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List
-
 
 import jinja2
 import pulumi
-import json
-from pulumi_aws import ec2, rds, directoryservice, secretsmanager
-from pulumi_aws import iam, s3, Provider, get_region, lb, acm, route53
-import pulumi_awsx as awsx
+from pulumi_aws import (
+    acm,
+    directoryservice,
+    ec2,
+    iam,
+    lb,
+    rds,
+    route53,
+    s3,
+    secretsmanager,
+)
 from pulumi_command import remote
 from pulumi_random import RandomPassword, RandomUuid
 from pulumi_tls import PrivateKey
@@ -27,9 +32,7 @@ class ConfigValues:
 
     config: pulumi.Config = field(default_factory=lambda: pulumi.Config())
     email: str = field(init=False)
-    public_key: str = field(init=False)
     billing_code: str = field(init=False)
-    my_ip: str = field(init=False)
 
     def __post_init__(self):
         self.email = self.config.require("email")
@@ -39,7 +42,16 @@ class ConfigValues:
         self.slurm_db_username = self.config.require("slurm_db_username")
         self.ServerInstanceType = self.config.require("ServerInstanceType")
         self.billing_code = self.config.require("billing_code")
-        self.my_ip = self.config.require("my_ip")
+        # DNS / TLS: records are created as <stack>[-ext].<dns_subdomain>.<dns_zone>
+        self.dns_zone = self.config.require("dns_zone")
+        self.dns_subdomain = self.config.get("dns_subdomain") or ""
+        self.dns_suffix = ".".join(x for x in [self.dns_subdomain, self.dns_zone] if x)
+        self.acm_domain = self.config.get("acm_domain") or f"*.{self.dns_suffix}"
+        self.vpc_name_tag = self.config.get("vpc_name_tag") or "shared"
+        self.jumphost_instance_profile: str | None = (
+            self.config.get("jumphost_instance_profile") or None
+        )
+        self.jumphost_ubuntu = self.config.get("jumphost_ubuntu") or "noble"
 
 
 def create_template(path: str) -> jinja2.Template:
@@ -55,27 +67,22 @@ def hash_file(path: str) -> pulumi.Output:
     return pulumi.Output.concat(hash_str)
 
 
-def get_password(name: str):
+def get_password(name: str, length: int = 16):
     return RandomPassword(
-        name, length=16, special=False, min_lower=1, min_numeric=1, min_upper=1
-    ).result
-
-
-def get_password2(name: str):
-    return RandomPassword(
-        name, length=20, special=False, min_lower=1, min_numeric=1, min_upper=1
+        name, length=length, special=False, min_lower=1, min_numeric=1, min_upper=1
     ).result
 
 
 def make_server(
     name: str,
     srvtype: str,
-    tags: Dict,
-    vpc_group_ids: List[str],
+    tags: dict,
+    vpc_group_ids: list[str],
     subnet_id: str,
     instance_type: str,
     ami: str,
     key_name: str,
+    instance_profile: str | None = None,
 ):
     # Stand up a server.
     server = ec2.Instance(
@@ -86,7 +93,7 @@ def make_server(
         tags=tags,
         subnet_id=subnet_id,
         key_name=key_name,
-        iam_instance_profile="WindowsJoinDomain",
+        iam_instance_profile=instance_profile,
         associate_public_ip_address=False,
         metadata_options={
             "http_put_response_hop_limit": 1,
@@ -95,8 +102,8 @@ def make_server(
     )
 
     # Export final pulumi variables.
-    pulumi.export(f"{type}_{name}_private_ip", server.private_ip)
-    pulumi.export(f"{type}_{name}_private_dns", server.private_dns)
+    pulumi.export(f"{srvtype}_{name}_private_ip", server.private_ip)
+    pulumi.export(f"{srvtype}_{name}_private_dns", server.private_dns)
 
     return server
 
@@ -124,7 +131,7 @@ def main():
     # Pulumi secrets
     # --------------------------------------------------------------------------
 
-    posit_user_pass = get_password2("posit_user_pass")
+    posit_user_pass = get_password("posit_user_pass", length=20)
     pulumi.export("posit_user_pass", pulumi.Output.secret(posit_user_pass))
     posit_user_pass_secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
     secretsmanager.SecretVersion(
@@ -185,27 +192,10 @@ def main():
     # VPC
     #################################################
 
-    # Create a new VPC with 2 availability zones
-    # Enable DNS support and hostnames for EFS mounting
-    # vpc = awsx.ec2.Vpc(f"pcluster-vpc-{stack_name}", awsx.ec2.VpcArgs(
-    #     number_of_availability_zones=2,
-    #     enable_dns_hostnames=True,
-    #     enable_dns_support=True,
-    #     tags=tags | {
-    #     "Name": f"vpc-{stack_name}"},
-    # ))
-
-    # guardduty_vpc_endpoint = ec2.VpcEndpoint(
-    #     f"pcluster-vpc-{stack_name}",
-    #     vpc_id=vpc.vpc_id,
-    #     service_name=f"com.amazonaws.{get_region().name}.guardduty",
-    #     vpc_endpoint_type="Interface",
-    #     subnet_ids=vpc.private_subnet_ids,
-    #     private_dns_enabled=True,  # Enable private DNS for this endpoint
-    # )
-
+    # An existing VPC is used. It is looked up by its Name tag and must have
+    # subnets whose Name tags contain "public" and "private" respectively.
     vpc = ec2.get_vpc(
-        filters=[ec2.GetVpcFilterArgs(name="tag:Name", values=["shared"])]
+        filters=[ec2.GetVpcFilterArgs(name="tag:Name", values=[config.vpc_name_tag])]
     )
 
     public_subnets = ec2.get_subnets(
@@ -227,6 +217,18 @@ def main():
 
     # Export the subnet IDs
     pulumi.export("private_subnet_ids", private_subnets.ids)
+
+    # SimpleAD needs exactly two subnets in different AZs: take the first
+    # private subnet of each AZ, preserving the original order.
+    ad_subnet_ids = []
+    seen_azs = set()
+    for subnet_id in private_subnets.ids:
+        az = ec2.get_subnet(id=subnet_id).availability_zone
+        if az not in seen_azs:
+            seen_azs.add(az)
+            ad_subnet_ids.append(subnet_id)
+        if len(ad_subnet_ids) == 2:
+            break
 
     # --------------------------------------------------------------------------
     # ELB access from within AWS ParallelCluster
@@ -548,6 +550,7 @@ def main():
         password=slurm_db_pass,
         db_name="slurm",
         engine="mysql",
+        engine_version="8.4",  # must match the parameter group family above
         publicly_accessible=False,
         skip_final_snapshot=True,
         tags=tags | {"Name": "slurm-db"},
@@ -589,7 +592,7 @@ def main():
         description="Directory for PWB environment",
         vpc_settings=directoryservice.DirectoryVpcSettingsArgs(
             vpc_id=vpc.id,
-            subnet_ids=private_subnets.ids,
+            subnet_ids=ad_subnet_ids,
         ),
         tags=tags | {"Name": f"pwb-directory-{stack_name}"},
     )
@@ -627,19 +630,21 @@ def main():
     )
     pulumi.export("ssh_security_group", ssh_security_group.id)
 
-    # Fetch the most recent Ubuntu 20.04 AMI with HVM and x86_64 architecture in the specified region
+    # Fetch the most recent Ubuntu AMI for the jump host. Changing
+    # jumphost_ubuntu on an existing stack replaces the jump host.
+    ubuntu_ami_names = {
+        "focal": "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*",
+        "jammy": "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*",
+        "noble": "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*",
+    }
     ami = ec2.get_ami(
         most_recent=True,
         owners=["099720109477"],  # Canonical
         filters=[
-            {
-                "name": "name",
-                "values": ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"],
-            },
+            {"name": "name", "values": [ubuntu_ami_names[config.jumphost_ubuntu]]},
             {"name": "architecture", "values": ["x86_64"]},
             {"name": "virtualization-type", "values": ["hvm"]},
         ],
-        opts=pulumi.InvokeOptions(provider=Provider("test", region=get_region().name)),
     )
 
     # Export the AMI ID
@@ -654,12 +659,13 @@ def main():
         subnet_id=private_subnets.ids[0],
         ami=ami.id,
         key_name=key_pair.key_name,
+        instance_profile=config.jumphost_instance_profile,
     )
 
     pulumi.export("vpc_public_subnet", public_subnets.ids[0])
     pulumi.export("vpc_private_subnet", private_subnets.ids[0])
     pulumi.export("jump_host_dns", jump_host.private_dns)
-    pulumi.export("jump_host_public_ip", jump_host.private_ip)
+    pulumi.export("jump_host_private_ip", jump_host.private_ip)
     pulumi.export("jump_host_instance_id", jump_host.id)
 
     connection = remote.ConnectionArgs(
@@ -670,11 +676,11 @@ def main():
     )
 
     command_set_environment_variables = remote.Command(
-        f"set-env",
+        "set-env",
         create=pulumi.Output.concat(
             'echo "export AD_PASSWD=',
             ad_password,
-            '" >> .env;\n',
+            '" > .env;\n',
             'echo "export AD_DOMAIN=',
             config.domain_name,
             '" >> .env;\n',
@@ -684,7 +690,7 @@ def main():
     )
 
     command_install_justfile = remote.Command(
-        f"install-justfile",
+        "install-justfile",
         create="\n".join(
             [
                 """curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
@@ -697,7 +703,7 @@ def main():
 
     justfile_asset = pulumi.FileAsset("server-side-files/justfile")
     command_copy_justfile = remote.CopyToRemote(
-        f"copy-justfile",
+        "copy-justfile",
         source=justfile_asset,
         remote_path="justfile",
         connection=connection,
@@ -773,21 +779,20 @@ def main():
 
     command_copy_config_files = []
     for f in server_side_files:
-        if True:
-            command_copy_config_files.append(
-                remote.Command(
-                    f"copy {f.file_out} server",
-                    create=pulumi.Output.concat(
-                        'echo "', f.template_render_command, f'" > {f.file_out}'
-                    ),
-                    connection=connection,
-                    triggers=[hash_file(f.file_in)],
-                    opts=pulumi.ResourceOptions(depends_on=jump_host),
-                )
+        command_copy_config_files.append(
+            remote.Command(
+                f"copy {f.file_out} server",
+                create=pulumi.Output.concat(
+                    'echo "', f.template_render_command, f'" > {f.file_out}'
+                ),
+                connection=connection,
+                triggers=[hash_file(f.file_in)],
+                opts=pulumi.ResourceOptions(depends_on=jump_host),
             )
+        )
 
     command_build_jumphost = remote.Command(
-        f"build-jump-host",
+        "build-jump-host",
         # create="alias just='/home/ubuntu/bin/just'; just build-rsw",
         create="""export PATH="$PATH:$HOME/bin"; just integrate-ad""",
         connection=connection,
@@ -840,28 +845,6 @@ def main():
         tags=tags | {"Name": f"pwb-alb-sg-{stack_name}"},
     )
 
-    lb_security_group = ec2.SecurityGroup(
-        f"public-nlb-secgrp-{stack_name}",
-        name=f"public-nlb-secgrp-{stack_name}",
-        vpc_id=vpc.id,
-        ingress=[
-            # Allow all 80/443 incoming
-            ec2.SecurityGroupIngressArgs(
-                from_port=443,
-                to_port=443,
-                protocol="tcp",
-                cidr_blocks=["0.0.0.0/0"],
-            )
-        ],
-        egress=[
-            # Allow outbound traffic to private subnet HTTP only
-            ec2.SecurityGroupEgressArgs(
-                from_port=443, to_port=443, protocol="tcp", cidr_blocks=[vpc.cidr_block]
-            )
-        ],
-        tags=tags,
-        opts=pulumi.ResourceOptions(delete_before_replace=True),
-    )
 
     # Create an internal and public(ext) Application Load Balancer
     pwb_alb_ext = lb.LoadBalancer(
@@ -892,7 +875,7 @@ def main():
 
     # Get the ACM certificate
     cert = acm.get_certificate(
-        domain="*.pcluster.soleng.posit.it", most_recent=True, statuses=["ISSUED"]
+        domain=config.acm_domain, most_recent=True, statuses=["ISSUED"]
     )
 
     # Create a target group for the ALB.
@@ -981,18 +964,15 @@ def main():
     pulumi.export("alb_listener_int_arn", alb_listener_int.arn)
 
     # --------------------------------------------------------------------------
-    # Route53 for demo.pcluster.soleng.posit.it
+    # Route53: <stack>.<dns_suffix> (internal) and <stack>-ext.<dns_suffix>
     # --------------------------------------------------------------------------
 
-    # Get the hosted zone for soleng.posit.it
-    soleng_zone = route53.get_zone(name="soleng.posit.it")
+    dns_zone = route53.get_zone(name=config.dns_zone)
 
-    # Create an A record for demo.pcluster.soleng.posit.it
-    # This assumes you have an ALB resource named 'alb'
     dns_record_ext = route53.Record(
         "pwb-dns-record-ext",
-        zone_id=soleng_zone.id,
-        name=stack_name + "-ext.pcluster.soleng.posit.it",
+        zone_id=dns_zone.id,
+        name=f"{stack_name}-ext.{config.dns_suffix}",
         type="A",
         aliases=[
             route53.RecordAliasArgs(
@@ -1010,8 +990,8 @@ def main():
 
     dns_record_int = route53.Record(
         "pwb-dns-record-int",
-        zone_id=soleng_zone.id,
-        name=stack_name + ".pcluster.soleng.posit.it",
+        zone_id=dns_zone.id,
+        name=f"{stack_name}.{config.dns_suffix}",
         type="A",
         aliases=[
             route53.RecordAliasArgs(
