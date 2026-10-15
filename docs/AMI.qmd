@@ -9,6 +9,17 @@ ParallelCluster can install software when a node boots, but every minute spent i
 
 The same AMI is used for the head node, the login nodes and the compute nodes.
 
+# When you need it {#sec-ami-needed}
+
+The custom AMI provides R, Python, Quarto and system libraries on the hosts. It is needed when sessions run directly on the compute nodes (`SINGULARITY_SUPPORT=false`).
+
+When all sessions run in Apptainer containers (`SINGULARITY_SUPPORT=true`), R and Python come from the container images instead. You can then leave `AMI=` empty in the env file, and the cluster uses the official ParallelCluster Ubuntu 24.04 image. The node scripts install what is missing at boot:
+
+-   Apptainer (version `APPTAINER_VERSION` from the env file) on the login and compute nodes.
+-   The build tools for the Slurm SPANK plugin, and `squashfs-tools`, on the head node.
+
+You provide the container images: copy `.sif` files into `/opt/rstudio/apptainer` after the cluster is up, for example converted from Posit's `rstudio/r-session-complete` images with `apptainer pull`.
+
 # What is in the image
 
 The image is built with ParallelCluster's [image builder](https://docs.aws.amazon.com/parallelcluster/latest/ug/building-custom-ami-v3.html) (EC2 Image Builder) on top of the official ParallelCluster **Ubuntu 24.04** image that matches your installed `pcluster` version.
@@ -46,11 +57,7 @@ Each Python version:
 
 Install logs are written to `/opt/r-install.log` and `/opt/python-install.log` in the image.
 
-## The `rc.pwb` cron job {#sec-rc-pwb}
-
-`install-image.sh` also installs a root cron job that runs `/opt/rstudio/scripts/rc.pwb` every minute. The script itself is written to the shared `/opt/rstudio` EFS by the head node during cluster creation. On a login node, it runs `config-login.sh` once to install and start Workbench, and restarts Workbench whenever its `workbench-<hostname>.state` file is removed. It does nothing on other nodes.
-
-This workaround is needed because ParallelCluster login nodes did not support `OnNodeConfigured` custom actions (see [aws-parallelcluster#5723](https://github.com/aws/aws-parallelcluster/issues/5723)).
+Login nodes are set up by their `OnNodeConfigured` action (`config-login.sh`), so nothing in the image is specific to login nodes. Older versions of this repository baked a cron job into the AMI for that, because login nodes did not support custom actions before. AMIs built that way keep working: the job only restarts Workbench now and never installs it.
 
 # How to build the AMI
 

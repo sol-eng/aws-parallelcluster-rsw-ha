@@ -44,7 +44,7 @@ pulumi config set billing_code my-project
 pulumi config set dns_zone example.com
 just up                       # pulumi up + create users posit0001..posit0010
 
-# 2. Custom AMI
+# 2. Custom AMI (skip if all sessions run in Apptainer containers: leave AMI= empty)
 cd ../image
 ./build-image.sh demo-image demo
 pcluster describe-image -i demo-image | jq -r .ec2AmiInfo.amiId   # once BUILD_COMPLETE

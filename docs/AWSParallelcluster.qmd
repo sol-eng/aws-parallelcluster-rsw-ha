@@ -16,7 +16,7 @@ Deploying the cluster brings everything together. `parallelcluster/deploy.sh` do
 ## Prerequisites {#sec-prerequisites}
 
 -   The Pulumi stack is deployed ([Pulumi](Pulumi.qmd)). Its name is the cluster name.
--   A custom AMI is built ([AMI](AMI.qmd)).
+-   A custom AMI is built ([AMI](AMI.qmd)), unless all sessions run in Apptainer containers (see [When you need it](AMI.qmd#sec-ami-needed)).
 -   The ParallelCluster CLI is installed. The version is pinned in the root `pyproject.toml`:
 
     ``` bash
@@ -43,14 +43,15 @@ $EDITOR envs/<clustername>.env
 | `CLUSTERNAME` | Cluster name. Must equal the Pulumi stack name. |
 | `STACKNAME` | Pulumi stack to read from (default: `CLUSTERNAME`) |
 | `REGION` | AWS region |
-| `AMI` | Custom AMI from `image/build-image.sh` |
+| `AMI` | Custom AMI from `image/build-image.sh`. Empty: official ParallelCluster Ubuntu 24.04 image (needs `SINGULARITY_SUPPORT=true`). |
 | `PWB_VERSION` | Posit Workbench version, e.g. `2026.04.0-526.pro2` |
 | `CONFIG` | Cluster template `config/cluster-config-wb.<CONFIG>.tmpl`: `default` or `easybuild` |
 | `APPS_EFS_ID` | Existing EFS with the EasyBuild stack (`CONFIG=easybuild` only) |
 | `ALLOWEDIPS` | CIDR allowed to SSH into head and login nodes |
 | `HPC_DOMAIN`, `HPC_HOST` | Internal host names of the login nodes (`node1.<HPC_DOMAIN>`, ...), and the certificate domain with `SSL=true` |
 | `SSL` | `true`: Workbench serves TLS itself with a self-signed `*.HPC_DOMAIN` certificate. `false` (recommended): TLS is terminated at the ALBs. |
-| `SINGULARITY_SUPPORT` | Container sessions via Apptainer and the Slurm SPANK plugin |
+| `SINGULARITY_SUPPORT` | Container sessions via Apptainer and the Slurm SPANK plugin. Copy your `.sif` images into `/opt/rstudio/apptainer`. |
+| `APPTAINER_VERSION` | Apptainer installed on login and compute nodes when no custom AMI is used |
 | `EASYBUILD_SUPPORT` | Lmod with EasyBuild modules in `/opt/apps/easybuild` |
 | `BENCHMARK_SUPPORT` | Tiny resource profiles for load tests |
 | `LOCAL` | Also offer the Local launcher on the login nodes |
@@ -85,7 +86,7 @@ Placeholders in the templates and scripts look like `@@NAME@@`. To add one, use 
 |---|---|---|
 | `scripts/install-pwb-config.sh` | head node | `OnNodeConfigured`. Log: `/var/log/install-pwb-config.log` |
 | `scripts/config-compute.sh` | every compute node | `OnNodeConfigured`. Log: `/opt/rstudio/config-compute/<host>-<time>.log` |
-| `scripts/config-login.sh` | every login node | once, started by `/opt/rstudio/scripts/rc.pwb` (cron, see [AMI](AMI.qmd#sec-rc-pwb)). Log: `/var/log/rc.pwb.log` |
+| `scripts/config-login.sh` | every login node | `OnNodeConfigured`. Log: `/var/log/config-login.log` |
 
 **`install-pwb-config.sh`** does the following:
 
@@ -94,7 +95,7 @@ Placeholders in the templates and scripts look like `@@NAME@@`. To add one, use 
 3.  Writes their addresses into `/opt/rstudio/etc/rstudio/nodes`.
 4.  Registers them on port 8787 with the Pulumi ALB target groups `pwb-alb-tg-{int,ext}-<cluster>`.
 5.  Writes the complete Workbench configuration to `/opt/rstudio/etc/rstudio`.
-6.  Writes `rc.pwb`.
+6.  Writes `/opt/rstudio/scripts/rc.pwb`, the restart helper for the login nodes (see @sec-config-changes).
 
 It touches `/etc/head-node`, so `rc.pwb` can tell the head node apart from login nodes.
 
@@ -111,13 +112,13 @@ Compute nodes don't download or extract the Workbench session components (about 
 -   Compute nodes wait up to 30 minutes for the image to appear.
 -   The mount uses `threads=multi` (parallel decompression) where the kernel supports it, otherwise plain `ro,loop`.
 
-## Changing configuration on a running cluster
+## Changing configuration on a running cluster {#sec-config-changes}
 
 Login nodes copy the shared configuration only once, when `config-login.sh` runs. To change the configuration:
 
 1.  Edit the files in `/opt/rstudio/etc/rstudio`, so that login nodes added later get the change.
 2.  Copy the changed files to `/etc/rstudio` on each running login node.
-3.  Delete `/opt/rstudio/workbench-<hostname>.state` for each of those login nodes. Within a minute, `rc.pwb` restarts `rstudio-launcher` and `rstudio-server` there.
+3.  Delete `/opt/rstudio/workbench-<hostname>.state` for each of those login nodes. `config-login.sh` registers `rc.pwb` as a cron job (every minute) on each login node, so within a minute `rstudio-launcher` and `rstudio-server` are restarted there. Its log is `/var/log/rc.pwb.log`.
 
 # Reaching full HA {#sec-full-ha}
 

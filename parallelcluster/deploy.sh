@@ -31,7 +31,6 @@ source "$ENV_FILE"
 
 : "${CLUSTERNAME:?must be set in $ENV_FILE}"
 : "${REGION:?must be set in $ENV_FILE}"
-: "${AMI:?must be set in $ENV_FILE}"
 : "${PWB_VERSION:?must be set in $ENV_FILE}"
 : "${HPC_DOMAIN:?must be set in $ENV_FILE}"
 : "${HPC_HOST:?must be set in $ENV_FILE}"
@@ -40,6 +39,8 @@ STACKNAME=${STACKNAME:-$CLUSTERNAME}
 CONFIG=${CONFIG:-default}
 APPS_EFS_ID=${APPS_EFS_ID:-}
 CERT_SUBJECT=${CERT_SUBJECT:-"/CN=*.$HPC_DOMAIN"}
+AMI=${AMI:-}
+APPTAINER_VERSION=${APPTAINER_VERSION:-1.5.4}
 
 for flag in SSL SINGULARITY_SUPPORT EASYBUILD_SUPPORT BENCHMARK_SUPPORT LOCAL; do
     value=${!flag:-false}
@@ -49,6 +50,14 @@ for flag in SSL SINGULARITY_SUPPORT EASYBUILD_SUPPORT BENCHMARK_SUPPORT LOCAL; d
     fi
     printf -v "$flag" '%s' "$value"
 done
+
+# Without a custom AMI the official ParallelCluster Ubuntu 24.04 image is used.
+# It has no R/Python, so this only works when sessions run in containers.
+if [ -z "$AMI" ] && ! $SINGULARITY_SUPPORT; then
+    echo "ERROR: AMI is empty. Build a custom AMI (image/build-image.sh), or set" >&2
+    echo "       SINGULARITY_SUPPORT=true to use the official ParallelCluster AMI." >&2
+    exit 1
+fi
 
 TEMPLATE="config/cluster-config-wb.${CONFIG}.tmpl"
 [ -f "$TEMPLATE" ] || { echo "ERROR: template $TEMPLATE not found" >&2; exit 1; }
@@ -102,6 +111,7 @@ export TPL_HPC_DOMAIN="$HPC_DOMAIN"
 export TPL_HPC_HOST="$HPC_HOST"
 export TPL_ALLOWEDIPS="$ALLOWEDIPS"
 export TPL_APPS_EFS_ID="$APPS_EFS_ID"
+export TPL_APPTAINER_VERSION="$APPTAINER_VERSION"
 export TPL_SSL="$SSL"
 export TPL_SINGULARITY_SUPPORT="$SINGULARITY_SUPPORT"
 export TPL_EASYBUILD_SUPPORT="$EASYBUILD_SUPPORT"
@@ -172,6 +182,10 @@ for f in "${UPLOADS[@]}"; do
     render "scripts/$f" "tmp/$f"
 done
 render "$TEMPLATE" tmp/cluster-config-wb.yaml
+if [ -z "$AMI" ]; then
+    echo "No AMI set: using the official ParallelCluster ubuntu2404 image"
+    sed -i.bak '/^  CustomAmi: *$/d' tmp/cluster-config-wb.yaml && rm -f tmp/cluster-config-wb.yaml.bak
+fi
 if $SSL; then
     cp "certs/$HPC_DOMAIN.crt" "certs/$HPC_DOMAIN.key" tmp/
     UPLOADS+=("$HPC_DOMAIN.crt" "$HPC_DOMAIN.key")

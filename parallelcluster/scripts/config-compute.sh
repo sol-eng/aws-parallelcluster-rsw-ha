@@ -17,7 +17,7 @@ exec 2>&1
 if ( ! mount | grep /scratch ); then
         # create scratch folder as part of EFS fs
         mkdir -p /scratch /opt/rstudio/scratch
-        efsmount=`cat /etc/fstab  | grep rstudio | awk '{print $1}'`
+        efsmount=$(awk '$2 == "/opt/rstudio" {print $1}' /etc/fstab)
         mount -t efs ${efsmount}scratch /scratch
 	chmod 777 /scratch
 fi
@@ -25,6 +25,19 @@ fi
 # System dependencies of the session components
 apt -o DPkg::Lock::Timeout=300 update -y
 apt -o DPkg::Lock::Timeout=300 install -y curl libcurl4-gnutls-dev libssl-dev libpq5 rrdtool
+
+# Apptainer for container sessions. Baked into the custom AMI; installed here
+# when running on the official ParallelCluster AMI.
+if [ "@@SINGULARITY_SUPPORT@@" = true ] && ! command -v apptainer >/dev/null; then
+        APPTAINER_VERSION=@@APPTAINER_VERSION@@
+        apptainer_tmp=$(mktemp -d)
+        for name in apptainer apptainer-suid; do
+                curl -fsSL -o $apptainer_tmp/${name}_${APPTAINER_VERSION}_amd64.deb \
+                        https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/${name}_${APPTAINER_VERSION}_amd64.deb
+        done
+        apt -o DPkg::Lock::Timeout=300 install -y $apptainer_tmp/apptainer_${APPTAINER_VERSION}_amd64.deb $apptainer_tmp/apptainer-suid_${APPTAINER_VERSION}_amd64.deb
+        rm -rf $apptainer_tmp
+fi
 
 # Session components: squashfs image built by the head node on the shared EFS
 # (install-pwb-config.sh), mounted read-only at /usr/lib/rstudio-server

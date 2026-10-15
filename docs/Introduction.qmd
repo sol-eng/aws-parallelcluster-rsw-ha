@@ -30,7 +30,7 @@ Workbench's own state lives in PostgreSQL (required for load balancing), users c
 The deployment has three steps, each documented on its own page:
 
 1.  Set up the auxiliary services (VPC lookup, SimpleAD, databases, load balancers, DNS, S3 bucket, users) with [Pulumi](Pulumi.qmd)
-2.  Build a custom [AMI](AMI.qmd) (uses the S3 bucket and network created in step 1)
+2.  Build a custom [AMI](AMI.qmd) (uses the S3 bucket and network created in step 1). You can skip this step if all sessions run in Apptainer containers; see [When you need it](AMI.qmd#sec-ami-needed).
 3.  Deploy the cluster with [AWS ParallelCluster](AWSParallelcluster.qmd)
 
 If something does not work as expected, see [Troubleshooting](Troubleshooting.qmd).

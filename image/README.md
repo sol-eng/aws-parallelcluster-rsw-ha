@@ -5,7 +5,6 @@ Builds a ParallelCluster AMI based on the official Ubuntu 24.04 image. It contai
 - Quarto and Apptainer
 - system libraries for R packages
 - AD integration tools
-- the `rc.pwb` cron job that sets up Workbench on login nodes
 
 Details: [docs/AMI.qmd](../docs/AMI.qmd).
 
@@ -20,6 +19,8 @@ pcluster describe-image -i <IMAGENAME> | jq -r '.imageBuildStatus, .ec2AmiInfo.a
 ```
 
 Put the AMI ID into `AMI=` in `parallelcluster/envs/<name>.env`.
+
+Not needed when all sessions run in Apptainer containers: leave `AMI=` empty to use the official ParallelCluster image ([docs/AMI.qmd](../docs/AMI.qmd)).
 
 ## Files
 
