@@ -429,18 +429,16 @@ botocore==1.43.114
     #   s3transfer
 cattrs==23.1.2
     # via jsii
-certifi==2024.8.30
+certifi==2026.7.22
     # via requests
-charset-normalizer==3.4.0
+charset-normalizer==3.5.2
     # via requests
-click==8.1.7
+click==8.5.0
     # via
     #   clickclick
     #   flask
 clickclick==20.10.2
     # via connexion
-colorama==0.4.6 ; sys_platform == 'win32'
-    # via click
 connexion==2.15.1
     # via aws-parallelcluster
 constructs==3.4.344
@@ -501,11 +499,11 @@ frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
-idna==3.10
+idna==3.20
     # via
     #   requests
     #   yarl
-importlib-resources==6.4.5
+importlib-resources==7.1.0
     # via jsii
 inflection==0.5.1
     # via connexion
@@ -578,17 +576,17 @@ jsii==1.85.0
     #   aws-cdk-region-info
     #   aws-parallelcluster
     #   constructs
-jsonschema==4.23.0
+jsonschema==4.26.0
     # via connexion
-jsonschema-specifications==2024.10.1
+jsonschema-specifications==2025.9.1
     # via jsonschema
-markupsafe==3.0.2
+markupsafe==3.0.4
     # via
     #   connexion
     #   flask
     #   jinja2
     #   werkzeug
-marshmallow==3.23.1
+marshmallow==3.26.2
     # via aws-parallelcluster
 multidict==7.1.0
     # via
@@ -665,28 +663,28 @@ python-dateutil==2.9.0.post0
     #   jsii
 python-multipart==0.0.32
     # via connexion
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via
     #   aws-parallelcluster
     #   clickclick
     #   connexion
-referencing==0.35.1
+referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.4
+requests==2.34.2
     # via connexion
-rpds-py==0.21.0
+rpds-py==2026.9.1
     # via
     #   jsonschema
     #   referencing
 s3transfer==0.19.2
     # via boto3
-setuptools==80.9.0
+setuptools==84.0.0
     # via aws-parallelcluster
-six==1.16.0
+six==1.17.0
     # via python-dateutil
-tabulate==0.8.10
+tabulate==0.9.0
     # via aws-parallelcluster
 typeguard==2.13.3
     # via
@@ -744,12 +742,13 @@ typeguard==2.13.3
     #   aws-cdk-region-info
     #   constructs
     #   jsii
-typing-extensions==4.12.2
+typing-extensions==4.16.0
     # via
     #   aiohttp
     #   aiosignal
     #   jsii
-urllib3==2.2.3
+    #   referencing
+urllib3==2.8.0
     # via
     #   botocore
     #   requests

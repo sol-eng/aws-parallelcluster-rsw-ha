@@ -2,28 +2,25 @@
 name = "parallelcluster-pulumi"
 version = "0.1.0"
 requires-python = ">=3.12.11"
+# Direct dependencies only; all transitive dependencies are pinned in uv.lock
 dependencies = [
-    "arpeggio==2.0.2",
-    "attrs==24.2.0",
-    "certifi==2024.8.30",
-    "charset-normalizer==3.4.0",
-    "dill==0.3.9",
-    "grpcio==1.66.2",
-    "idna==3.10",
     "jinja2==3.1.6",
-    "markupsafe==3.0.2",
-    "parver==0.5",
-    "protobuf==4.25.8",
-    "pulumi==3.137.0",
-    "pulumi-aws==6.56.1",
-    "pulumi-command==1.0.1",
-    "pulumi-random==4.16.7",
-    "pulumi-tls==5.0.9",
-    "pyyaml==6.0.2",
-    "requests>=2.32.4",
-    "semver==2.13.0",
-    "setuptools>=78.1.1",
-    "six==1.16.0",
-    "urllib3==2.2.3",
-    "wheel==0.45.0",
+    "pulumi==3.268.0",
+    # stay on 6.x: 7.x is a major upgrade with resource/state changes
+    "pulumi-aws==6.83.4",
+    "pulumi-command==1.2.1",
+    "pulumi-random==4.21.2",
+    "pulumi-tls==5.6.2",
+]
+
+[tool.uv]
+# Security floors for transitive dependencies (Dependabot/GHSA advisories),
+# so a relock can never resolve back to a vulnerable version
+constraint-dependencies = [
+    "idna>=3.15",
+    "protobuf>=5.29.6",
+    "requests>=2.33.0",
+    "setuptools>=83.0.0",
+    "urllib3>=2.7.0",
+    "wheel>=0.46.2",
 ]
