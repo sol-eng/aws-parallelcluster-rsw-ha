@@ -89,7 +89,7 @@ Placeholders in the templates and scripts look like `@@NAME@@`. To add one, use 
 
 **`install-pwb-config.sh`** does the following:
 
-1.  Downloads the Workbench package and session components to `/opt/rstudio/scripts`.
+1.  Downloads the Workbench package to `/opt/rstudio/scripts`. Packs the session components into a squashfs image, `/opt/rstudio/session-components/rsw-session-<version>.sqsh` (see @sec-session-components).
 2.  Waits until all login nodes are registered with the login node load balancer ParallelCluster creates.
 3.  Writes their addresses into `/opt/rstudio/etc/rstudio/nodes`.
 4.  Registers them on port 8787 with the Pulumi ALB target groups `pwb-alb-tg-{int,ext}-<cluster>`.
@@ -100,7 +100,16 @@ It touches `/etc/head-node`, so `rc.pwb` can tell the head node apart from login
 
 **`config-login.sh`** installs Workbench and copies the configuration to `/etc/rstudio`. It sets the node's `www-host-name` for load balancing, mounts `/scratch` and starts `rstudio-launcher` and `rstudio-server`.
 
-**`config-compute.sh`** installs the Workbench session components and mounts `/scratch`.
+**`config-compute.sh`** mounts the session components image and `/scratch`.
+
+## Session components on squashfs {#sec-session-components}
+
+Compute nodes don't download or extract the Workbench session components (about 800 MB as a tarball). The head node builds a zstd-compressed squashfs image of them once, on the shared `/opt/rstudio` EFS. Every compute node loop-mounts it read-only at `/usr/lib/rstudio-server` and adds the mount to `/etc/fstab`. This makes compute node start-up faster and guarantees that all nodes run identical session components.
+
+-   The image is named after the Workbench version. Deploying a new `PWB_VERSION` builds a new image next to the old one.
+-   It is written under a temporary name and then moved into place, so a node never mounts a partial image.
+-   Compute nodes wait up to 30 minutes for the image to appear.
+-   The mount uses `threads=multi` (parallel decompression) where the kernel supports it, otherwise plain `ro,loop`.
 
 ## Changing configuration on a running cluster
 

@@ -45,7 +45,8 @@ The RDS instances are created single-AZ and without deletion protection to keep 
 | Mount | Type | Content |
 |---|---|---|
 | `/home` | EFS (encrypted) | User home directories, `renv` cache in `/home/renv`, Workbench shared storage in `/home/rstudio/shared-storage` |
-| `/opt/rstudio` | EFS (encrypted) | Workbench config (`etc/rstudio`), installers and scripts (`scripts`), state files |
+| `/opt/rstudio` | EFS (encrypted) | Workbench config (`etc/rstudio`), installers and scripts (`scripts`), session components image (`session-components`), state files |
+| `/usr/lib/rstudio-server` (compute nodes) | squashfs image on `/opt/rstudio`, mounted read-only | Workbench session components |
 | `/scratch` | EFS (sub-directory of `/opt/rstudio`) | Scratch space bound into containers |
 | `/opt/apps` | existing EFS (`easybuild` template only) | EasyBuild software stack |
 

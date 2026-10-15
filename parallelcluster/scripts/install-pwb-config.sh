@@ -39,14 +39,34 @@ HPC_HOST=$3
 # Label this node as head-node so we can detect it later
 touch /etc/head-node
 
-# Download session components and store them in $PWB_BASE_DIR/scripts
 # Posit publishes Workbench builds for Ubuntu 22.04 (jammy) only; these are
 # the supported packages for Ubuntu 24.04 (noble) as well.
 PWB_DIST=jammy
+
+# Workbench package for the login nodes (installed by config-login.sh)
 pushd $PWB_BASE_DIR/scripts
-curl -fsSLO https://s3.amazonaws.com/rstudio-ide-build/session/${PWB_DIST}/amd64/rsp-session-${PWB_DIST}-${PWB_VERSION}-amd64.tar.gz
 curl -fsSLO https://s3.amazonaws.com/rstudio-ide-build/server/${PWB_DIST}/amd64/rstudio-workbench-${PWB_VERSION}-amd64.deb
 popd
+
+# Session components for the compute nodes, packed into a squashfs image on
+# the shared EFS. Compute nodes loop-mount it read-only at
+# /usr/lib/rstudio-server (config-compute.sh) instead of each node downloading
+# and extracting the tarball. The image is written under a temporary name and
+# moved into place, so a compute node never mounts a half-written file.
+SQSH_DIR=$PWB_BASE_DIR/session-components
+SQSH_FILE=$SQSH_DIR/rsw-session-${PWB_VERSION}.sqsh
+mkdir -p $SQSH_DIR
+if [ ! -f $SQSH_FILE ]; then
+        command -v mksquashfs >/dev/null || apt-get install -y squashfs-tools
+        session_tgz=$SQSH_DIR/rsp-session-${PWB_DIST}-${PWB_VERSION}-amd64.tar.gz
+        curl -fsSL -o $session_tgz https://s3.amazonaws.com/rstudio-ide-build/session/${PWB_DIST}/amd64/rsp-session-${PWB_DIST}-${PWB_VERSION}-amd64.tar.gz
+        session_tmp=$(mktemp -d)
+        chmod 755 $session_tmp
+        tar xzf $session_tgz -C $session_tmp --strip-components=1
+        mksquashfs $session_tmp $SQSH_FILE.tmp -comp zstd -noappend -all-root
+        mv -f $SQSH_FILE.tmp $SQSH_FILE
+        rm -rf $session_tmp $session_tgz
+fi
 
 if ( ! grep "@@AD_DNS@@" /etc/hosts >& /dev/null ); then
         echo "@@AD_DNS@@ @@AD_DOMAIN@@" >> /etc/hosts

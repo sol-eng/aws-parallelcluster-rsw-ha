@@ -21,7 +21,7 @@ The image is built with ParallelCluster's [image builder](https://docs.aws.amazo
 | `install-r.sh` + `run.R` | multiple R versions from Posit's binaries, configured as below |
 | `install-python.sh` | multiple Python versions (via `uv`), Jupyter, Posit Connect publishing |
 | `install-quarto.sh` | Quarto |
-| `install-os-deps.sh` | system libraries needed by common R packages, Google Chrome |
+| `install-os-deps.sh` | system libraries needed by common R packages, `squashfs-tools`, Google Chrome |
 | `install-apptainer.sh` | Apptainer (for container sessions) |
 | `install-nvidia.sh` | NVIDIA driver from the CUDA repository, only if the base image has none |
 

@@ -22,12 +22,31 @@ if ( ! mount | grep /scratch ); then
 	chmod 777 /scratch
 fi
 
-# Session components (downloaded to /opt/rstudio/scripts by the head node;
-# Posit only publishes jammy builds, which are used on noble as well)
+# System dependencies of the session components
 apt -o DPkg::Lock::Timeout=300 update -y
 apt -o DPkg::Lock::Timeout=300 install -y curl libcurl4-gnutls-dev libssl-dev libpq5 rrdtool
-mkdir -p /usr/lib/rstudio-server
-tar xf /opt/rstudio/scripts/rsp-session-jammy-$1-amd64.tar.gz -C /usr/lib/rstudio-server --strip-components=1
+
+# Session components: squashfs image built by the head node on the shared EFS
+# (install-pwb-config.sh), mounted read-only at /usr/lib/rstudio-server
+SQSH_FILE=/opt/rstudio/session-components/rsw-session-$1.sqsh
+SECONDS=0
+until [ -f $SQSH_FILE ]; do
+        if [ $SECONDS -ge 1800 ]; then echo "ERROR: $SQSH_FILE not found"; exit 1; fi
+        sleep 5
+done
+# threads=multi (parallel decompression) needs kernel support; fall back if absent
+SQSH_OPTS=ro,loop,threads=multi
+if ! mountpoint -q /usr/lib/rstudio-server; then
+        rm -rf /usr/lib/rstudio-server
+        mkdir -p /usr/lib/rstudio-server
+        if ! mount -t squashfs -o $SQSH_OPTS $SQSH_FILE /usr/lib/rstudio-server; then
+                SQSH_OPTS=ro,loop
+                mount -t squashfs -o $SQSH_OPTS $SQSH_FILE /usr/lib/rstudio-server
+        fi
+        if ! grep -q " /usr/lib/rstudio-server squashfs " /etc/fstab; then
+                echo "$SQSH_FILE /usr/lib/rstudio-server squashfs $SQSH_OPTS,_netdev,x-systemd.requires-mounts-for=/opt/rstudio 0 0" >> /etc/fstab
+        fi
+fi
 
 
 if ( ! grep "@@AD_DNS@@" /etc/hosts >& /dev/null ); then

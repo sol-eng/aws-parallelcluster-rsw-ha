@@ -26,6 +26,8 @@ The nodes are in private subnets. Use SSM Session Manager (`aws ssm start-sessio
 
 **Sessions start but never connect.** The session on the compute node can't call back into Workbench. Check `launcher-sessions-callback-address` in `/etc/rstudio/rserver.conf`. With `SSL=false` it should be `https://<stack>.<domain>`, the internal ALB. It must resolve and be reachable from the compute nodes.
 
+**Compute nodes fail to start with "rsw-session-....sqsh not found".** The head node builds the session components image in `install-pwb-config.sh`; check its log for download or `mksquashfs` errors. On a compute node, `findmnt /usr/lib/rstudio-server` shows whether the image is mounted.
+
 **Users cannot log in.** Check that the user exists (`id posit0001` on a login node) and that `sssd` is running. Users are created by `just create-users` in `pulumi/`, which needs SSH access to the jump host.
 
 **SimpleAD creation fails.** SimpleAD needs two private subnets in different availability zones. Pulumi takes the first private subnet of each AZ, so the VPC must have private subnets in at least two AZs.
