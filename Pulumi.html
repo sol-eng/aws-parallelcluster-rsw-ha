@@ -2,17 +2,23 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.40">
+<meta name="generator" content="quarto-1.10.19">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>Pulumi – Posit Workbench and AWS ParallelCluster</title>
 <style>
-code{white-space: pre-wrap;}
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -21,8 +27,9 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 /* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -33,7 +40,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -64,15 +71,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-c75bcb89907db7808f0349b764a1a524.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-55617497126496852ff9f5a59253c640.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -102,10 +110,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
 
-<link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-fixed">
+<body class="nav-fixed quarto-light">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -127,20 +134,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Introduction</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./AMI.html"> 
-<span class="menu-text">AMI</span></a>
+    <a class="nav-link" href="./Architecture.html"> 
+<span class="menu-text">Architecture</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link active" href="./Pulumi.html" aria-current="page"> 
 <span class="menu-text">Pulumi</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./Architecture.html"> 
-<span class="menu-text">Architecture</span></a>
+    <a class="nav-link" href="./AMI.html"> 
+<span class="menu-text">AMI</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./AWSParallelcluster.html"> 
 <span class="menu-text">AWS ParallelCluster</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./Troubleshooting.html"> 
+<span class="menu-text">Troubleshooting</span></a>
   </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
@@ -177,12 +188,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#auxiliary-services-via-pulumi" id="toc-auxiliary-services-via-pulumi" class="nav-link active" data-scroll-target="#auxiliary-services-via-pulumi"><span class="header-section-number">1</span> Auxiliary Services via Pulumi</a></li>
+  <li><a href="#auxiliary-services-via-pulumi" id="toc-auxiliary-services-via-pulumi" class="nav-link active" data-scroll-target="#auxiliary-services-via-pulumi"><span class="header-section-number">1</span> Auxiliary services via Pulumi</a></li>
   <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites"><span class="header-section-number">2</span> Prerequisites</a></li>
-  <li><a href="#how-to-setup" id="toc-how-to-setup" class="nav-link" data-scroll-target="#how-to-setup"><span class="header-section-number">3</span> How to setup</a>
+  <li><a href="#how-to-set-up" id="toc-how-to-set-up" class="nav-link" data-scroll-target="#how-to-set-up"><span class="header-section-number">3</span> How to set up</a>
   <ul class="collapse">
-  <li><a href="#additionl-information" id="toc-additionl-information" class="nav-link" data-scroll-target="#additionl-information"><span class="header-section-number">3.1</span> Additionl information</a></li>
-  <li><a href="#sec-passwords" id="toc-sec-passwords" class="nav-link" data-scroll-target="#sec-passwords"><span class="header-section-number">3.2</span> Defining “good”/secure passwords</a></li>
+  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration"><span class="header-section-number">3.1</span> Configuration</a></li>
+  <li><a href="#sec-passwords" id="toc-sec-passwords" class="nav-link" data-scroll-target="#sec-passwords"><span class="header-section-number">3.2</span> Users and passwords</a></li>
+  <li><a href="#outputs-used-downstream" id="toc-outputs-used-downstream" class="nav-link" data-scroll-target="#outputs-used-downstream"><span class="header-section-number">3.3</span> Outputs used downstream</a></li>
+  <li><a href="#accessing-the-jump-host" id="toc-accessing-the-jump-host" class="nav-link" data-scroll-target="#accessing-the-jump-host"><span class="header-section-number">3.4</span> Accessing the jump host</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -210,133 +223,244 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <section id="auxiliary-services-via-pulumi" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> Auxiliary Services via Pulumi</h1>
-<p>When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is <a href="https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html">AWS SimpleAD</a>. In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called <a href="https://www.freedesktop.org/software/realmd/adcli/adcli.html">adcli</a> (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional <code>expect</code> scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via <a href="https://www.pulumi.com/b/">Pulumi</a> recipes</p>
+<h1 data-number="1"><span class="header-section-number">1</span> Auxiliary services via Pulumi</h1>
+<p>Posit Workbench in a load-balanced setup needs a PostgreSQL database, and a distributed HPC cluster needs a directory service for users. This setup uses <a href="https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html">AWS SimpleAD</a>. A small EC2 instance, the <em>jump host</em>, is joined to SimpleAD and uses <a href="https://www.freedesktop.org/software/realmd/adcli/adcli.html">adcli</a> and <code>expect</code> scripts to create users programmatically.</p>
+<p>The <a href="https://www.pulumi.com/">Pulumi</a> program in the <code>pulumi/</code> folder creates:</p>
+<ul>
+<li>SimpleAD, plus the jump host joined to it</li>
+<li>PostgreSQL databases for Workbench (<code>pwb</code>) and its audit log (<code>audit</code>), and a MySQL database for Slurm accounting</li>
+<li>Secrets Manager secrets for the AD, Slurm DB and user passwords, and a secure cookie key for Workbench</li>
+<li>An EC2 key pair, IAM policies and security groups used by the cluster</li>
+<li>An S3 bucket for the image build and cluster scripts</li>
+<li>An external and an internal Application Load Balancer with HTTPS listeners, plus Route53 records for both</li>
+</ul>
 </section>
 <section id="prerequisites" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Prerequisites</h1>
-<p>You will need to have</p>
 <ul>
-<li><p><a href="https://pulumi.com">pulumi</a> installed and configured so you can successfully create, run and modify pulumi stacks</p></li>
-<li><p><a href="https://github.com/casey/just">just</a> installed locally</p></li>
-<li><p>ssh client including the <code>ssh-keygen</code> utility</p></li>
+<li><a href="https://www.pulumi.com/docs/install/">Pulumi</a>, logged in to a backend (<code>pulumi login</code>)</li>
+<li><a href="https://docs.astral.sh/uv/">uv</a>, which Pulumi uses to manage the Python environment</li>
+<li><a href="https://github.com/casey/just">just</a></li>
+<li>AWS credentials for the target account and region</li>
+<li>An existing <strong>VPC</strong> whose <code>Name</code> tag matches <code>vpc_name_tag</code> (default <code>shared</code>), with subnets whose <code>Name</code> tags contain <code>public</code> and <code>private</code>. The private subnets must span at least two availability zones (SimpleAD requirement) and need outbound internet access (NAT).</li>
+<li>An existing <strong>Route53 hosted zone</strong> (<code>dns_zone</code>) and an <strong>ACM certificate</strong> in status <code>ISSUED</code> that covers <code>*.&lt;dns_subdomain&gt;.&lt;dns_zone&gt;</code> (or whatever you set as <code>acm_domain</code>)</li>
+<li><strong>Network access to the private subnets on port 22</strong> from the machine running <code>pulumi up</code> (VPN, Direct Connect, or running Pulumi from an instance in the VPC). Pulumi configures the jump host over SSH on its private IP.</li>
 </ul>
 </section>
-<section id="how-to-setup" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> How to setup</h1>
-<p>In the github repo, go tho the <a href="../../pulumi"><code>pulumi</code></a> sub-folder.</p>
-<p>First, we need to define a new pulumi stack</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack init <span class="op">&lt;</span>STACKNAME<span class="op">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>where <code>&lt;STACKNAME&gt;</code> is the name of the pulumi stack.</p>
-<p>Then we need to set two pulumi stack configs</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set email <span class="op">&lt;</span>YOUREMAIL<span class="op">&gt;</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set billing_code <span class="op">&lt;</span>BILLING<span class="op">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Both configuration values are used to set up the appropriate <code>ssh</code> keys and to account for billing, respectively.</p>
-<p>Finally we create all the necessary secrets via</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">just</span> create-secrets</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>and eventually we can start the deployment of the new pulumi stack</p>
-<pre><code>just up </code></pre>
-<p>The stack deployment will also already set up 10 users named <code>posit0001...posit0010</code>.</p>
-<section id="additionl-information" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="additionl-information"><span class="header-section-number">3.1</span> Additionl information</h2>
-<p>Please be aware</p>
-<ul>
-<li><p>Naming of your stack (<code>auxiliary-wb</code>) can be changed to your preference</p></li>
-<li><p>Make sure to set your correct eMail address.</p></li>
-<li><p>If you would like to use a different number of users, run <code>just create-users X</code> where X is the number of users you want to create.</p></li>
-<li><p>You can change the default values for various parameters defined in <code>Pulumi.yaml</code> to your liking as well. Please do NOT change <code>Domain</code> - this is currently hard-coded into the AWS ParallelCluster setup. Anything else can be changed as you see fit.</p></li>
-<li><p>Users are created in the following way by default: User Name is <code>positXXXX</code> where <code>XXXX</code> is a 4-digit zero-padded number. Password is chosen as per {ref:sec-passwords}. Those defaults can be changed in <code>server-side-files/config/useradd.sh</code> . The referenced script is using multi-threaded bash to speed up user creation. In order to prevent user creation from failing due to too many concurrent connections, it additionally runs <code>pamtester</code> to ensure the user is correctly created.</p></li>
-</ul>
-</section>
-<section id="sec-passwords" class="level2" data-number="3.2">
-<h2 data-number="3.2" class="anchored" data-anchor-id="sec-passwords"><span class="header-section-number">3.2</span> Defining “good”/secure passwords</h2>
-<p>Since this deployment will be done in the AWS cloud with some instances exposed to the public internet, using secure passwords is a necessity. As a consequence, all passwords using random strings with 16 characters with a minumum of 1 lower case and 1 upper case letter as well 1 number.</p>
-<p>Passwords that are needed by the ParallelCluster deployment (e.g.&nbsp;for the SLURM or PostgreSQL DB) are additionally stored as a secret in AWS Secrets Manager. Same is true for the common password for all <code>positXXXX</code> users.</p>
-<p>Current configurable parameters in the pulumi recipe</p>
+<section id="how-to-set-up" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> How to set up</h1>
+<p>In the <code>pulumi/</code> folder, create a stack. <strong>The stack name must be the same as the ParallelCluster cluster name you use later</strong>, because the target groups and DNS records are named after the stack.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> pulumi</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack init <span class="op">&lt;</span>CLUSTERNAME<span class="op">&gt;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set aws:region eu-west-1</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set region eu-west-1</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set email you@example.com</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set billing_code my-project</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set dns_zone example.com</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set dns_subdomain hpc          <span class="co"># optional</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Add your Workbench license, either as a key or as a license file. It is stored in AWS Secrets Manager, and only the login nodes can read it:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set <span class="at">--secret</span> pwb_license_key XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># or</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> config set pwb_license_file /path/to/workbench.lic</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Then deploy everything and create 10 users:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">just</span> up</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>just up</code> runs <code>pulumi up -y</code> followed by <code>just create-users</code>. To create a different number of users later, run <code>just create-users &lt;N&gt;</code>.</p>
+<section id="configuration" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="configuration"><span class="header-section-number">3.1</span> Configuration</h2>
+<div id="tbl-pulumi-config" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-pulumi-config-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Pulumi configuration
+</figcaption>
+<div aria-describedby="tbl-pulumi-config-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
-<caption>Pulumi recipe parameters</caption>
 <colgroup>
-<col style="width: 18%">
-<col style="width: 59%">
-<col style="width: 21%">
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Parameter</th>
 <th>Description</th>
-<th>Default value</th>
+<th>Default</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
+<td><code>email</code></td>
+<td>Owner e-mail, used for tags and the key pair name</td>
+<td>(required)</td>
+</tr>
+<tr class="even">
+<td><code>billing_code</code></td>
+<td>Value of the <code>rs:subsystem</code> tag</td>
+<td>(required)</td>
+</tr>
+<tr class="odd">
+<td><code>dns_zone</code></td>
+<td>Existing Route53 hosted zone</td>
+<td>(required)</td>
+</tr>
+<tr class="even">
+<td><code>dns_subdomain</code></td>
+<td>Label between stack name and zone: records become <code>&lt;stack&gt;.&lt;dns_subdomain&gt;.&lt;dns_zone&gt;</code></td>
+<td>empty</td>
+</tr>
+<tr class="odd">
+<td><code>acm_domain</code></td>
+<td>Domain of the ACM certificate for the ALBs</td>
+<td><code>*.&lt;dns_subdomain&gt;.&lt;dns_zone&gt;</code></td>
+</tr>
+<tr class="even">
+<td><code>vpc_name_tag</code></td>
+<td><code>Name</code> tag of the VPC to deploy into</td>
+<td><code>shared</code></td>
+</tr>
+<tr class="odd">
 <td><code>region</code></td>
-<td>AWS region</td>
+<td>Region written into the jump host’s <code>resolv.conf</code>. Keep it equal to <code>aws:region</code>.</td>
 <td><code>eu-west-1</code></td>
 </tr>
 <tr class="even">
-<td><code>email</code></td>
-<td>eMail address of user</td>
-<td><code>tbd@tbc.com</code></td>
-</tr>
-<tr class="odd">
-<td><code>ServerInstanceType</code></td>
-<td>Instance Type for the AD jumphost</td>
-<td><code>t3.medium</code></td>
-</tr>
-<tr class="even">
-<td><code>Domain</code></td>
-<td>Name of Domain to be used for AD</td>
+<td><code>domain_name</code></td>
+<td>SimpleAD domain name</td>
 <td><code>pwb.posit.co</code></td>
 </tr>
 <tr class="odd">
-<td><code>slurm_db_username</code></td>
-<td>User name for MySQL DB used for SLURM accounting</td>
-<td><code>slurm_db_admin</code></td>
+<td><code>ServerInstanceType</code></td>
+<td>Instance type of the jump host</td>
+<td><code>t3.medium</code></td>
+</tr>
+<tr class="even">
+<td><code>jumphost_ubuntu</code></td>
+<td>Ubuntu release of the jump host (<code>focal</code>, <code>jammy</code>, <code>noble</code>)</td>
+<td><code>noble</code></td>
+</tr>
+<tr class="odd">
+<td><code>jumphost_instance_profile</code></td>
+<td>Optional IAM instance profile for the jump host (e.g.&nbsp;for SSM)</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td><code>pwb_license_key</code></td>
+<td>Posit Workbench license key (set with <code>--secret</code>)</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td><code>pwb_license_file</code></td>
+<td>Path to a Workbench license file (<code>.lic</code>), alternative to the key</td>
+<td>none</td>
 </tr>
 <tr class="even">
 <td><code>rsw_db_username</code></td>
-<td>User name for PostgreSQL DB for Workbench metadata</td>
+<td>PostgreSQL admin user</td>
 <td><code>pwb_db_admin</code></td>
+</tr>
+<tr class="odd">
+<td><code>slurm_db_username</code></td>
+<td>MySQL admin user</td>
+<td><code>slurm_db_admin</code></td>
 </tr>
 </tbody>
 </table>
-<p>Once you successfully built everything, <code>pulumi stack output</code>` should report something like</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Current</span> stack outputs <span class="er">(</span><span class="ex">36</span><span class="kw">)</span><span class="bu">:</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">OUTPUT</span>                               VALUE</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_access_url</span>                        d-9367b69bb0.awsapps.com</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_dns_1</span>                             10.0.12.162</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_dns_2</span>                             10.0.129.28</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_password</span>                          <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ad_password_arn</span>                      arn:aws:secretsmanager:eu-west-1:637485797898:secret:SimpleADPassword-testing-2e1b657-Q2G38a</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ami_id</span>                               ami-00e528f20622b7c63</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">billing_code</span>                         me</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">elb_access</span>                           arn:aws:iam::637485797898:policy/elbaccess-20a0cab</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jump_host_dns</span>                        ec2-3-249-65-17.eu-west-1.compute.amazonaws.com</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="ex">jump_host_public_ip</span>                  3.249.65.17</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="ex">key_pair</span> id                          michael.mayer3@posit.co-keypair-for-pulumi</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="ex">posit_user_pass</span>                      <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="ex">posit_user_pass_arn</span>                  arn:aws:secretsmanager:eu-west-1:637485797898:secret:PositUserPassword-testing-3b66e30-bIFVvn</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_address</span>                       rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_endpoint</span>                      rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com:5432</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_name</span>                          pwb</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_pass</span>                          <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_port</span>                          5432</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_db_user</span>                          pwb_db_admin</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_security_group</span>                   sg-077c470194ee6b798</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rsw_security_group_db</span>                sg-0d7b12857f91b688a</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="ex">s3_bucket_id</span>                         hpc-scripts-testing-f75b7d7</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="ex">secure_cookie_key</span>                    <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_address</span>                     slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_endpoint</span>                    slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com:3306</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_name</span>                        slurm</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_pass</span>                        <span class="pp">[</span><span class="ss">secret</span><span class="pp">]</span></span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_pass_arn</span>                    arn:aws:secretsmanager:eu-west-1:637485797898:secret:SlurmDBPassword-testing-04dc72f-syQYzS</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_port</span>                        3306</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_db_user</span>                        slurm_db_admin</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="ex">slurm_security_group_db</span>              sg-02535d06fd5bb5503</span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="ex">ssh_security_group</span>                   sg-0f6e1c077d4f3e04c</span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="ex">stack_name</span>                           testing</span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    <span class="ex">vpc_public_subnet</span>                    subnet-0bb915288a434510b</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</figure>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Upgrading an existing stack
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Stacks created before these settings existed need <code>dns_zone</code> (and <code>dns_subdomain</code> if the old names were <code>&lt;stack&gt;.pcluster.&lt;zone&gt;</code>). To keep the existing jump host, also set <code>jumphost_ubuntu focal</code> and <code>jumphost_instance_profile</code> to the profile it had. Changing either replaces or modifies the jump host. Always run <code>pulumi preview</code> first.</p>
+</div>
+</div>
+</section>
+<section id="sec-passwords" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-passwords"><span class="header-section-number">3.2</span> Users and passwords</h2>
+<p>Users are named <code>positXXXX</code>, where <code>XXXX</code> is a zero-padded number (<code>posit0001</code>, <code>posit0002</code>, …). They all share one password, which is generated by Pulumi and stored in Secrets Manager. You can read it with</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack output posit_user_pass <span class="at">--show-secrets</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>posit0001</code> additionally gets passwordless <code>sudo</code> on all cluster nodes.</p>
+<p>All generated passwords are random strings of 16 characters (20 for the user password) with at least one lower-case letter, one upper-case letter and one digit. The passwords needed by ParallelCluster (AD, Slurm DB) are also stored in AWS Secrets Manager.</p>
+<p>User creation is done by <code>server-side-files/config/useradd.sh</code> on the jump host. It creates up to 40 users in parallel and verifies each one with <code>pamtester</code>, retrying if needed.</p>
+</section>
+<section id="outputs-used-downstream" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="outputs-used-downstream"><span class="header-section-number">3.3</span> Outputs used downstream</h2>
+<p><code>image/build-image.sh</code> and <code>parallelcluster/deploy.sh</code> read the stack outputs directly, so you don’t need to copy values around. The most important ones:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Output</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>s3_bucket_id</code></td>
+<td>image scripts, cluster scripts</td>
+</tr>
+<tr class="even">
+<td><code>vpc_private_subnet</code>, <code>ssh_security_group</code></td>
+<td>image build instance, cluster nodes</td>
+</tr>
+<tr class="odd">
+<td><code>rsw_security_group_https</code> / <code>_nohttps</code></td>
+<td>login nodes</td>
+</tr>
+<tr class="even">
+<td><code>rsw_db_*</code>, <code>rsw_audit_db_*</code></td>
+<td>Workbench <code>database.conf</code>, <code>audit-database.conf</code></td>
+</tr>
+<tr class="odd">
+<td><code>slurm_db_endpoint</code>, <code>slurm_db_name</code>, <code>slurm_db_user</code>, <code>slurm_db_pass_arn</code></td>
+<td>Slurm accounting</td>
+</tr>
+<tr class="even">
+<td><code>ad_dns_1</code>, <code>ad_domain</code>, <code>ad_password_arn</code></td>
+<td><code>DirectoryService</code> section and <code>/etc/hosts</code></td>
+</tr>
+<tr class="odd">
+<td><code>iam_elb_access</code>, <code>iam_s3_access</code>, <code>iam_ec2_runinstances</code></td>
+<td>node IAM policies</td>
+</tr>
+<tr class="even">
+<td><code>secure_cookie_key</code></td>
+<td>Workbench <code>secure-cookie-key</code></td>
+</tr>
+<tr class="odd">
+<td><code>pwb_url_ext</code>, <code>pwb_url_int</code></td>
+<td>Workbench URLs, session callback address</td>
+</tr>
+<tr class="even">
+<td><code>alb_target_group_ext_arn</code>, <code>alb_target_group_int_arn</code></td>
+<td>target groups the login nodes register with</td>
+</tr>
+<tr class="odd">
+<td><code>pwb_license_secret_arn</code>, <code>iam_license_access</code></td>
+<td>Workbench license secret and the policy that lets login nodes read it</td>
+</tr>
+<tr class="even">
+<td><code>jump_host_private_ip</code>, <code>private_key_ssh</code></td>
+<td>SSH access to the jump host</td>
+</tr>
+</tbody>
+</table>
+<p>Run <code>pulumi stack output</code> to see all of them.</p>
+</section>
+<section id="accessing-the-jump-host" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="accessing-the-jump-host"><span class="header-section-number">3.4</span> Accessing the jump host</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pulumi</span> stack output private_key_ssh <span class="at">--show-secrets</span> <span class="op">&gt;</span> jumphost.pem <span class="kw">&amp;&amp;</span> <span class="fu">chmod</span> 600 jumphost.pem</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-i</span> jumphost.pem ubuntu@<span class="va">$(</span><span class="ex">pulumi</span> stack output jump_host_private_ip<span class="va">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>*.pem</code> files are ignored by git, but delete the key when you are done.</p>
 
 
 </section>
@@ -344,236 +468,243 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
-window.document.addEventListener("DOMContentLoaded", function (event) {
-  const toggleBodyColorMode = (bsSheetEl) => {
-    const mode = bsSheetEl.getAttribute("data-mode");
-    const bodyEl = window.document.querySelector("body");
-    if (mode === "dark") {
-      bodyEl.classList.add("quarto-dark");
-      bodyEl.classList.remove("quarto-light");
-    } else {
-      bodyEl.classList.add("quarto-light");
-      bodyEl.classList.remove("quarto-dark");
-    }
-  }
-  const toggleBodyColorPrimary = () => {
-    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
-    if (bsSheetEl) {
-      toggleBodyColorMode(bsSheetEl);
-    }
-  }
-  toggleBodyColorPrimary();  
-  const icon = "";
-  const anchorJS = new window.AnchorJS();
-  anchorJS.options = {
-    placement: 'right',
-    icon: icon
-  };
-  anchorJS.add('.anchored');
-  const isCodeAnnotation = (el) => {
-    for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
-        return true;
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
       }
+      return false;
     }
-    return false;
-  }
-  const onCopySuccess = function(e) {
-    // button target
-    const button = e.trigger;
-    // don't keep focus
-    button.blur();
-    // flash "checked"
-    button.classList.add('code-copy-button-checked');
-    var currentTitle = button.getAttribute("title");
-    button.setAttribute("title", "Copied!");
-    let tooltip;
-    if (window.bootstrap) {
-      button.setAttribute("data-bs-toggle", "tooltip");
-      button.setAttribute("data-bs-placement", "left");
-      button.setAttribute("data-bs-title", "Copied!");
-      tooltip = new bootstrap.Tooltip(button, 
-        { trigger: "manual", 
-          customClass: "code-copy-button-tooltip",
-          offset: [0, -8]});
-      tooltip.show();    
-    }
-    setTimeout(function() {
-      if (tooltip) {
-        tooltip.hide();
-        button.removeAttribute("data-bs-title");
-        button.removeAttribute("data-bs-toggle");
-        button.removeAttribute("data-bs-placement");
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
       }
-      button.setAttribute("title", currentTitle);
-      button.classList.remove('code-copy-button-checked');
-    }, 1000);
-    // clear code selection
-    e.clearSelection();
-  }
-  const getTextToCopy = function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
       for (const childEl of codeEl.children) {
         if (isCodeAnnotation(childEl)) {
           childEl.remove();
         }
       }
       return codeEl.innerText;
-  }
-  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-    text: getTextToCopy
-  });
-  clipboard.on('success', onCopySuccess);
-  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-      text: getTextToCopy,
-      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
     });
-    clipboardModal.on('success', onCopySuccess);
-  }
-    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-    var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp("https:\/\/sol-eng\.github\.io\/aws-parallelcluster-rsw-ha\/");
-    var isInternal = (href) => {
-        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
     }
-    // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-    for (var i=0; i<links.length; i++) {
-      const link = links[i];
-      if (!isInternal(link.href)) {
-        // undo the damage that might have been done by quarto-nav.js in the case of
-        // links that we want to consider external
-        if (link.dataset.originalHref !== undefined) {
-          link.href = link.dataset.originalHref;
-        }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/sol-eng\.github\.io\/aws-parallelcluster-rsw-ha\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
-    }
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-    const config = {
-      allowHTML: true,
-      maxWidth: 500,
-      delay: 100,
-      arrow: false,
-      appendTo: function(el) {
-          return el.parentElement;
-      },
-      interactive: true,
-      interactiveBorder: 10,
-      theme: 'quarto',
-      placement: 'bottom-start',
-    };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
-    window.tippy(el, config); 
-  }
-  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-  for (var i=0; i<noterefs.length; i++) {
-    const ref = noterefs[i];
-    tippyHover(ref, function() {
-      // use id or data attribute instead here
-      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-      try { href = new URL(href).hash; } catch {}
-      const id = href.replace(/^#\/?/, "");
-      const note = window.document.getElementById(id);
-      if (note) {
-        return note.innerHTML;
-      } else {
-        return "";
-      }
-    });
-  }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
           }
         }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
         }
-        return container.innerHTML
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
       } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
         if (window.Quarto?.typesetMath) {
           window.Quarto.typesetMath(note);
         }
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      if (note.classList.contains("callout")) {
-        return note.outerHTML;
-      } else {
-        return note.innerHTML;
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
       }
     }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
           }
         } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
           .then(res => res.text())
           .then(html => {
             const parser = new DOMParser();
             const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
+            const note = htmlDoc.querySelector('main.content');
             if (note !== null) {
-              const html = processXRef(id, note);
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
               instance.setContent(html);
             } 
           }).finally(() => {
@@ -581,185 +712,161 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             instance.show();
           });
         }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
-    });
-  }
-      let selectedAnnoteEl;
-      const selectorForAnnotation = ( cell, annotation) => {
-        let cellAttr = 'data-code-cell="' + cell + '"';
-        let lineAttr = 'data-code-annotation="' +  annotation + '"';
-        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-        return selector;
-      }
-      const selectCodeLines = (annoteEl) => {
-        const doc = window.document;
-        const targetCell = annoteEl.getAttribute("data-target-cell");
-        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-        const lineIds = lines.map((line) => {
-          return targetCell + "-" + line;
-        })
-        let top = null;
-        let height = null;
-        let parent = null;
-        if (lineIds.length > 0) {
-            //compute the position of the single el (top and bottom and make a div)
-            const el = window.document.getElementById(lineIds[0]);
-            top = el.offsetTop;
-            height = el.offsetHeight;
-            parent = el.parentElement.parentElement;
-          if (lineIds.length > 1) {
-            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-            height = bottom - top;
-          }
-          if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
-            let div = window.document.getElementById("code-annotation-line-highlight");
-            if (div === null) {
-              div = window.document.createElement("div");
-              div.setAttribute("id", "code-annotation-line-highlight");
-              div.style.position = 'absolute';
-              parent.appendChild(div);
-            }
-            div.style.top = top - 2 + "px";
-            div.style.height = height + 4 + "px";
-            div.style.left = 0;
-            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-            if (gutterDiv === null) {
-              gutterDiv = window.document.createElement("div");
-              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-              gutterDiv.style.position = 'absolute';
-              const codeCell = window.document.getElementById(targetCell);
-              const gutter = codeCell.querySelector('.code-annotation-gutter');
-              gutter.appendChild(gutterDiv);
-            }
-            gutterDiv.style.top = top - 2 + "px";
-            gutterDiv.style.height = height + 4 + "px";
-          }
-          selectedAnnoteEl = annoteEl;
-        }
-      };
-      const unselectCodeLines = () => {
-        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-        elementsIds.forEach((elId) => {
-          const div = window.document.getElementById(elId);
-          if (div) {
-            div.remove();
-          }
-        });
-        selectedAnnoteEl = undefined;
-      };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
-      // Attach click handler to the DT
-      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-      for (const annoteDlNode of annoteDls) {
-        annoteDlNode.addEventListener('click', (event) => {
-          const clickedEl = event.target;
-          if (clickedEl !== selectedAnnoteEl) {
-            unselectCodeLines();
-            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-            if (activeEl) {
-              activeEl.classList.remove('code-annotation-active');
-            }
-            selectCodeLines(clickedEl);
-            clickedEl.classList.add('code-annotation-active');
-          } else {
-            // Unselect the line
-            unselectCodeLines();
-            clickedEl.classList.remove('code-annotation-active');
-          }
-        });
-      }
-  const findCites = (el) => {
-    const parentEl = el.parentElement;
-    if (parentEl) {
-      const cites = parentEl.dataset.cites;
-      if (cites) {
-        return {
-          el,
-          cites: cites.split(' ')
-        };
-      } else {
-        return findCites(el.parentElement)
-      }
-    } else {
-      return undefined;
-    }
-  };
-  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-  for (var i=0; i<bibliorefs.length; i++) {
-    const ref = bibliorefs[i];
-    const citeInfo = findCites(ref);
-    if (citeInfo) {
-      tippyHover(citeInfo.el, function() {
-        var popup = window.document.createElement('div');
-        citeInfo.cites.forEach(function(cite) {
-          var citeDiv = window.document.createElement('div');
-          citeDiv.classList.add('hanging-indent');
-          citeDiv.classList.add('csl-entry');
-          var biblioDiv = window.document.getElementById('ref-' + cite);
-          if (biblioDiv) {
-            citeDiv.innerHTML = biblioDiv.innerHTML;
-          }
-          popup.appendChild(citeDiv);
-        });
-        return popup.innerHTML;
+      }, function(instance) {
       });
     }
-  }
-});
-</script>
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
 </div> <!-- /content -->
 
 

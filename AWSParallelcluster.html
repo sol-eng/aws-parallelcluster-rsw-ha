@@ -2,17 +2,23 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.40">
+<meta name="generator" content="quarto-1.10.19">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>AWS ParallelCluster – Posit Workbench and AWS ParallelCluster</title>
 <style>
-code{white-space: pre-wrap;}
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -21,8 +27,9 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 /* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -33,7 +40,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -64,15 +71,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-c75bcb89907db7808f0349b764a1a524.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-55617497126496852ff9f5a59253c640.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -102,10 +110,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
 
-<link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-fixed">
+<body class="nav-fixed quarto-light">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -127,20 +134,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Introduction</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./AMI.html"> 
-<span class="menu-text">AMI</span></a>
+    <a class="nav-link" href="./Architecture.html"> 
+<span class="menu-text">Architecture</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./Pulumi.html"> 
 <span class="menu-text">Pulumi</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./Architecture.html"> 
-<span class="menu-text">Architecture</span></a>
+    <a class="nav-link" href="./AMI.html"> 
+<span class="menu-text">AMI</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link active" href="./AWSParallelcluster.html" aria-current="page"> 
 <span class="menu-text">AWS ParallelCluster</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./Troubleshooting.html"> 
+<span class="menu-text">Troubleshooting</span></a>
   </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
@@ -177,28 +188,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#sec-aws-parallelcluster-build" id="toc-sec-aws-parallelcluster-build" class="nav-link active" data-scroll-target="#sec-aws-parallelcluster-build"><span class="header-section-number">1</span> AWS ParallelCluster</a>
+  <li><a href="#deploying-the-cluster" id="toc-deploying-the-cluster" class="nav-link active" data-scroll-target="#deploying-the-cluster"><span class="header-section-number">1</span> Deploying the cluster</a>
   <ul class="collapse">
-  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="header-section-number">1.1</span> Introduction</a></li>
-  <li><a href="#sec-python-virtual-env" id="toc-sec-python-virtual-env" class="nav-link" data-scroll-target="#sec-python-virtual-env"><span class="header-section-number">1.2</span> Python Virtual Env</a></li>
-  <li><a href="#sec-prerequisites" id="toc-sec-prerequisites" class="nav-link" data-scroll-target="#sec-prerequisites"><span class="header-section-number">1.3</span> Prerequisites</a></li>
-  <li><a href="#sec-deployment-instructions" id="toc-sec-deployment-instructions" class="nav-link" data-scroll-target="#sec-deployment-instructions"><span class="header-section-number">1.4</span> Deployment instructions</a></li>
-  <li><a href="#default-values-for-cluster-deployment" id="toc-default-values-for-cluster-deployment" class="nav-link" data-scroll-target="#default-values-for-cluster-deployment"><span class="header-section-number">1.5</span> Default values for Cluster deployment</a></li>
-  <li><a href="#sec-notes-on-install-pwb-config.sh" id="toc-sec-notes-on-install-pwb-config.sh" class="nav-link" data-scroll-target="#sec-notes-on-install-pwb-config.sh"><span class="header-section-number">1.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></a></li>
-  <li><a href="#customisations-on-top-of-aws-parallelcluster" id="toc-customisations-on-top-of-aws-parallelcluster" class="nav-link" data-scroll-target="#customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">1.7</span> Customisations on top of AWS ParallelCluster</a>
-  <ul class="collapse">
-  <li><a href="#elastic-load-balancer" id="toc-elastic-load-balancer" class="nav-link" data-scroll-target="#elastic-load-balancer"><span class="header-section-number">1.7.1</span> Elastic Load Balancer</a></li>
-  <li><a href="#the-thing-with-the-login-nodes" id="toc-the-thing-with-the-login-nodes" class="nav-link" data-scroll-target="#the-thing-with-the-login-nodes"><span class="header-section-number">1.7.2</span> The “thing” with the Login Nodes</a></li>
+  <li><a href="#sec-prerequisites" id="toc-sec-prerequisites" class="nav-link" data-scroll-target="#sec-prerequisites"><span class="header-section-number">1.1</span> Prerequisites</a></li>
+  <li><a href="#sec-deployment-instructions" id="toc-sec-deployment-instructions" class="nav-link" data-scroll-target="#sec-deployment-instructions"><span class="header-section-number">1.2</span> Deployment</a></li>
+  <li><a href="#the-cluster-templates" id="toc-the-cluster-templates" class="nav-link" data-scroll-target="#the-cluster-templates"><span class="header-section-number">1.3</span> The cluster templates</a></li>
+  <li><a href="#what-runs-where" id="toc-what-runs-where" class="nav-link" data-scroll-target="#what-runs-where"><span class="header-section-number">1.4</span> What runs where</a></li>
+  <li><a href="#sec-session-components" id="toc-sec-session-components" class="nav-link" data-scroll-target="#sec-session-components"><span class="header-section-number">1.5</span> Session components on squashfs</a></li>
+  <li><a href="#sec-config-changes" id="toc-sec-config-changes" class="nav-link" data-scroll-target="#sec-config-changes"><span class="header-section-number">1.6</span> Changing configuration on a running cluster</a></li>
   </ul></li>
-  </ul></li>
-  <li><a href="#summary-and-conclusions" id="toc-summary-and-conclusions" class="nav-link" data-scroll-target="#summary-and-conclusions"><span class="header-section-number">2</span> Summary and Conclusions</a>
-  <ul class="collapse">
-  <li><a href="#how-to-reach-full-ha" id="toc-how-to-reach-full-ha" class="nav-link" data-scroll-target="#how-to-reach-full-ha"><span class="header-section-number">2.0.1</span> How to reach “full” HA</a></li>
-  </ul></li>
-  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix"><span class="header-section-number">3</span> Appendix</a>
-  <ul class="collapse">
-  <li><a href="#sec-patch-for-elb" id="toc-sec-patch-for-elb" class="nav-link" data-scroll-target="#sec-patch-for-elb"><span class="header-section-number">3.1</span> Patch for ELB to listen on port 8787 instead of 22</a></li>
-  </ul></li>
+  <li><a href="#sec-full-ha" id="toc-sec-full-ha" class="nav-link" data-scroll-target="#sec-full-ha"><span class="header-section-number">2</span> Reaching full HA</a></li>
   </ul>
 </nav>
     </div>
@@ -224,404 +223,451 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="sec-aws-parallelcluster-build" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> AWS ParallelCluster</h1>
-<section id="introduction" class="level2" data-number="1.1">
-<h2 data-number="1.1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">1.1</span> Introduction</h2>
-<p>With launching the cluster via AWS ParallelCluster, everything comes together.</p>
-</section>
-<section id="sec-python-virtual-env" class="level2" data-number="1.2">
-<h2 data-number="1.2" class="anchored" data-anchor-id="sec-python-virtual-env"><span class="header-section-number">1.2</span> Python Virtual Env</h2>
-<p>The virtual environment for AWS Parallelcluster can be created from the base folder of the git repo via</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .aws-pc-venv/bin/activate </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">deactivate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You may want to add the patch described in <a href="#sec-patch-for-elb" class="quarto-xref">Section&nbsp;3.1</a> to ensure full functionality of workbench.</p>
-</section>
-<section id="sec-prerequisites" class="level2" data-number="1.3">
-<h2 data-number="1.3" class="anchored" data-anchor-id="sec-prerequisites"><span class="header-section-number">1.3</span> Prerequisites</h2>
+<section id="deploying-the-cluster" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Deploying the cluster</h1>
+<p>Deploying the cluster brings everything together. <code>parallelcluster/deploy.sh</code> does the following:</p>
+<ol type="1">
+<li>Reads your settings from an env file.</li>
+<li>Reads everything else from the Pulumi stack outputs.</li>
+<li>Renders the cluster template and the node scripts.</li>
+<li>Uploads the scripts to <code>s3://&lt;bucket&gt;/&lt;clustername&gt;/</code>.</li>
+<li>Runs <code>pcluster create-cluster</code>.</li>
+</ol>
+<section id="sec-prerequisites" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="sec-prerequisites"><span class="header-section-number">1.1</span> Prerequisites</h2>
 <ul>
-<li><p>Python Virtual Environment set up and activated (cf. <a href="#sec-python-virtual-env" class="quarto-xref">Section&nbsp;1.2</a>).</p></li>
-<li><p>Auxiliary Services up and running (cf. <strong>?@sec-auxiliary-services</strong>)</p></li>
-<li><p>Custom AMI built (cf. <strong>?@sec-custom-ami</strong>)</p></li>
-<li><p>S3 bucket set up for temporarily hosting cluster deployment files and scripts</p></li>
+<li><p>The Pulumi stack is deployed (<a href="./Pulumi.html">Pulumi</a>). Its name is the cluster name.</p></li>
+<li><p>A custom AMI is built (<a href="./AMI.html">AMI</a>), unless all sessions run in Apptainer containers (see <a href="./AMI.html#sec-ami-needed">When you need it</a>).</p></li>
+<li><p>The ParallelCluster CLI is installed. The version is pinned in the root <code>pyproject.toml</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync                      <span class="co"># in the repository root</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></li>
+<li><p><code>aws</code>, <code>pulumi</code>, <code>jq</code> and <code>perl</code> are on your <code>PATH</code>.</p></li>
 </ul>
 </section>
-<section id="sec-deployment-instructions" class="level2" data-number="1.4">
-<h2 data-number="1.4" class="anchored" data-anchor-id="sec-deployment-instructions"><span class="header-section-number">1.4</span> Deployment instructions</h2>
+<section id="sec-deployment-instructions" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="sec-deployment-instructions"><span class="header-section-number">1.2</span> Deployment</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> parallelcluster</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> envs/demo.env.example envs/<span class="op">&lt;</span>clustername<span class="op">&gt;</span>.env</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">$EDITOR</span> envs/<span class="op">&lt;</span>clustername<span class="op">&gt;</span>.env</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">./deploy.sh</span> envs/<span class="op">&lt;</span>clustername<span class="op">&gt;</span>.env <span class="at">--dry-run</span>   <span class="co"># render and validate only</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./deploy.sh</span> envs/<span class="op">&lt;</span>clustername<span class="op">&gt;</span>.env</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>envs/*.env</code> files are ignored by git, so you can keep one per environment. The settings:</p>
+<div id="tbl-env" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-env-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Deployment settings
+</figcaption>
+<div aria-describedby="tbl-env-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CLUSTERNAME</code></td>
+<td>Cluster name. Must equal the Pulumi stack name.</td>
+</tr>
+<tr class="even">
+<td><code>STACKNAME</code></td>
+<td>Pulumi stack to read from (default: <code>CLUSTERNAME</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>REGION</code></td>
+<td>AWS region</td>
+</tr>
+<tr class="even">
+<td><code>AMI</code></td>
+<td>Custom AMI from <code>image/build-image.sh</code>. Empty: official ParallelCluster Ubuntu 24.04 image (needs <code>SINGULARITY_SUPPORT=true</code>).</td>
+</tr>
+<tr class="odd">
+<td><code>PWB_VERSION</code></td>
+<td>Posit Workbench version, e.g.&nbsp;<code>2026.10.0-233.pro1</code></td>
+</tr>
+<tr class="even">
+<td><code>CONFIG</code></td>
+<td>Cluster template <code>config/cluster-config-wb.&lt;CONFIG&gt;.tmpl</code>: <code>default</code> or <code>easybuild</code></td>
+</tr>
+<tr class="odd">
+<td><code>APPS_EFS_ID</code></td>
+<td>Existing EFS with the EasyBuild stack (<code>CONFIG=easybuild</code> only)</td>
+</tr>
+<tr class="even">
+<td><code>ALLOWEDIPS</code></td>
+<td>CIDR allowed to SSH into head and login nodes</td>
+</tr>
+<tr class="odd">
+<td><code>HPC_DOMAIN</code>, <code>HPC_HOST</code></td>
+<td>Internal host names of the login nodes (<code>node1.&lt;HPC_DOMAIN&gt;</code>, …), and the certificate domain with <code>SSL=true</code></td>
+</tr>
+<tr class="even">
+<td><code>SSL</code></td>
+<td><code>true</code>: Workbench serves TLS itself with a self-signed <code>*.HPC_DOMAIN</code> certificate. <code>false</code> (recommended): TLS is terminated at the ALBs.</td>
+</tr>
+<tr class="odd">
+<td><code>SINGULARITY_SUPPORT</code></td>
+<td>Container sessions via Apptainer and the Slurm SPANK plugin. Copy your <code>.sif</code> images into <code>/opt/rstudio/apptainer</code>.</td>
+</tr>
+<tr class="even">
+<td><code>APPTAINER_VERSION</code></td>
+<td>Apptainer installed on login and compute nodes when no custom AMI is used</td>
+</tr>
+<tr class="odd">
+<td><code>EASYBUILD_SUPPORT</code></td>
+<td>Lmod with EasyBuild modules in <code>/opt/apps/easybuild</code></td>
+</tr>
+<tr class="even">
+<td><code>BENCHMARK_SUPPORT</code></td>
+<td>Tiny resource profiles for load tests</td>
+</tr>
+<tr class="odd">
+<td><code>LOCAL</code></td>
+<td>Also offer the Local launcher on the login nodes</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><code>deploy.sh</code> stops with an error if a Pulumi output is missing or a template contains a placeholder it can’t fill. The rendered files contain database passwords. After a real deployment they are deleted from <code>tmp/</code>; after <code>--dry-run</code> they stay there for inspection (delete them afterwards). Set <code>KEEP_TMP=1</code> to keep them after a real deployment too.</p>
+<p>When the cluster is up, <code>./cluster-stat.sh &lt;clustername&gt;</code> prints the Workbench version, URLs and nodes. Add <code>--show-secrets</code> to also print the user password and the jump host SSH key.</p>
+</section>
+<section id="the-cluster-templates" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="the-cluster-templates"><span class="header-section-number">1.3</span> The cluster templates</h2>
+<p><code>config/cluster-config-wb.default.tmpl</code> defines:</p>
+<ul>
+<li><strong>Head node:</strong> <code>t3.xlarge</code>, 120 GB root volume, runs <code>install-pwb-config.sh</code> as <code>OnNodeConfigured</code> action. ParallelCluster’s internal shared storage is on encrypted EFS.</li>
+<li><strong>Slurm queues</strong>, all <code>t3.xlarge</code> except <code>gpu</code>, all running <code>config-compute.sh</code> on start:
+<ul>
+<li><code>interactive</code>: 1 to 5 nodes, <code>OverSubscribe=FORCE:2</code>, for Workbench sessions</li>
+<li><code>all</code>: 0 to 10 nodes, for Workbench jobs and batch work</li>
+<li><code>gpu</code>: 0 to 5 <code>g4dn.xlarge</code> nodes</li>
+</ul></li>
+<li><strong>Login nodes:</strong> a pool of 2 <code>t3.xlarge</code> instances running Workbench</li>
+<li><strong>Shared storage:</strong> encrypted EFS for <code>/home</code> and <code>/opt/rstudio</code></li>
+<li><strong>Directory service:</strong> SimpleAD from Pulumi via LDAP, with SSH keys generated for users</li>
+<li><strong>Slurm accounting</strong> in the Pulumi MySQL database</li>
+</ul>
+<p><code>config/cluster-config-wb.easybuild.tmpl</code> is the same, plus an existing EFS mounted at <code>/opt/apps</code> that holds an EasyBuild software stack.</p>
+<p>Placeholders in the templates and scripts look like <code>@@NAME@@</code>. To add one, use it in a template and export a matching <code>TPL_NAME</code> variable in <code>deploy.sh</code>.</p>
+</section>
+<section id="what-runs-where" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="what-runs-where"><span class="header-section-number">1.4</span> What runs where</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Script</th>
+<th>Runs on</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>scripts/install-pwb-config.sh</code></td>
+<td>head node</td>
+<td><code>OnNodeConfigured</code>. Log: <code>/var/log/install-pwb-config.log</code></td>
+</tr>
+<tr class="even">
+<td><code>scripts/config-compute.sh</code></td>
+<td>every compute node</td>
+<td><code>OnNodeConfigured</code>. Log: <code>/opt/rstudio/config-compute/&lt;host&gt;-&lt;time&gt;.log</code></td>
+</tr>
+<tr class="odd">
+<td><code>scripts/config-login.sh</code></td>
+<td>every login node</td>
+<td><code>OnNodeConfigured</code>. Log: <code>/var/log/config-login.log</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>install-pwb-config.sh</code></strong> does the following:</p>
 <ol type="1">
-<li><p>Review the cluster template in <code>config/cluster-config-wb.tmpl</code> and modify accordingly.</p></li>
-<li><p>Review the <code>deploy.sh</code> script and modify accordingly, especially</p>
+<li>Downloads the Workbench package to <code>/opt/rstudio/scripts</code>. Packs the session components into a squashfs image, <code>/opt/rstudio/session-components/rsw-session-&lt;version&gt;.sqsh</code> (see <a href="#sec-session-components" class="quarto-xref">Section&nbsp;1.5</a>).</li>
+<li>Writes the complete Workbench configuration to <code>/opt/rstudio/etc/rstudio</code>.</li>
+<li>Writes <code>/opt/rstudio/scripts/rc.pwb</code>, the restart helper for the login nodes (see <a href="#sec-config-changes" class="quarto-xref">Section&nbsp;1.6</a>).</li>
+</ol>
+<p>It touches <code>/etc/head-node</code>, so <code>rc.pwb</code> can tell the head node apart from login nodes.</p>
+<p><strong><code>config-login.sh</code></strong> waits for that configuration, installs Workbench, activates the license (see <a href="./Architecture.html#sec-licensing">Licensing</a>) and copies the configuration to <code>/etc/rstudio</code>. It sets the node’s <code>www-host-name</code> to its EC2 private DNS name, mounts <code>/scratch</code> and starts <code>rstudio-launcher</code> and <code>rstudio-server</code>. Finally it installs <code>pwb-lb.sh</code> as the <code>pwb-lb</code> systemd unit, which registers the node with the ALBs and cleans up after replaced login nodes (see <a href="./Architecture.html#sec-lb-sync">Keeping the load balancers in sync</a>).</p>
+<p><strong><code>config-compute.sh</code></strong> mounts the session components image and <code>/scratch</code>.</p>
+</section>
+<section id="sec-session-components" class="level2" data-number="1.5">
+<h2 data-number="1.5" class="anchored" data-anchor-id="sec-session-components"><span class="header-section-number">1.5</span> Session components on squashfs</h2>
+<p>Compute nodes don’t download or extract the Workbench session components (about 800 MB as a tarball). The head node builds a zstd-compressed squashfs image of them once, on the shared <code>/opt/rstudio</code> EFS. Every compute node loop-mounts it read-only at <code>/usr/lib/rstudio-server</code> and adds the mount to <code>/etc/fstab</code>. This makes compute node start-up faster and guarantees that all nodes run identical session components.</p>
+<ul>
+<li>The image is named after the Workbench version. Deploying a new <code>PWB_VERSION</code> builds a new image next to the old one.</li>
+<li>It is written under a temporary name and then moved into place, so a node never mounts a partial image.</li>
+<li>Compute nodes wait up to 30 minutes for the image to appear.</li>
+<li>The mount uses <code>threads=multi</code> (parallel decompression) where the kernel supports it, otherwise plain <code>ro,loop</code>.</li>
+</ul>
+</section>
+<section id="sec-config-changes" class="level2" data-number="1.6">
+<h2 data-number="1.6" class="anchored" data-anchor-id="sec-config-changes"><span class="header-section-number">1.6</span> Changing configuration on a running cluster</h2>
+<p>Login nodes copy the shared configuration only once, when <code>config-login.sh</code> runs. To change the configuration:</p>
 <ol type="1">
-<li><p><code>CLUSTERNAME</code> - a human readable name of your cluster</p></li>
-<li><p><code>S3_BUCKETNAME</code> - The name of the S3 bucket you set up in <a href="#sec-prerequisites" class="quarto-xref">Section&nbsp;1.3</a></p></li>
-<li><p><code>SECURITYGROUP_RSW</code> - a security group that should allow at least external access to port 443 and 8787 (the latter if no SSL is being used).</p></li>
-<li><p><code>AMI</code> - the AMI created in <strong>?@sec-how-to-build-a-custom-ami</strong></p></li>
-<li><p><code>SINGULARITY_SUPPORT</code> - if set true, Workbench will be configured for Singularity integration and two <code>r-session-complete</code> containers (Ubuntu Jammy and Cent OS 7 based) will be built. Please note that this significantly extends the spin-up time of the cluster.</p></li>
-</ol></li>
+<li>Edit the files in <code>/opt/rstudio/etc/rstudio</code>, so that login nodes added later get the change.</li>
+<li>Copy the changed files to <code>/etc/rstudio</code> on each running login node.</li>
+<li>Delete <code>/opt/rstudio/workbench-&lt;hostname&gt;.state</code> for each of those login nodes. <code>config-login.sh</code> registers <code>rc.pwb</code> as a cron job (every minute) on each login node, so within a minute <code>rstudio-launcher</code> and <code>rstudio-server</code> are restarted there. Its log is <code>/var/log/rc.pwb.log</code>.</li>
 </ol>
 </section>
-<section id="default-values-for-cluster-deployment" class="level2" data-number="1.5">
-<h2 data-number="1.5" class="anchored" data-anchor-id="default-values-for-cluster-deployment"><span class="header-section-number">1.5</span> Default values for Cluster deployment</h2>
-<p>For the <code>deploy.sh</code> script, unless mentioned in step 2 of the deployment instructions (cf. <a href="#sec-deployment-instructions" class="quarto-xref">Section&nbsp;1.4</a>), all relevant parameters are extracted from the pulumi deployment for the auxiliary services.</p>
-<p>The default value in the cluster template <code>config/cluster-config-wb.tmpl</code>` are as follows</p>
-<ul>
-<li><p>EFS storage used for shared file systems needed by AWS ParallelCluster</p></li>
-<li><p>One Head Node</p>
-<ul>
-<li><p>Instance <code>t3.xlarge</code></p></li>
-<li><p>100 GB of local EBS storage</p></li>
-<li><p>Script <code>install-pwb-config.sh</code> triggered when head node is being deployed.</p></li>
-</ul></li>
-<li><p>Compute Nodes with</p>
-<ul>
-<li><p>Script <code>config-compute.sh</code> triggered when compute node starts.</p></li>
-<li><p>Partition <code>all</code></p>
-<ul>
-<li><p>Instance <code>t3.xlarge</code></p></li>
-<li><p>minimum/maximum number of instances: 1/10</p></li>
-</ul></li>
-<li><p>Partition <code>gpu</code></p>
-<ul>
-<li><p>Instance p3.2xlarge</p></li>
-<li><p>minimum/maximum number of instances; 0/1</p></li>
-</ul></li>
-</ul></li>
-<li><p>2 Login Nodes with</p>
-<ul>
-<li>Instance <code>t3.xlarge</code></li>
-<li>ELB in front</li>
-</ul></li>
-<li><p>Shared storage for <code>/home</code> - FsX for Lustre with capacity of 1.2 TB and deployment type <code>SCRATCH_2</code></p></li>
-</ul>
-<p>All of the above settings (Instance type, numbers, FsX size) can be changed as needed.</p>
 </section>
-<section id="sec-notes-on-install-pwb-config.sh" class="level2" data-number="1.6">
-<h2 data-number="1.6" class="anchored" data-anchor-id="sec-notes-on-install-pwb-config.sh"><span class="header-section-number">1.6</span> Notes on <code>install-pwb-config.sh</code> and <code>install-compute.sh</code></h2>
-<p><code>install-pwb-config.sh</code> mainly creates Posit Workbench configuration files and configures the workbench systemctl services <code>rstudio-launcher</code> and <code>rstudio-server</code> . It is only executed on the designated head node</p>
-<ul>
-<li><p>Workbench uses <code>/opt/parallelcluster/shared/rstudio/</code> as the base for its configuration (<code>PWB_BASE_DIR</code>). <code>/opt/parallelcluster/shared</code>` is already created by AWS ParallelCluster and shared across all nodes (head, login and compute) so we are making use of this functionality.</p></li>
-<li><p>configuration files are deployed in <code>$PWB_BASE_DIR/etc/rstudio</code></p></li>
-<li><p>shared storage is configured in <code>$PWB_BASE_DIR/shared</code></p></li>
-<li><p>R Versions file is configured in <code>$PWB_BASE_DIR/shared/r-versions</code></p></li>
-<li><p>In order to distinguish the head node from the login node, an empty file <code>/etc/head-node</code> is created. This is used in the cron job mentioned in <strong>?@sec-custom-ami</strong> to help differentiate the login nodes from the head node.</p></li>
-</ul>
-<p><code>ìnstall-compute.sh</code> script detects the presence of a GPU and then automatically updates the NVIDIA/CUDA driver and installs the CuDNN library for distributed GPU computing. This is more a nice to have but is rsther useful for distributed tensorflow etc…</p>
-</section>
-<section id="customisations-on-top-of-aws-parallelcluster" class="level2" data-number="1.7">
-<h2 data-number="1.7" class="anchored" data-anchor-id="customisations-on-top-of-aws-parallelcluster"><span class="header-section-number">1.7</span> Customisations on top of AWS ParallelCluster</h2>
-<section id="elastic-load-balancer" class="level3" data-number="1.7.1">
-<h3 data-number="1.7.1" class="anchored" data-anchor-id="elastic-load-balancer"><span class="header-section-number">1.7.1</span> Elastic Load Balancer</h3>
-<p>AWS ParallelCluster is setting up an ELB for the Login nodes and ensures that the desired number of login nodes is available at any given time. The ELB is by default listening on port 22 (ssh). In order to change that one would need to patch the python scripts a bit (patch supplied in <a href="#sec-patch-for-elb" class="quarto-xref">Section&nbsp;3.1</a>)</p>
-<p>This change is simple but will effectively disable the ability to ssh into the ELB. Typically however Workbench Users do not need ssh access to login nodes - if needed, they can open a termina within the RStudio IDE, for example.</p>
-<p>An alternative would be to add a second ELB for Workbench but this would imply a significantly larger patch to AWS ParallelCluster.</p>
-</section>
-<section id="the-thing-with-the-login-nodes" class="level3" data-number="1.7.2">
-<h3 data-number="1.7.2" class="anchored" data-anchor-id="the-thing-with-the-login-nodes"><span class="header-section-number">1.7.2</span> The “thing” with the Login Nodes</h3>
-<p>AWS ParallelCluster introduced the ability to define separate login nodes in <a href="https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0">Version 3.7.0</a>. This is great and replaces a rather <a href="https://github.com/aws/aws-parallelcluster/wiki/ParallelCluster:-Launching-a-Login-Node">complicated workaround</a> that was in place until then. Unfortunately the team did not add the same features to the new <a href="https://docs.aws.amazon.com/parallelcluster/latest/ug/LoginNodes-v3.html">Login Nodes</a> such as <code>OnNodeConfigured</code> . We have raise a <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> which was acknowledged and the missing feature will be implemented in an upcoming release.</p>
-<p>As a consequence we have implemented a workaround with a cron job that runs on all ParallelCluster managed nodes (Login, Head and Compute) every minute. A login node is detected if there is a NFS mount that contains the name <code>login_node</code> and if there is no file <code>/etc/head-node</code> (the latter would signal that this is a head node indeed). See <a href="#sec-notes-on-install-pwb-config.sh" class="quarto-xref">Section&nbsp;1.6</a> for additional information.</p>
-<p>Until the <a href="https://github.com/aws/aws-parallelcluster/issues/5723">github issue</a> is fixed, we will have to live with this workaround.</p>
-</section>
-</section>
-</section>
-<section id="summary-and-conclusions" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> Summary and Conclusions</h1>
-<p>This document describes a possibility on how to integrate Workbench and AWS ParallelCluster that allows for partial High Availability. The setup can tolerate login node failures and recover and as a consequence the workbench part is HA.</p>
-<p>The main ingredients for this setup is the creation of a custom AMI with all the software needed (Workbench, R, Python, …) baked into a custom AMI that can be used for all the three node types (Login, Head and Compute Node).</p>
-<p>In order to achieve this, some additional logic has to be implemented and some workarounds for missing features in AWS ParallelCluster be used.</p>
-<p>The remaining issue is however the single head node which is a single point of failure (if the head node crashes, SLURM stops working).</p>
-<section id="how-to-reach-full-ha" class="level3" data-number="2.0.1">
-<h3 data-number="2.0.1" class="anchored" data-anchor-id="how-to-reach-full-ha"><span class="header-section-number">2.0.1</span> How to reach “full” HA</h3>
-<p>AWS paralelcluster makes a clear distinction between Head and Login nodes. This is more than justified given the fact that the Head node not only runs <code>slurmctld</code> but also can act as a NFS server exporting file systems such as <code>/home</code> , <code>/opt/slurm</code>, … This makes the Head node a single point of failure from the perspective of the NFS server alone.</p>
-<p>With the release of <a href="https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380">AWS ParallelCluster 3.8.0</a> (currently available as beta version), all the NFS file systems can be hosted on external EFS. This removes the single point of failure for the NFS server. There is a bug in the beta version <a href="https://github.com/aws/aws-parallelcluster/issues/5812">where all but one file system can be hosted on EFS</a> but this will be fixed in the official release of 3.8.0.</p>
-<p>Once this is in place, the boundaries between the Login Nodes and Head Nodes will become much less clear. With adding additional logic, one can automatically start additional <code>slurmctld</code> processes on the login nodes and configure those hosts in the slurm configuration. If the head node then fails, a <code>slurmctld</code> of one of the compute nodes will take over. While adding additional <code>slurmctld</code> is fairly straightforward, there also is a need for regular checks if all the defined <code>slurmctld</code>` hosts are still up and running. If not, those need to be removed from the slurm config.</p>
-<p>The complexity of establishing the above is fairly small but then it is another customisation we have to make and maintain. As long as this is only a posit internal solution, we should be ok.</p>
-<p>A drawback of having full HA as mentioned above however is that very likely the ParallelCluster API may become unuseable in case the head node is no longer available. Things like updating configuration and settings of the running cluster may no longer work. Whether this is needed in a productive cluster is another matter of debate.</p>
-</section>
-</section>
-<section id="appendix" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Appendix</h1>
-<section id="sec-patch-for-elb" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="sec-patch-for-elb"><span class="header-section-number">3.1</span> Patch for ELB to listen on port 8787 instead of 22</h2>
-<pre><code>diff -u --recursive pcluster/templates/cluster_stack.py pcluster.new/templates/cluster_stack.py
---- pcluster/templates/cluster_stack.py 2023-11-22 12:25:53
-+++ pcluster.new/templates/cluster_stack.py 2023-11-22 15:11:48
-@@ -871,10 +871,10 @@
-     def _get_source_ingress_rule(self, setting):
-         if setting.startswith("pl"):
-             return ec2.CfnSecurityGroup.IngressProperty(
--                ip_protocol="tcp", from_port=22, to_port=22, source_prefix_list_id=setting
-+                ip_protocol="tcp", from_port=8787, to_port=8787, source_prefix_list_id=setting
-             )
-         else:
--            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol="tcp", from_port=22, to_port=22, cidr_ip=setting)
-+            return ec2.CfnSecurityGroup.IngressProperty(ip_protocol="tcp", from_port=8787, to_port=8787, cidr_ip=setting)
- 
-     def _add_login_nodes_security_group(self):
-         login_nodes_security_group_ingress = [
-diff -u --recursive pcluster/templates/login_nodes_stack.py pcluster.new/templates/login_nodes_stack.py
---- pcluster/templates/login_nodes_stack.py 2023-11-22 12:25:53
-+++ pcluster.new/templates/login_nodes_stack.py 2023-11-22 15:11:19
-@@ -273,10 +273,10 @@
-             self,
-             f"{self._pool.name}TargetGroup",
-             health_check=elbv2.HealthCheck(
--                port="22",
-+                port="8787",
-                 protocol=elbv2.Protocol.TCP,
-             ),
--            port=22,
-+            port=8787,
-             protocol=elbv2.Protocol.TCP,
-             target_type=elbv2.TargetType.INSTANCE,
-             vpc=self._vpc,
-@@ -299,7 +299,7 @@
-             ),
-         )
- 
--        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=22)
-+        listener = login_nodes_load_balancer.add_listener(f"LoginNodesListener{self._pool.name}", port=8787)
-         listener.add_target_groups(f"LoginNodesListenerTargets{self._pool.name}", target_group)
-         return login_nodes_load_balancer
- </code></pre>
+<section id="sec-full-ha" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Reaching full HA</h1>
+<p>The Workbench part of the setup is highly available: login node failures are tolerated and recovered, and all state is in PostgreSQL and on EFS. The remaining single point of failure is the head node: if it fails, Slurm stops working.</p>
+<p>With all shared file systems on EFS, the head node is no longer an NFS server, so the difference between head and login nodes becomes much smaller. One could start additional <code>slurmctld</code> processes on the login nodes and add them to the Slurm configuration as backup controllers. This would also need regular checks that remove controllers that have disappeared. It is a moderate amount of additional logic, but it is another customisation to maintain.</p>
+<p>A drawback: the ParallelCluster API (e.g.&nbsp;<code>pcluster update-cluster</code>) will very likely stop working when the head node is gone. Whether that matters for a production cluster is a separate question.</p>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
-window.document.addEventListener("DOMContentLoaded", function (event) {
-  const toggleBodyColorMode = (bsSheetEl) => {
-    const mode = bsSheetEl.getAttribute("data-mode");
-    const bodyEl = window.document.querySelector("body");
-    if (mode === "dark") {
-      bodyEl.classList.add("quarto-dark");
-      bodyEl.classList.remove("quarto-light");
-    } else {
-      bodyEl.classList.add("quarto-light");
-      bodyEl.classList.remove("quarto-dark");
-    }
-  }
-  const toggleBodyColorPrimary = () => {
-    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
-    if (bsSheetEl) {
-      toggleBodyColorMode(bsSheetEl);
-    }
-  }
-  toggleBodyColorPrimary();  
-  const icon = "";
-  const anchorJS = new window.AnchorJS();
-  anchorJS.options = {
-    placement: 'right',
-    icon: icon
-  };
-  anchorJS.add('.anchored');
-  const isCodeAnnotation = (el) => {
-    for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
-        return true;
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
       }
+      return false;
     }
-    return false;
-  }
-  const onCopySuccess = function(e) {
-    // button target
-    const button = e.trigger;
-    // don't keep focus
-    button.blur();
-    // flash "checked"
-    button.classList.add('code-copy-button-checked');
-    var currentTitle = button.getAttribute("title");
-    button.setAttribute("title", "Copied!");
-    let tooltip;
-    if (window.bootstrap) {
-      button.setAttribute("data-bs-toggle", "tooltip");
-      button.setAttribute("data-bs-placement", "left");
-      button.setAttribute("data-bs-title", "Copied!");
-      tooltip = new bootstrap.Tooltip(button, 
-        { trigger: "manual", 
-          customClass: "code-copy-button-tooltip",
-          offset: [0, -8]});
-      tooltip.show();    
-    }
-    setTimeout(function() {
-      if (tooltip) {
-        tooltip.hide();
-        button.removeAttribute("data-bs-title");
-        button.removeAttribute("data-bs-toggle");
-        button.removeAttribute("data-bs-placement");
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
       }
-      button.setAttribute("title", currentTitle);
-      button.classList.remove('code-copy-button-checked');
-    }, 1000);
-    // clear code selection
-    e.clearSelection();
-  }
-  const getTextToCopy = function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
       for (const childEl of codeEl.children) {
         if (isCodeAnnotation(childEl)) {
           childEl.remove();
         }
       }
       return codeEl.innerText;
-  }
-  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-    text: getTextToCopy
-  });
-  clipboard.on('success', onCopySuccess);
-  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-      text: getTextToCopy,
-      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
     });
-    clipboardModal.on('success', onCopySuccess);
-  }
-    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-    var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp("https:\/\/sol-eng\.github\.io\/aws-parallelcluster-rsw-ha\/");
-    var isInternal = (href) => {
-        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
     }
-    // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-    for (var i=0; i<links.length; i++) {
-      const link = links[i];
-      if (!isInternal(link.href)) {
-        // undo the damage that might have been done by quarto-nav.js in the case of
-        // links that we want to consider external
-        if (link.dataset.originalHref !== undefined) {
-          link.href = link.dataset.originalHref;
-        }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/sol-eng\.github\.io\/aws-parallelcluster-rsw-ha\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
-    }
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-    const config = {
-      allowHTML: true,
-      maxWidth: 500,
-      delay: 100,
-      arrow: false,
-      appendTo: function(el) {
-          return el.parentElement;
-      },
-      interactive: true,
-      interactiveBorder: 10,
-      theme: 'quarto',
-      placement: 'bottom-start',
-    };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
-    window.tippy(el, config); 
-  }
-  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-  for (var i=0; i<noterefs.length; i++) {
-    const ref = noterefs[i];
-    tippyHover(ref, function() {
-      // use id or data attribute instead here
-      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-      try { href = new URL(href).hash; } catch {}
-      const id = href.replace(/^#\/?/, "");
-      const note = window.document.getElementById(id);
-      if (note) {
-        return note.innerHTML;
-      } else {
-        return "";
-      }
-    });
-  }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
           }
         }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
         }
-        return container.innerHTML
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
       } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
         if (window.Quarto?.typesetMath) {
           window.Quarto.typesetMath(note);
         }
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      if (note.classList.contains("callout")) {
-        return note.outerHTML;
-      } else {
-        return note.innerHTML;
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
       }
     }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
           }
         } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
           .then(res => res.text())
           .then(html => {
             const parser = new DOMParser();
             const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
+            const note = htmlDoc.querySelector('main.content');
             if (note !== null) {
-              const html = processXRef(id, note);
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
               instance.setContent(html);
             } 
           }).finally(() => {
@@ -629,185 +675,161 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             instance.show();
           });
         }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
-    });
-  }
-      let selectedAnnoteEl;
-      const selectorForAnnotation = ( cell, annotation) => {
-        let cellAttr = 'data-code-cell="' + cell + '"';
-        let lineAttr = 'data-code-annotation="' +  annotation + '"';
-        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-        return selector;
-      }
-      const selectCodeLines = (annoteEl) => {
-        const doc = window.document;
-        const targetCell = annoteEl.getAttribute("data-target-cell");
-        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-        const lineIds = lines.map((line) => {
-          return targetCell + "-" + line;
-        })
-        let top = null;
-        let height = null;
-        let parent = null;
-        if (lineIds.length > 0) {
-            //compute the position of the single el (top and bottom and make a div)
-            const el = window.document.getElementById(lineIds[0]);
-            top = el.offsetTop;
-            height = el.offsetHeight;
-            parent = el.parentElement.parentElement;
-          if (lineIds.length > 1) {
-            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-            height = bottom - top;
-          }
-          if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
-            let div = window.document.getElementById("code-annotation-line-highlight");
-            if (div === null) {
-              div = window.document.createElement("div");
-              div.setAttribute("id", "code-annotation-line-highlight");
-              div.style.position = 'absolute';
-              parent.appendChild(div);
-            }
-            div.style.top = top - 2 + "px";
-            div.style.height = height + 4 + "px";
-            div.style.left = 0;
-            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-            if (gutterDiv === null) {
-              gutterDiv = window.document.createElement("div");
-              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-              gutterDiv.style.position = 'absolute';
-              const codeCell = window.document.getElementById(targetCell);
-              const gutter = codeCell.querySelector('.code-annotation-gutter');
-              gutter.appendChild(gutterDiv);
-            }
-            gutterDiv.style.top = top - 2 + "px";
-            gutterDiv.style.height = height + 4 + "px";
-          }
-          selectedAnnoteEl = annoteEl;
-        }
-      };
-      const unselectCodeLines = () => {
-        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-        elementsIds.forEach((elId) => {
-          const div = window.document.getElementById(elId);
-          if (div) {
-            div.remove();
-          }
-        });
-        selectedAnnoteEl = undefined;
-      };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
-      // Attach click handler to the DT
-      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-      for (const annoteDlNode of annoteDls) {
-        annoteDlNode.addEventListener('click', (event) => {
-          const clickedEl = event.target;
-          if (clickedEl !== selectedAnnoteEl) {
-            unselectCodeLines();
-            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-            if (activeEl) {
-              activeEl.classList.remove('code-annotation-active');
-            }
-            selectCodeLines(clickedEl);
-            clickedEl.classList.add('code-annotation-active');
-          } else {
-            // Unselect the line
-            unselectCodeLines();
-            clickedEl.classList.remove('code-annotation-active');
-          }
-        });
-      }
-  const findCites = (el) => {
-    const parentEl = el.parentElement;
-    if (parentEl) {
-      const cites = parentEl.dataset.cites;
-      if (cites) {
-        return {
-          el,
-          cites: cites.split(' ')
-        };
-      } else {
-        return findCites(el.parentElement)
-      }
-    } else {
-      return undefined;
-    }
-  };
-  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-  for (var i=0; i<bibliorefs.length; i++) {
-    const ref = bibliorefs[i];
-    const citeInfo = findCites(ref);
-    if (citeInfo) {
-      tippyHover(citeInfo.el, function() {
-        var popup = window.document.createElement('div');
-        citeInfo.cites.forEach(function(cite) {
-          var citeDiv = window.document.createElement('div');
-          citeDiv.classList.add('hanging-indent');
-          citeDiv.classList.add('csl-entry');
-          var biblioDiv = window.document.getElementById('ref-' + cite);
-          if (biblioDiv) {
-            citeDiv.innerHTML = biblioDiv.innerHTML;
-          }
-          popup.appendChild(citeDiv);
-        });
-        return popup.innerHTML;
+      }, function(instance) {
       });
     }
-  }
-});
-</script>
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
 </div> <!-- /content -->
 
 
