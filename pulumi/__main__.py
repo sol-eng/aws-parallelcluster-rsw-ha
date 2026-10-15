@@ -743,12 +743,14 @@ def main():
         opts=pulumi.ResourceOptions(depends_on=jump_host),
     )
 
+    # The remote commands below re-run whenever their inputs change (including
+    # provider upgrades), so every one of them must be safe to run repeatedly.
     command_install_justfile = remote.Command(
         "install-justfile",
         create="\n".join(
             [
-                """curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
-                """echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bashrc;""",
+                """[ -x ~/bin/just ] || curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
+                """grep -q 'PATH:$HOME/bin' ~/.bashrc || echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bashrc;""",
             ]
         ),
         opts=pulumi.ResourceOptions(depends_on=jump_host),
