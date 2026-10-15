@@ -91,15 +91,12 @@ Placeholders in the templates and scripts look like `@@NAME@@`. To add one, use 
 **`install-pwb-config.sh`** does the following:
 
 1.  Downloads the Workbench package to `/opt/rstudio/scripts`. Packs the session components into a squashfs image, `/opt/rstudio/session-components/rsw-session-<version>.sqsh` (see @sec-session-components).
-2.  Waits until all login nodes are registered with the login node load balancer ParallelCluster creates.
-3.  Writes their addresses into `/opt/rstudio/etc/rstudio/nodes`.
-4.  Registers them on port 8787 with the Pulumi ALB target groups `pwb-alb-tg-{int,ext}-<cluster>`.
-5.  Writes the complete Workbench configuration to `/opt/rstudio/etc/rstudio`.
-6.  Writes `/opt/rstudio/scripts/rc.pwb`, the restart helper for the login nodes (see @sec-config-changes).
+2.  Writes the complete Workbench configuration to `/opt/rstudio/etc/rstudio`.
+3.  Writes `/opt/rstudio/scripts/rc.pwb`, the restart helper for the login nodes (see @sec-config-changes).
 
 It touches `/etc/head-node`, so `rc.pwb` can tell the head node apart from login nodes.
 
-**`config-login.sh`** installs Workbench and copies the configuration to `/etc/rstudio`. It sets the node's `www-host-name` for load balancing, mounts `/scratch` and starts `rstudio-launcher` and `rstudio-server`.
+**`config-login.sh`** waits for that configuration, installs Workbench and copies the configuration to `/etc/rstudio`. It sets the node's `www-host-name` to its EC2 private DNS name, mounts `/scratch` and starts `rstudio-launcher` and `rstudio-server`. Finally it installs `pwb-lb.sh` as the `pwb-lb` systemd unit, which registers the node with the ALBs and cleans up after replaced login nodes (see [Keeping the load balancers in sync](Architecture.qmd#sec-lb-sync)).
 
 **`config-compute.sh`** mounts the session components image and `/scratch`.
 

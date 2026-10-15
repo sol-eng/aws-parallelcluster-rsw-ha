@@ -119,6 +119,7 @@ else
 fi
 
 # Every @@NAME@@ token in the templates is replaced by the value of TPL_NAME
+export TPL_CLUSTERNAME="$CLUSTERNAME"
 export TPL_PWB_VERSION="$PWB_VERSION"
 export TPL_REGION="$REGION"
 export TPL_AMI="$AMI"
@@ -158,6 +159,8 @@ TPL_EC2_RUNINSTANCES=$(out iam_ec2_runinstances); export TPL_EC2_RUNINSTANCES
 TPL_SUBNETID=$(out vpc_private_subnet); export TPL_SUBNETID
 TPL_SECURITYGROUP_SSH=$(out ssh_security_group); export TPL_SECURITYGROUP_SSH
 TPL_PWB_URL_INT=$(out pwb_url_int); export TPL_PWB_URL_INT
+TPL_ALB_TG_EXT_ARN=$(out alb_target_group_ext_arn); export TPL_ALB_TG_EXT_ARN
+TPL_ALB_TG_INT_ARN=$(out alb_target_group_int_arn); export TPL_ALB_TG_INT_ARN
 
 # render <in> <out>: replace @@NAME@@ tokens literally, fail on unknown tokens
 render() {
@@ -173,10 +176,12 @@ if $SSL; then
     if [ -f "certs/$HPC_DOMAIN.crt" ] && [ -f "certs/$HPC_DOMAIN.key" ]; then
         echo "Using existing certs/$HPC_DOMAIN.{crt,key}"
     else
-        echo "Generating self-signed SSL certificate for *.$HPC_DOMAIN"
+        # Login nodes reach each other via their EC2 private DNS names
+        if [ "$REGION" = us-east-1 ]; then ec2_domain=ec2.internal; else ec2_domain=$REGION.compute.internal; fi
+        echo "Generating self-signed SSL certificate for *.$HPC_DOMAIN and *.$ec2_domain"
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
             -keyout "certs/$HPC_DOMAIN.key" -out "certs/$HPC_DOMAIN.crt" \
-            -subj "$CERT_SUBJECT"
+            -subj "$CERT_SUBJECT" -addext "subjectAltName=DNS:*.$HPC_DOMAIN,DNS:*.$ec2_domain"
     fi
 fi
 
@@ -192,7 +197,7 @@ if ! $DRY_RUN && [ -z "${KEEP_TMP:-}" ]; then
     trap 'rm -rf tmp' EXIT
 fi
 
-UPLOADS=(install-pwb-config.sh config-login.sh config-compute.sh)
+UPLOADS=(install-pwb-config.sh config-login.sh config-compute.sh pwb-lb.sh)
 for f in "${UPLOADS[@]}"; do
     render "scripts/$f" "tmp/$f"
 done

@@ -103,6 +103,7 @@ User creation is done by `server-side-files/config/useradd.sh` on the jump host.
 | `iam_elb_access`, `iam_s3_access`, `iam_ec2_runinstances` | node IAM policies |
 | `secure_cookie_key` | Workbench `secure-cookie-key` |
 | `pwb_url_ext`, `pwb_url_int` | Workbench URLs, session callback address |
+| `alb_target_group_ext_arn`, `alb_target_group_int_arn` | target groups the login nodes register with |
 | `jump_host_private_ip`, `private_key_ssh` | SSH access to the jump host |
 
 Run `pulumi stack output` to see all of them.

@@ -121,18 +121,15 @@ done
 chmod a+rx /usr/local/rstudio/code-server
 
 
-my_ip=$(hostname -I | awk '{print $1}')
-
 rm -rf /etc/rstudio
 mkdir -p /etc/rstudio
 
 cp -dpRf $PWB_CONFIG_DIR/* /etc/rstudio
 
-# add DNS entries for LB nodes
-cat  $PWB_CONFIG_DIR/nodes >> /etc/hosts
-
-my_hostname=`grep $my_ip /etc/hosts | tail -1  | awk '{print $3}'`
-
+# Workbench load balancing: nodes address each other by their EC2 private DNS
+# name (resolved by the VPC DNS), so no host list needs to be maintained
+imds_token=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+my_hostname=$(curl -sf -H "X-aws-ec2-metadata-token: $imds_token" http://169.254.169.254/latest/meta-data/local-hostname)
 echo "www-host-name=$my_hostname" > /etc/rstudio/load-balancer
 
 # add the self-signed SSL cert (SSL=true only) locally to make the workbench LB happy
@@ -155,6 +152,29 @@ systemctl start rstudio-server
 
 # Touch a file in /opt/rstudio to signal that workbench is running on this server
 touch /opt/rstudio/workbench-`hostname`.state
+
+# Register with the ALB target groups now and on every boot, deregister on
+# shutdown, and clean up targets/Workbench nodes of login nodes that are gone
+aws s3 cp s3://@@S3_PREFIX@@/pwb-lb.sh /usr/local/sbin/pwb-lb
+chmod 0755 /usr/local/sbin/pwb-lb
+cat << EOF > /etc/systemd/system/pwb-lb.service
+[Unit]
+Description=Register this login node with the Workbench load balancers
+Wants=network-online.target
+After=network-online.target rstudio-server.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/pwb-lb register
+ExecStop=/usr/local/sbin/pwb-lb deregister
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable --now pwb-lb.service
 
 if [ "@@EASYBUILD_SUPPORT@@" = true ]; then
     apt-get update && apt-get install -y lmod

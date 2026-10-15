@@ -239,7 +239,7 @@ def main():
     policy = iam.Policy(
         "elbaccess",
         path="/",
-        description="ELB Access from head node of parallelcluster",
+        description="Register/deregister login nodes with the Workbench ALB target groups",
         policy=json.dumps(
             {
                 "Version": "2012-10-17",
@@ -251,6 +251,7 @@ def main():
                             "elasticloadbalancing:DescribeLoadBalancers",
                             "elasticloadbalancing:DescribeTargetHealth",
                             "elasticloadbalancing:RegisterTargets",
+                            "elasticloadbalancing:DeregisterTargets",
                         ],
                         "Effect": "Allow",
                         "Resource": "*",
@@ -259,6 +260,7 @@ def main():
                         "Action": [
                             "ec2:DescribeNetworkInterfaces",
                             "ec2:DescribeSubnets",
+                            "ec2:DescribeInstances",
                         ],
                         "Effect": "Allow",
                         "Resource": "*",

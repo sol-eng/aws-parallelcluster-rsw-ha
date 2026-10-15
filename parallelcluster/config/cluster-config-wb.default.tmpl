@@ -134,6 +134,8 @@ LoginNodes:
       Iam:
         AdditionalIamPolicies:
           - Policy: @@S3_ACCESS@@
+          # register/deregister with the ALB target groups (pwb-lb.sh)
+          - Policy: @@ELB_ACCESS@@
 
 DevSettings:
   Timeouts:

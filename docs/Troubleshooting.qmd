@@ -21,13 +21,15 @@ The nodes are in private subnets. Use SSM Session Manager (`aws ssm start-sessio
 
 **`deploy.sh` fails with "Pulumi output '...' missing".** The stack is older than the scripts, or you are using the wrong stack name. Run `pulumi up` in `pulumi/`, and check that `STACKNAME`/`CLUSTERNAME` match the stack.
 
-**Cluster creation hangs or the head node times out.** Check `/var/log/install-pwb-config.log`. The script waits up to an hour for the login node load balancer and for all login nodes to register. If they never come up, look at the login node pool in the EC2 console.
+**Cluster creation hangs or the head node times out.** Check `/var/log/install-pwb-config.log` on the head node; the longest steps are the Workbench download and the session components image. Login nodes wait for the head node, so their setup only finishes after it.
 
-**Workbench URL returns 502/503.** The login nodes are not (yet) healthy in the ALB target groups. Check that `pwb-alb-tg-ext-<cluster>` has targets (`aws elbv2 describe-target-health`). Then check `/var/log/config-login.log` on a login node. It waits for the head node to finish writing the Workbench configuration, so Workbench can come up several minutes after the node itself.
+**Workbench URL returns 502/503.** The login nodes are not (yet) healthy in the ALB target groups. Check that `pwb-alb-tg-ext-<cluster>` has targets (`aws elbv2 describe-target-health`), and `/var/log/pwb-lb.log` on the login nodes for registration errors. Then check `/var/log/config-login.log` on a login node. It waits for the head node to finish writing the Workbench configuration, so Workbench can come up several minutes after the node itself.
 
 **Sessions start but never connect.** The session on the compute node can't call back into Workbench. Check `launcher-sessions-callback-address` in `/etc/rstudio/rserver.conf`. With `SSL=false` it should be `https://<stack>.<domain>`, the internal ALB. It must resolve and be reachable from the compute nodes.
 
 **Compute nodes fail to start with "rsw-session-....sqsh not found".** The head node builds the session components image in `install-pwb-config.sh`; check its log for download or `mksquashfs` errors. On a compute node, `findmnt /usr/lib/rstudio-server` shows whether the image is mounted.
+
+**`rstudio-server list-nodes` shows nodes that no longer exist.** They are removed when the next login node boots. To remove them right away, run `sudo pwb-lb cleanup` on a login node (log: `/var/log/pwb-lb.log`). Note that `list-nodes` shows stored state; `rstudio-server node-status` probes the nodes.
 
 **Users cannot log in.** Check that the user exists (`id posit0001` on a login node) and that `sssd` is running. Users are created by `just create-users` in `pulumi/`, which needs SSH access to the jump host.
 
