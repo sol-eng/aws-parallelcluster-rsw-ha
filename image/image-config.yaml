@@ -1,21 +1,18 @@
+# ParallelCluster image build config, rendered by build-image.sh.
+# @@...@@ placeholders are filled from the Pulumi stack outputs.
 Build:
-  InstanceType: g4dn.xlarge 
-  ParentImage: AMI
-  # private-0 | shared
-  SubnetId: subnet-08a17fc2026b879b6 
+  InstanceType: g4dn.xlarge
+  ParentImage: @@PARENT_AMI@@
+  SubnetId: @@SUBNET@@
   SecurityGroupIds:
-    - sg-0dcca122fc164c801 
+    - @@SECURITYGROUP@@
   UpdateOsPackages:
-    Enabled: true 
+    Enabled: true
   Iam:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
   Components:
     - Type: script
-      Value: s3://BUCKETNAME/image/install-image.sh
+      Value: s3://@@BUCKETNAME@@/image/install-image.sh
   Imds:
     ImdsSupport: v2.0
-#DevSettings:
-#  Cookbook:
-#    ExtraChefAttributes: |
-#      {"cluster": {"nvidia": {"enabled": "yes", "kernel-open": "false"}}}

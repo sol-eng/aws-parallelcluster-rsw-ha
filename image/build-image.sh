@@ -1,41 +1,63 @@
 #!/bin/bash
+#
+# Build the custom ParallelCluster AMI with R, Python, Quarto, Apptainer etc.
+#
+# The S3 bucket, subnet and security group are taken from the Pulumi stack
+# (run Pulumi first). Software versions are pinned in install-image.sh.
+#
+# Usage: ./build-image.sh <IMAGENAME> <PULUMI_STACK>
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
 
 usage() {
-echo "Usage: "
-echo "  `basename $0` <IMAGENAME> [<BUCKETNAME>]"  
+    echo "Usage: $(basename "$0") <IMAGENAME> <PULUMI_STACK>" >&2
+    exit 1
 }
 
-if [ -z $1 ]; then 
-   echo "Image Name not provided !"
-   usage
-   exit 
-fi
+[ $# -eq 2 ] || usage
+image_name=$1
+stack=$2
 
-bucketname=$2
-if [ -z $2 ]; then
-   bucketname="hpc-scripts1234"
+stack_output() {
+    pulumi stack output -C ../pulumi -s "$stack" "$1"
+}
 
-   if [ ! -f .bucket.default ]; then 
-      echo "<BUCKETNAME> not specified, falling back to default [hpc-script1234]"
-   else 
-      bucketname=`cat .bucket.default`
-   fi
-fi
+bucketname=$(stack_output s3_bucket_id)
+subnet=$(stack_output vpc_private_subnet)
+securitygroup=$(stack_output ssh_security_group)
 
-tmpdir=`mktemp -d`
- 
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+
+echo "Uploading install scripts to s3://$bucketname/image/"
 for i in install*.sh *.R
 do
-sed "s/BUCKETNAME/$bucketname/" $i > $tmpdir/$i
-aws s3 cp $tmpdir/$i s3://$bucketname/image/$i
+    sed "s/BUCKETNAME/$bucketname/g" "$i" > "$tmpdir/$i"
+    aws s3 cp --only-show-errors "$tmpdir/$i" "s3://$bucketname/image/$i"
 done
 
-# Get a compatible ubuntu 2024 (noble) AMI
-my_ami=`pcluster list-official-images |  jq -r '.images[] | select(.os == "ubuntu2404" and .architecture == "x86_64") | .amiId'`
+# Official ParallelCluster Ubuntu 24.04 (noble) AMI for the installed pcluster version
+pcluster_version=$(pcluster version | jq -r .version)
+my_ami=$(pcluster list-official-images --os ubuntu2404 --architecture x86_64 \
+    | jq -r --arg v "$pcluster_version" '[.images[] | select(.version == $v)] | first | .amiId // empty')
+[ -n "$my_ami" ] || { echo "ERROR: no official ubuntu2404 AMI found for pcluster $pcluster_version" >&2; exit 1; }
+echo "Parent image: $my_ami (pcluster $pcluster_version)"
 
-cat image-config.yaml | sed "s/AMI/$my_ami/g" | sed "s/BUCKETNAME/$bucketname/" > $tmpdir/image-config.yaml
+sed -e "s/@@PARENT_AMI@@/$my_ami/" \
+    -e "s/@@BUCKETNAME@@/$bucketname/" \
+    -e "s/@@SUBNET@@/$subnet/" \
+    -e "s/@@SECURITYGROUP@@/$securitygroup/" \
+    image-config.yaml > "$tmpdir/image-config.yaml"
 
-pcluster build-image -c $tmpdir/image-config.yaml -i $1 --suppress-validators ALL
+pcluster build-image -c "$tmpdir/image-config.yaml" -i "$image_name" --suppress-validators ALL
 
-#rm -rf $tmpdir
+cat <<EOF
 
+Image build started. Check progress with
+  pcluster describe-image -i $image_name
+Once imageBuildStatus is BUILD_COMPLETE, put the reported ec2AmiInfo.amiId
+into the AMI= line of your parallelcluster/envs/<name>.env file:
+  pcluster describe-image -i $image_name | jq -r .ec2AmiInfo.amiId
+EOF
