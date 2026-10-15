@@ -1,8 +1,46 @@
+# Quarto
 /.quarto/
 /_site/
+/docs/.quarto/
+/docs/_site/
+
+# Python / IDE
+/.venv/
+/pulumi/.venv/
 /pulumi/__pycache__/
+__pycache__/
 /.idea/
 *.iml
-/pulumi/.venv/
+
+# OS cruft
+.DS_Store
+
+# Pulumi stack config (contains environment-specific values)
 /pulumi/Pulumi.*.yaml
-/.venv/
+
+# Per-environment deploy settings (commit only the *.env.example files)
+/parallelcluster/envs/*.env
+!/parallelcluster/envs/*.env.example
+
+# Rendered output and generated certificates - may contain secrets
+/parallelcluster/tmp*/
+/parallelcluster/certs*/
+cluster-config.yaml
+cluster-config-wb.yaml
+/image/.latest
+
+# Key material and certificates - never commit
+*.key
+*.pem
+*.priv
+*.crt
+*.lic
+id_rsa*
+
+# Logs and scratch
+*.log
+log
+nohup.out
+deploy.sh.*
+*.orig
+*.workign

@@ -1,29 +1,88 @@
 ---
 title: "Architecture"
---- 
+number-sections: true
+---
 
-# General Architecture
+# Overview
 
-This is the general architecture of the Posit Workbench <==> AWS Parallelcluster integration. 
+![Architecture diagram](AWS PC.drawio.png){#fig-architecture}
 
-![Architecture diagram](AWS PC.drawio.png){#architecture}
+AWS ParallelCluster builds the cluster itself (head node, login nodes, compute queues and their shared storage). Pulumi creates everything around it. As much as possible lives in private subnets; only the external load balancer is exposed to the internet.
 
-This architecture uses AWS ParallelCluster to build the main infrastructure and Pulumi recipes to add auxiliary pieces. The intent is to build everything - as much as possible - in private subnets and only expose as little as possible to the public Internet to ensure that any security attack vector is as small as possible. 
+| Component | Created by | Purpose |
+|---|---|---|
+| VPC with public/private subnets | pre-existing | Looked up by its `Name` tag (`vpc_name_tag`) |
+| AWS SimpleAD | Pulumi | Users and groups for all nodes (via `sssd`) |
+| AD jump host | Pulumi | Joined to SimpleAD, used to create users with `adcli` |
+| PostgreSQL (`pwb`) | Pulumi | Workbench metadata, required for load balancing |
+| PostgreSQL (`audit`) | Pulumi | Workbench audit database |
+| MySQL | Pulumi | Slurm accounting (`slurmdbd`) |
+| External and internal ALB | Pulumi | TLS termination (ACM certificate), sticky sessions to the login nodes |
+| Route53 records | Pulumi | `<stack>-ext.<domain>` (external) and `<stack>.<domain>` (internal) |
+| S3 bucket | Pulumi | Image build and cluster node scripts |
+| Secrets Manager secrets | Pulumi | AD, Slurm DB and user passwords |
+| Head node | ParallelCluster | `slurmctld`; writes the Workbench configuration |
+| Login nodes (2) | ParallelCluster | `rstudio-server` and `rstudio-launcher` |
+| Compute queues | ParallelCluster | `interactive`, `all`, `gpu`: Workbench sessions and jobs |
+| EFS `/home`, `/opt/rstudio` | ParallelCluster | Home directories, shared Workbench config and data |
 
-While AWS ParallelCluster support [multi-zone SLURM partitions](https://aws.amazon.com/blogs/hpc/multiple-availability-zones-now-supported-in-aws-parallelcluster-3-4/), we are not making use of this feature here due to the fact that even with the compute nodes spread across multiple availability zones the Head Node where `slurmctld` is running still remains a single point of failure. This limitation again can be overcome by either adding additonal `slurmctld` processes (e.g. to the Login Nodes) or - even better - using SLURM cluster [federation](https://isc23.hpcworkshops.com/08-federation-and-cache/60-federating-clusters.html). Posit Workbench and in particular the SLURM Launcher currently does not support federation unfortunately.
+# Request flow
 
-AWS Simple Active Directory (SimpleAD) is used for user management. The Jump Host is fully integrated into SimpleAD and also used to create/modify/delete users and groups, any other EC2 instance is connected to SimpleAD via read-only `sssd` configuration. 
+A user browses to the external ALB (`https://<stack>-ext.<domain>`). The ALB terminates TLS and forwards to port 8787 on one of the login nodes, using the `rs-csrf-token` cookie for stickiness. Workbench on the login node authenticates the user against SimpleAD (PAM/`sssd`) and starts sessions through the Slurm Launcher on the compute nodes. Inside the VPC, the internal ALB (`https://<stack>.<domain>`) serves the same login nodes. Sessions on the compute nodes use it to call back into Workbench (`launcher-sessions-callback-address`).
 
-FsX for Lustre is used for users' home directories for performance reasons. Any other shared storage is utilising EFS. 
+Each login node registers itself as an ALB target when it boots and deregisters itself when it shuts down. See @sec-lb-sync.
 
-By default two Login Nodes are provisioned that will run the `rstudio-server` and `rstudio-launcher` systemctl services of Posit Workbench. 
+# Availability
 
-A use will browse to the Network Load Balancer (NLB) in the public subnet. This NLB will forward any traffic to the NLB in the private subnet which in turn will distribute traffic across the Login Nodes where it will hit the Posit Workbench setup. Depending on the specific Posit Workbench setup, session will be launcher on the compute nodes or on the login nodes directly. 
+The login nodes are managed by ParallelCluster: if one fails it is replaced, and the remaining node keeps serving users. Workbench state is in PostgreSQL and configuration is on EFS, so the Workbench part of the setup tolerates login node failures.
 
-EFS file system is mostly used for AWS ParalelCluster internal purposes - additionally we use it to store Posit Workbench configuration files. 
+ParallelCluster supports [multi-AZ Slurm queues](https://aws.amazon.com/blogs/hpc/multiple-availability-zones-now-supported-in-aws-parallelcluster-3-4/), but this setup does not use them. The head node running `slurmctld` remains a single point of failure regardless. See [Reaching full HA](AWSParallelcluster.qmd#sec-full-ha) for ideas on how to remove it.
 
-# Note on SSL
+The RDS instances are created single-AZ and without deletion protection to keep demo environments cheap and easy to tear down. For production, enable Multi-AZ and deletion protection in `pulumi/__main__.py`.
 
-Always bind together certificates with the main certificate first and anly then the intermediate certificates. 
+# Keeping the load balancers in sync {#sec-lb-sync}
 
-# Workbench specific configurations
+ParallelCluster replaces failed login nodes automatically, and the replacements get new IP addresses. To keep both the ALBs and Workbench's own node list correct, `parallelcluster/scripts/pwb-lb.sh` runs on every login node as the systemd unit `pwb-lb`:
+
+-   **At boot** it registers the node's IP on port 8787 with both ALB target groups. It then cleans up:
+    -   ALB targets whose IP doesn't belong to a running or pending login node of the cluster are deregistered.
+    -   Workbench nodes (`rstudio-server list-nodes`) are deleted (`rserver-db delete-node`) if `node-status` reports them unreachable *and* EC2 has no running login node with their IP.
+-   **At shutdown** it deregisters the node from both target groups and marks it offline in Workbench (`rserver-db stop-node`).
+
+The cleanup works from EC2 data, not from Workbench's view alone. `list-nodes` keeps showing a node that disappeared as `Online`, and a node that is merely restarting can be briefly unreachable. If EC2 can't be queried, nothing is removed. The node running the cleanup never removes itself. Logs are in `/var/log/pwb-lb.log`; `pwb-lb cleanup` can also be run by hand.
+
+# Licensing {#sec-licensing}
+
+Only the login nodes run Workbench, so only they need a license. The license comes from the Pulumi config (`pwb_license_key` or `pwb_license_file`). It is stored in AWS Secrets Manager (`PwbLicense-<stack>`), and only the login nodes can read it. On every boot, `config-login.sh` reads the secret:
+
+-   **License key:** activated online with `license-manager activate`. Each login node uses one activation. To keep replaced login nodes from using up activations, `pwb-lb` deactivates the key when a node shuts down. A node that disappears abruptly can't do that; Posit support can reset such activations.
+-   **License file:** written to `/var/lib/rstudio-server/license.lic`. No activation or deactivation is involved, which makes it the better fit for automatically replaced login nodes.
+
+Without a license, or if the secret can't be read, the node runs unlicensed and logs a warning in `/var/log/config-login.log`. The key itself is never written to any log.
+
+# Storage
+
+| Mount | Type | Content |
+|---|---|---|
+| `/home` | EFS (encrypted) | User home directories, `renv` cache in `/home/renv`, Workbench shared storage in `/home/rstudio/shared-storage` |
+| `/opt/rstudio` | EFS (encrypted) | Workbench config (`etc/rstudio`), installers and scripts (`scripts`), session components image (`session-components`), state files |
+| `/usr/lib/rstudio-server` (compute nodes) | squashfs image on `/opt/rstudio`, mounted read-only | Workbench session components |
+| `/scratch` | EFS (sub-directory of `/opt/rstudio`) | Scratch space bound into containers |
+| `/opt/apps` | existing EFS (`easybuild` template only) | EasyBuild software stack |
+
+ParallelCluster's internal shared directories (e.g. `/opt/slurm`) are on EFS too, so the head node does not act as NFS server.
+
+# Workbench configuration
+
+All Workbench configuration is generated on the head node by `parallelcluster/scripts/install-pwb-config.sh` into `/opt/rstudio/etc/rstudio`. The login nodes copy it to `/etc/rstudio` when they are set up. Notable settings:
+
+-   Load balancing enabled (`load-balancing-enabled=1`). Each login node's `www-host-name` is its EC2 private DNS name, which the VPC resolves.
+-   Two Slurm launcher clusters: `slurminteractive` (partitions `interactive`, `gpu`) for sessions and `slurmbatch` (partitions `all`, `gpu`) for Workbench jobs. With `LOCAL=true` the Local launcher is added.
+-   Resource profiles sized for `t3.xlarge` compute nodes.
+-   RStudio, VS Code, Positron and JupyterLab enabled.
+-   Auditing (R console, sessions, audited jobs), monitoring and the admin dashboard (groups `rstudio-admins`, `rstudio-superuser-admins`) enabled.
+-   Optional: Apptainer/Singularity container sessions (`SINGULARITY_SUPPORT`), Lmod/EasyBuild modules (`EASYBUILD_SUPPORT`), TLS on Workbench itself (`SSL`).
+
+# Note on SSL certificates
+
+When you bundle certificates, put the server certificate first, followed by the intermediate certificates.

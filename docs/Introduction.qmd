@@ -1,46 +1,36 @@
 ---
-titel: "Introduction"
+title: "Introduction"
 number-sections: true
 ---
 
 # Introduction
 
-[AWS ParallelCluster](https://aws.amazon.com/hpc/parallelcluster/) is a framework that allows for easy setup of HPC clusters with various schedulers. It takes a YAML file with all the necessary definitions and transforms that into Cloud Formation Code that then gets deployed into AWS.
+[AWS ParallelCluster](https://aws.amazon.com/hpc/parallelcluster/) is a framework for setting up HPC clusters on AWS. It takes a YAML file with all the necessary definitions, transforms it into CloudFormation and deploys it. It supports [Slurm](https://slurm.schedmd.com/) as scheduler.
 
-At the moment it supports both [SLURM](https://slurm.schedmd.com/) and [AWS Batch](https://aws.amazon.com/batch/).
+Posit Workbench supports Slurm as an HPC back end via the [Slurm Launcher](https://docs.posit.co/ide/server-pro/job_launcher/slurm_plugin.html). An [earlier repository](https://github.com/sol-eng/aws-parallelcluster-rsw/) showed one way to integrate the two, with Workbench running on the head node. That approach works but has several shortcomings:
 
-Posit Workbench supports SLURM as a HPC back end via the [SLURM Launcher](https://docs.posit.co/ide/server-pro/job_launcher/slurm_plugin.html). As a consequence, a [github repository](https://github.com/sol-eng/aws-parallelcluster-rsw/) has been set up to highlight a possible way to integrate Posit Workbench with AWS ParallelCluster via the SLURM Launcher. The approach used there works but has several shortcomings:
+-   The head node already runs `slurmctld` and `slurmdbd`. Adding Workbench makes it even more of a single point of failure.
+-   All user traffic is routed through the head node.
+-   The head node also acts as NFS server for the cluster's shared file systems, adding load that can degrade the user experience or crash the node when resources are exhausted.
 
--   Setting Workbench on the head node where also the `slurmctld` and `slurmdbd` (SLURM Controller and Database) daemons are running makes this head node very vulnerable and a single point of failure.
+This repository documents a reference architecture that overcomes these shortcomings with a focus on high(er) availability, and contains everything needed to deploy it.
 
--   All traffic will be routed through the head node
+# The approach
 
--   The head node does not only act as Workbench Server and runs the main SLURM daemons (see above), it is also used as a NFS server adding additional load (depending on the size and utilisation of the cluster) that could contribute to very bad user experience on the HPC cluster up to a crash of the same if resources are exhausted.
+Several ParallelCluster features make this possible:
 
-This document serves two purposes: Documenting the current setup used for Workbench benchmarking but also summarizing a potential reference architecture that overcomes some of the shortcomings of the current Workbench integration into AWS ParallelCluster with a focus on High(er) Availabiity.
+-   [Login nodes](https://docs.aws.amazon.com/parallelcluster/latest/ug/LoginNodes-v3.html) (since 3.7.0). Workbench runs on a pool of login nodes behind a load balancer instead of on the head node.
+-   Shared file systems on EFS instead of NFS exported by the head node (since 3.8.0), including `/home`.
+-   [Custom AMIs](https://docs.aws.amazon.com/parallelcluster/latest/ug/building-custom-ami-v3.html). When the cluster scales up, a new EC2 instance is provisioned. With all software baked into the AMI this takes about 4 minutes; installing software at boot time would make it considerably longer.
 
-# A new approach
+Workbench's own state lives in PostgreSQL (required for load balancing), users come from AWS SimpleAD, and two Application Load Balancers provide TLS and DNS names. Those auxiliary services are created with [Pulumi](https://www.pulumi.com/). See [Architecture](Architecture.qmd) for the full picture.
 
-Fortunately, AWS ParallelCluster keeps evolving and in parallel Posit's understanding of the tool also increases.
+# Setup instructions
 
-Recent releases have added a couple of very interesting, exciting and very helpful features, most notably
+The deployment has three steps, each documented on its own page:
 
--   the ability to [add login nodes in version 3.7.0](https://github.com/aws/aws-parallelcluster/releases/tag/v3.7.0)
+1.  Set up the auxiliary services (VPC lookup, SimpleAD, databases, load balancers, DNS, S3 bucket, users) with [Pulumi](Pulumi.qmd)
+2.  Build a custom [AMI](AMI.qmd) (uses the S3 bucket and network created in step 1). You can skip this step if all sessions run in Apptainer containers; see [When you need it](AMI.qmd#sec-ami-needed).
+3.  Deploy the cluster with [AWS ParallelCluster](AWSParallelcluster.qmd)
 
--   ability to use EFS instead of NFS to host shared file systems needed for the cluster (e.g. `/opt/slurm` containing the SLURM installation) that removes the need to host an NFS server on the head node. This feature will be part of [version 3.8.0](https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380) (beta version out - release imminent)
-
--   ability to set up `/home` on FsX for Lustre or EFS instead of internal NFS hosted on the head node This feature is part of [version 3.8.0](https://github.com/aws/aws-parallelcluster/blob/develop/CHANGELOG.md#380) as well.
-
-While the above features are very vital to the new approach for the Workbench integration discussed in this doc, there is many other functionalities that are almost taken for granted (e.g. Easy integration into auth subsystems, SLURM scheduling fine tuning capabilities, ...).
-
-If there was one feature that should be explicitly mentioned here, then it needs to be the ability to build custom AMIs. One of the features of a scalable cloud deployment (like AWS ParallelCluster) is the ability to scale up and down based on user demand. If there is a scale-up event, i.e. a node is getting added to the cluster, a new EC2 instance is provisioned. The elapsed time for such a scale-up event is about 4 minutes today when using a pre-built AMI but will increase if there is a need to run additional software installations just because the AMI does not contain all the needed features. Building a custom AMI will help to keep the instance spin up time at the 4 minute mark.
-
-# Setup Instructions
-
-In order to setup the new integration, 3 steps are needed
-
-1.   Create a custom [AMI](AMI.qmd)
-2.  Set up auxiliary services (Active Directory, PostgreSQL DB, users) via [Pulumi](Pulumi.qmd)
-3.  AWS ParallelCluster build [AWS Parallelcluster](AWSParallelcluster.qmd)
-
-All those three steps are explained in the subsequent sections.
+If something does not work as expected, see [Troubleshooting](Troubleshooting.qmd).

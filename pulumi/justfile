@@ -14,7 +14,7 @@ create-users num="10":
     ssh-add  - <<< "$(pulumi stack output --show-secrets 'private_key_ssh')"
     ssh \
         -o StrictHostKeyChecking=no \
-        ubuntu@$(pulumi stack output jump_host_public_ip) \
+        ubuntu@$(pulumi stack output jump_host_private_ip) \
         "bash useradd.sh {{num}}"
 
 

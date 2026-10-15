@@ -1,0 +1,34 @@
+# Weekly dependency update PRs: one grouped PR per uv project (uv.lock and
+# pyproject.toml) plus one for GitHub Actions. requirements.txt files are
+# generated with 'uv export --no-hashes -o requirements.txt'; re-export them
+# after merging an update.
+version: 2
+updates:
+  # ParallelCluster CLI (repository root)
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      pcluster-cli:
+        patterns: ["*"]
+
+  # Pulumi program. pulumi-aws stays on 6.x until the v7 migration is done.
+  - package-ecosystem: "uv"
+    directory: "/pulumi"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "pulumi-aws"
+        update-types: ["version-update:semver-major"]
+    groups:
+      pulumi:
+        patterns: ["*"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]

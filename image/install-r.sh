@@ -2,7 +2,7 @@
 
 # cf. https://docs.posit.co/resources/install-r/
 
-set -x 
+set -x
 
 exec > /opt/r-install.log
 exec 2>&1
@@ -14,11 +14,11 @@ R_VERSION_DEFAULT=${@: 1:1}
 echo "R_VERSION_LIST": $R_VERSION_LIST
 echo "R_VERSION_DEFAULT": $R_VERSION_DEFAULT
 
-# Remove OS provided R 
+# Remove OS provided R
 apt remove -y r-base r-base-core r-base-dev r-base-html r-doc-html
 
-if ( ! dpkg -l curl >& /dev/null); then 
-apt-get update 
+if ( ! dpkg -l curl >& /dev/null); then
+apt-get update
 apt-get install -y curl
 fi
 
@@ -34,8 +34,8 @@ do
   rm -f r-${R_VERSION}_1_amd64.deb
 done
 
-# Configure R versions to have 
-#  - appropriate snapshot 
+# Configure R versions to have
+#  - appropriate snapshot
 #  - setup Java integration for rJava package
 #  - setting user agent HTTP headers for getting binary packages
 #  - preinstalling packages needed for the RStudio IDE integration
@@ -48,9 +48,11 @@ PATH_NOW=$PATH
 for R_VERSION in $R_VERSION_LIST
 do
   export PATH=/opt/R/${R_VERSION}/bin:$PATH
-  /opt/R/${R_VERSION}/bin/Rscript /tmp/run.R && \
-	JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64/ \
-	  /opt/R/${R_VERSION}/bin/R CMD javareconf 
+  if ! /opt/R/${R_VERSION}/bin/Rscript /tmp/run.R; then
+    echo "WARNING: run.R failed for R ${R_VERSION}, see above"
+  fi
+  JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64/ \
+    /opt/R/${R_VERSION}/bin/R CMD javareconf
 done
 
 # Defining system default version
@@ -60,7 +62,7 @@ if [ ! -z $R_VERSION_DEFAULT ]; then
 fi
 
 
-# Setting up Rprofile etc.. for clustermq integration 
+# Setting up Rprofile etc.. for clustermq integration
 
 cat  > /etc/skel/.Rprofile << EOF
 #set SLURM binaries PATH so that RSW Launcher jobs work
@@ -82,7 +84,7 @@ rm(curr_path)
 
 options(
     clustermq.scheduler = "slurm",
-    clustermq.template = "~/slurm.tmpl" 
+    clustermq.template = "~/slurm.tmpl"
 )
 EOF
 

@@ -2,6 +2,9 @@
 
 apt-get update 
 
+# squashfs-tools: the head node packs the Workbench session components into a
+# squashfs image that compute nodes loop-mount (parallelcluster/scripts)
+apt-get install -y squashfs-tools
 
 # Google Chrome
 [ $(which google-chrome) ] || apt-get install -y gnupg curl

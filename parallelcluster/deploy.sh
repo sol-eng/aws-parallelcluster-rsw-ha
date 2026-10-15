@@ -1,143 +1,235 @@
 #!/bin/bash
+#
+# Render the cluster config and node scripts from the Pulumi stack outputs,
+# upload the scripts to S3 and create the ParallelCluster cluster.
+#
+# Usage: ./deploy.sh envs/<name>.env [--dry-run]
+#
+#   --dry-run   render into tmp/ and validate with 'pcluster create-cluster
+#               --dryrun true', but don't upload or create anything
+#
+# Set KEEP_TMP=1 to keep the rendered files in tmp/ after a real deployment
+# (they contain database passwords).
 
-CLUSTERNAME="benchmark"
-STACKNAME="benchmark"
-PWB_VERSION="2025.12.0-daily-286.pro1"
-AMI=ami-0896bebc4edc2cfd6
-#AMI=ami-0a4b160d31e46676e
-#AMI="ami-09d641c6d0df34503"
-#AMI="ami-0a23aa1812f0b93c8"
-REGION="eu-west-1"
-SINGULARITY_SUPPORT=false
-BENCHMARK_SUPPORT=true
-EASYBUILD_SUPPORT=false
-CONFIG="benchmark"
-HPC_DOMAIN=mayer.cx
-HPC_HOST="benchmark"
-ALLOWEDIPS="10.32.0.0/16"
-SSL=true
-LOCAL=false
+set -euo pipefail
 
-echo "Extracting values from pulumi setup"
-KEY=`cd ../pulumi && pulumi stack output "key_pair id"  -s $STACKNAME`
-DOMAINPWSecret=` cd ../pulumi && pulumi stack output "ad_password_arn" -s $STACKNAME `
-EMAIL=`cd ../pulumi && pulumi config get email -s $STACKNAME`
-AD_DNS=`cd ../pulumi && pulumi stack output ad_dns_1 -s $STACKNAME`
-RSW_DB_HOST=`cd ../pulumi && pulumi stack output rsw_db_address -s $STACKNAME`
-RSW_DB_USER=`cd ../pulumi && pulumi stack output rsw_db_user -s $STACKNAME`
-RSW_DB_PASS=`cd ../pulumi && pulumi stack output rsw_db_pass -s $STACKNAME --show-secrets`
-RSW_AUDIT_DB_HOST=`cd ../pulumi && pulumi stack output rsw_audit_db_address -s $STACKNAME`
-RSW_AUDIT_DB_USER=`cd ../pulumi && pulumi stack output rsw_audit_db_user -s $STACKNAME`
-RSW_AUDIT_DB_PASS=`cd ../pulumi && pulumi stack output rsw_audit_db_pass -s $STACKNAME --show-secrets`
-if ($SSL); then 
-  SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group_https -s $STACKNAME`
-else
-  SECURITYGROUP_RSW=`cd ../pulumi && pulumi stack output rsw_security_group_nohttps -s $STACKNAME`
+cd "$(dirname "$0")"
+
+usage() {
+    echo "Usage: $0 envs/<name>.env [--dry-run]" >&2
+    exit 1
+}
+
+[ $# -ge 1 ] || usage
+ENV_FILE=$1
+DRY_RUN=false
+if [ "${2:-}" = "--dry-run" ]; then DRY_RUN=true; elif [ -n "${2:-}" ]; then usage; fi
+[ -f "$ENV_FILE" ] || { echo "ERROR: env file $ENV_FILE not found" >&2; exit 1; }
+
+# shellcheck source=envs/demo.env.example
+source "$ENV_FILE"
+
+: "${CLUSTERNAME:?must be set in $ENV_FILE}"
+: "${REGION:?must be set in $ENV_FILE}"
+: "${PWB_VERSION:?must be set in $ENV_FILE}"
+: "${HPC_DOMAIN:?must be set in $ENV_FILE}"
+: "${HPC_HOST:?must be set in $ENV_FILE}"
+: "${ALLOWEDIPS:?must be set in $ENV_FILE}"
+STACKNAME=${STACKNAME:-$CLUSTERNAME}
+CONFIG=${CONFIG:-default}
+APPS_EFS_ID=${APPS_EFS_ID:-}
+CERT_SUBJECT=${CERT_SUBJECT:-"/CN=*.$HPC_DOMAIN"}
+AMI=${AMI:-}
+APPTAINER_VERSION=${APPTAINER_VERSION:-1.5.4}
+
+for flag in SSL SINGULARITY_SUPPORT EASYBUILD_SUPPORT BENCHMARK_SUPPORT LOCAL; do
+    value=${!flag:-false}
+    if [ "$value" != true ] && [ "$value" != false ]; then
+        echo "ERROR: $flag must be 'true' or 'false', got '$value'" >&2
+        exit 1
+    fi
+    printf -v "$flag" '%s' "$value"
+done
+
+# Without a custom AMI the official ParallelCluster Ubuntu 24.04 image is used.
+# It has no R/Python, so this only works when sessions run in containers.
+if [ -z "$AMI" ] && ! $SINGULARITY_SUPPORT; then
+    echo "ERROR: AMI is empty. Build a custom AMI (image/build-image.sh), or set" >&2
+    echo "       SINGULARITY_SUPPORT=true to use the official ParallelCluster AMI." >&2
+    exit 1
 fi
-SLURM_DB_HOST=`cd ../pulumi && pulumi stack output slurm_db_endpoint -s $STACKNAME`
-SLURM_DB_NAME=`cd ../pulumi && pulumi stack output slurm_db_name -s $STACKNAME`
-SLURM_DB_USER=`cd ../pulumi && pulumi stack output slurm_db_user -s $STACKNAME`
-SLURM_DB_PASS_ARN=`cd ../pulumi && pulumi stack output slurm_db_pass_arn -s $STACKNAME`
-SECURE_COOKIE_KEY=`cd ../pulumi && pulumi stack output secure_cookie_key -s $STACKNAME --show-secrets`
-BILLING_CODE=`cd ../pulumi && pulumi stack output billing_code -s $STACKNAME`
-ELB_ACCESS=`cd ../pulumi && pulumi stack output iam_elb_access -s $STACKNAME`
-S3_ACCESS=`cd ../pulumi && pulumi stack output iam_s3_access -s $STACKNAME`
-S3_BUCKETNAME=`cd ../pulumi && pulumi stack output s3_bucket_id -s $STACKNAME`
-EC2_RUNINSTANCES=`cd ../pulumi && pulumi stack output iam_ec2_runinstances -s $STACKNAME`
-SUBNETID=`cd ../pulumi && pulumi stack output vpc_private_subnet -s $STACKNAME`
-SECURITYGROUP_SSH=`cd ../pulumi && pulumi stack output ssh_security_group -s $STACKNAME`
 
+TEMPLATE="config/cluster-config-wb.${CONFIG}.tmpl"
+[ -f "$TEMPLATE" ] || { echo "ERROR: template $TEMPLATE not found" >&2; exit 1; }
+if [ "$CONFIG" = easybuild ] && [ -z "$APPS_EFS_ID" ]; then
+    echo "ERROR: CONFIG=easybuild needs APPS_EFS_ID" >&2
+    exit 1
+fi
 
-if ($SSL); then
-    if [ -f certs/$HPC_DOMAIN.crt ] && [ -f certs/$HPC_DOMAIN.key ]; then 
-        echo "$HPC_DOMAIN.crt and $HPC_DOMAIN.key found"
+for cmd in pulumi jq aws perl pcluster; do
+    command -v "$cmd" >/dev/null || {
+        echo "ERROR: '$cmd' not found in PATH (pcluster: run 'uv sync' in the repo root and activate .venv)" >&2
+        exit 1
+    }
+done
+
+# Without CustomAmi, ParallelCluster itself picks its official ubuntu2404 AMI
+# for the installed CLI version. Look it up here so the deployment logs which
+# AMI is used and fails early if there is none for this region/version.
+if [ -z "$AMI" ]; then
+    pcluster_version=$(pcluster version | jq -r .version)
+    images_json=$(pcluster list-official-images --region "$REGION" --os ubuntu2404 --architecture x86_64 || true)
+    official_ami=$(jq -r --arg v "$pcluster_version" '[(.images // [])[] | select(.version == $v)] | first | .amiId // empty' <<<"$images_json")
+    if [ -z "$official_ami" ]; then
+        echo "ERROR: no official ParallelCluster $pcluster_version ubuntu2404 AMI found in $REGION" >&2
+        jq -r '.message // empty' <<<"$images_json" >&2 || true
+        exit 1
+    fi
+    echo "No AMI set: using official ParallelCluster $pcluster_version ubuntu2404 AMI $official_ami"
+fi
+
+# ------------------------------------------------------------------------------
+# Pulumi outputs
+# ------------------------------------------------------------------------------
+
+echo "Reading outputs from Pulumi stack $STACKNAME"
+PULUMI_DIR=../pulumi
+OUTPUTS=$(pulumi stack output -C "$PULUMI_DIR" -s "$STACKNAME" --json --show-secrets)
+
+# out <name>: print a required stack output, fail if it is missing
+out() {
+    jq -er --arg k "$1" '.[$k] // empty' <<<"$OUTPUTS" || {
+        echo "ERROR: Pulumi output '$1' missing in stack $STACKNAME" >&2
+        return 1
+    }
+}
+
+# ad_domain/email outputs are newer; fall back to the stack config
+AD_DOMAIN=$(jq -r '.ad_domain // empty' <<<"$OUTPUTS")
+[ -n "$AD_DOMAIN" ] || AD_DOMAIN=$(pulumi config get -C "$PULUMI_DIR" -s "$STACKNAME" domain_name 2>/dev/null || echo "pwb.posit.co")
+EMAIL=$(jq -r '.email // empty' <<<"$OUTPUTS")
+[ -n "$EMAIL" ] || EMAIL=$(pulumi config get -C "$PULUMI_DIR" -s "$STACKNAME" email)
+
+S3_BUCKETNAME=$(out s3_bucket_id)
+
+if $SSL; then
+    SECURITYGROUP_RSW=$(out rsw_security_group_https)
+else
+    SECURITYGROUP_RSW=$(out rsw_security_group_nohttps)
+fi
+
+# Every @@NAME@@ token in the templates is replaced by the value of TPL_NAME
+export TPL_CLUSTERNAME="$CLUSTERNAME"
+export TPL_PWB_VERSION="$PWB_VERSION"
+export TPL_REGION="$REGION"
+export TPL_AMI="$AMI"
+export TPL_HPC_DOMAIN="$HPC_DOMAIN"
+export TPL_HPC_HOST="$HPC_HOST"
+export TPL_ALLOWEDIPS="$ALLOWEDIPS"
+export TPL_APPS_EFS_ID="$APPS_EFS_ID"
+export TPL_APPTAINER_VERSION="$APPTAINER_VERSION"
+export TPL_SSL="$SSL"
+export TPL_SINGULARITY_SUPPORT="$SINGULARITY_SUPPORT"
+export TPL_EASYBUILD_SUPPORT="$EASYBUILD_SUPPORT"
+export TPL_BENCHMARK_SUPPORT="$BENCHMARK_SUPPORT"
+export TPL_LOCAL="$LOCAL"
+export TPL_EMAIL="$EMAIL"
+export TPL_AD_DOMAIN="$AD_DOMAIN"
+export TPL_AD_BASE_DN="dc=${AD_DOMAIN//./,dc=}"
+export TPL_S3_BUCKETNAME="$S3_BUCKETNAME"
+export TPL_S3_PREFIX="$S3_BUCKETNAME/$CLUSTERNAME"
+export TPL_SECURITYGROUP_RSW="$SECURITYGROUP_RSW"
+TPL_AD_DNS=$(out ad_dns_1); export TPL_AD_DNS
+TPL_AD_PASSWORD_ARN=$(out ad_password_arn); export TPL_AD_PASSWORD_ARN
+TPL_RSW_DB_HOST=$(out rsw_db_address); export TPL_RSW_DB_HOST
+TPL_RSW_DB_USER=$(out rsw_db_user); export TPL_RSW_DB_USER
+TPL_RSW_DB_PASS=$(out rsw_db_pass); export TPL_RSW_DB_PASS
+TPL_RSW_AUDIT_DB_HOST=$(out rsw_audit_db_address); export TPL_RSW_AUDIT_DB_HOST
+TPL_RSW_AUDIT_DB_USER=$(out rsw_audit_db_user); export TPL_RSW_AUDIT_DB_USER
+TPL_RSW_AUDIT_DB_PASS=$(out rsw_audit_db_pass); export TPL_RSW_AUDIT_DB_PASS
+TPL_SLURM_DB_HOST=$(out slurm_db_endpoint); export TPL_SLURM_DB_HOST
+TPL_SLURM_DB_NAME=$(out slurm_db_name); export TPL_SLURM_DB_NAME
+TPL_SLURM_DB_USER=$(out slurm_db_user); export TPL_SLURM_DB_USER
+TPL_SLURM_DB_PASS_ARN=$(out slurm_db_pass_arn); export TPL_SLURM_DB_PASS_ARN
+TPL_SECURE_COOKIE_KEY=$(out secure_cookie_key); export TPL_SECURE_COOKIE_KEY
+TPL_BILLING_CODE=$(out billing_code); export TPL_BILLING_CODE
+TPL_ELB_ACCESS=$(out iam_elb_access); export TPL_ELB_ACCESS
+TPL_S3_ACCESS=$(out iam_s3_access); export TPL_S3_ACCESS
+TPL_EC2_RUNINSTANCES=$(out iam_ec2_runinstances); export TPL_EC2_RUNINSTANCES
+TPL_SUBNETID=$(out vpc_private_subnet); export TPL_SUBNETID
+TPL_SECURITYGROUP_SSH=$(out ssh_security_group); export TPL_SECURITYGROUP_SSH
+TPL_PWB_URL_INT=$(out pwb_url_int); export TPL_PWB_URL_INT
+TPL_ALB_TG_EXT_ARN=$(out alb_target_group_ext_arn); export TPL_ALB_TG_EXT_ARN
+TPL_ALB_TG_INT_ARN=$(out alb_target_group_int_arn); export TPL_ALB_TG_INT_ARN
+TPL_LICENSE_SECRET_ARN=$(out pwb_license_secret_arn); export TPL_LICENSE_SECRET_ARN
+TPL_LICENSE_ACCESS=$(out iam_license_access); export TPL_LICENSE_ACCESS
+
+# render <in> <out>: replace @@NAME@@ tokens literally, fail on unknown tokens
+render() {
+    perl -pe 's/@@([A-Z0-9_]+)@@/exists $ENV{"TPL_$1"} ? $ENV{"TPL_$1"} : die "ERROR: no value for token \@\@$1\@\@ in $ARGV\n"/ge' "$1" > "$2"
+}
+
+# ------------------------------------------------------------------------------
+# Optional self-signed certificate (SSL=true)
+# ------------------------------------------------------------------------------
+
+if $SSL; then
+    mkdir -p certs
+    if [ -f "certs/$HPC_DOMAIN.crt" ] && [ -f "certs/$HPC_DOMAIN.key" ]; then
+        echo "Using existing certs/$HPC_DOMAIN.{crt,key}"
     else
-        echo "Generating self-signed SSL certificate"  
-        if [ ! -f certs/openssl.$HPC_DOMAIN.conf ]; then 
-cat << EOF > certs/openssl.$HPC_DOMAIN.conf
-[req]
-distinguished_name = req_distinguished_name
-prompt = no
-
-[req_distinguished_name]
-C = CH 
-ST = Basel Landschaft 
-L = Allschwil
-O = Posit
-OU = Solution Engineering
-CN = *.$HPC_DOMAIN
-EOF
-        fi
-        openssl genpkey -algorithm RSA -out certs/$HPC_DOMAIN.key
-        openssl req -x509 -nodes -days 365 -key certs/$HPC_DOMAIN.key -out certs/$HPC_DOMAIN.crt -config certs/openssl.$HPC_DOMAIN.conf
+        # Login nodes reach each other via their EC2 private DNS names
+        if [ "$REGION" = us-east-1 ]; then ec2_domain=ec2.internal; else ec2_domain=$REGION.compute.internal; fi
+        echo "Generating self-signed SSL certificate for *.$HPC_DOMAIN and *.$ec2_domain"
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "certs/$HPC_DOMAIN.key" -out "certs/$HPC_DOMAIN.crt" \
+            -subj "$CERT_SUBJECT" -addext "subjectAltName=DNS:*.$HPC_DOMAIN,DNS:*.$ec2_domain"
     fi
 fi
-echo "preparing scripts" 
+
+# ------------------------------------------------------------------------------
+# Render
+# ------------------------------------------------------------------------------
+
+echo "Rendering scripts and cluster config into tmp/"
 rm -rf tmp
 mkdir -p tmp
-cp -Rf scripts/* tmp
-if ($SSL); then cp -Rf certs/$HPC_DOMAIN.{key,crt} tmp; fi
+chmod 700 tmp
+if ! $DRY_RUN && [ -z "${KEEP_TMP:-}" ]; then
+    trap 'rm -rf tmp' EXIT
+fi
 
-cat scripts/install-pwb-config.sh | \
-        sed "s#AD_DNS#${AD_DNS}#g" | \
-        sed "s#RSW_DB_HOST#${RSW_DB_HOST}#g" | \
-        sed "s#RSW_DB_USER#${RSW_DB_USER}#g" | \
-       	sed "s#RSW_DB_PASS#${RSW_DB_PASS}#g" | \
-        sed "s#RSW_AUDIT_DB_HOST#${RSW_AUDIT_DB_HOST}#g" | \
-        sed "s#RSW_AUDIT_DB_USER#${RSW_AUDIT_DB_USER}#g" | \
-	sed "s#RSW_AUDIT_DB_PASS#${RSW_AUDIT_DB_PASS}#g" | \
-        sed "s#SECURE_COOKIE_KEY#${SECURE_COOKIE_KEY}#g" | \
-        sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
-	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
-        sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g" | \
-        sed "s#LOCAL#${LOCAL}#g" | \
-        sed "s#SSL#${SSL}#g" | \
-        sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
-	sed "s#CLUSTER_CONFIG#${CONFIG}#g" \
-	> tmp/install-pwb-config.sh 
+UPLOADS=(install-pwb-config.sh config-login.sh config-compute.sh pwb-lb.sh)
+for f in "${UPLOADS[@]}"; do
+    render "scripts/$f" "tmp/$f"
+done
+render "$TEMPLATE" tmp/cluster-config-wb.yaml
+if [ -z "$AMI" ]; then
+    # official AMI (resolved above): drop CustomAmi so ParallelCluster uses it
+    sed -i.bak '/^  CustomAmi: *$/d' tmp/cluster-config-wb.yaml && rm -f tmp/cluster-config-wb.yaml.bak
+fi
+if $SSL; then
+    cp "certs/$HPC_DOMAIN.crt" "certs/$HPC_DOMAIN.key" tmp/
+    UPLOADS+=("$HPC_DOMAIN.crt" "$HPC_DOMAIN.key")
+fi
 
-cat scripts/config-login.sh | \
-        sed "s#AD_DNS#${AD_DNS}#g" | \
-        sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
-        sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
-	sed "s#HPC_DOMAIN#${HPC_DOMAIN}#g" | \
-        sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
-        sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g" \
-        > tmp/config-login.sh 
+PCLUSTER_ARGS=(--suppress-validators ALL --cluster-name="$CLUSTERNAME" --cluster-config=tmp/cluster-config-wb.yaml --rollback-on-failure false)
 
-cat scripts/config-compute.sh | \
-        sed "s#AD_DNS#${AD_DNS}#g" | \
-	sed "s#SINGULARITY_SUPPORT#${SINGULARITY_SUPPORT}#g" | \
-	sed "s#BENCHMARK_SUPPORT#${BENCHMARK_SUPPORT}#g" | \
-        sed "s#EASYBUILD_SUPPORT#${EASYBUILD_SUPPORT}#g"\
-	> tmp/config-compute.sh 
+if $DRY_RUN; then
+    echo "Validating cluster config (dry run)"
+    pcluster create-cluster "${PCLUSTER_ARGS[@]}" --dryrun true
+    echo "Dry run done. Rendered files (with secrets) are in $(pwd)/tmp - delete them when done."
+    exit 0
+fi
 
-cat config/cluster-config-wb.${CONFIG}.tmpl | \
-        sed "s#PWB_VERSION#${PWB_VERSION}#g" | \
-	sed "s#S3_BUCKETNAME#${S3_BUCKETNAME}#g" | \
-        sed "s#HPC_DOMAIN#${HPC_DOMAIN}#g" | \
-        sed "s#HPC_HOST#${HPC_HOST}#g" | \
-        sed "s#SECURITYGROUP_RSW#${SECURITYGROUP_RSW}#g" | \
-        sed "s#SUBNETID#${SUBNETID}#g" | \
-        sed "s#REGION#${REGION}#g" | \
-        sed "s#AMI#${AMI}#g" | \
-        sed "s#SLURM_DB_HOST#${SLURM_DB_HOST}#g" | \
-        sed "s#SLURM_DB_NAME#${SLURM_DB_NAME}#g" | \
-        sed "s#SLURM_DB_USER#${SLURM_DB_USER}#g" | \
-       	sed "s#SLURM_DB_PASS_ARN#${SLURM_DB_PASS_ARN}#g" | \
-	sed "s#DOMAINPWSecret#${DOMAINPWSecret}#g" | \
-        sed "s#KEY#${KEY}#g" | \
-	sed "s#EMAIL#${EMAIL}#g" | \
-	sed "s#BILLING_CODE#${BILLING_CODE}#g" | \
-        sed "s#SECURITYGROUP_SSH#${SECURITYGROUP_SSH}#g" | \
-        sed "s#ELB_ACCESS#${ELB_ACCESS}#g" | \
-        sed "s#ALLOWEDIPS#${ALLOWEDIPS}#g" | \
-	sed "s#S3_ACCESS#${S3_ACCESS}#g" | \
-        sed "s#EC2_RUNINSTANCES#${EC2_RUNINSTANCES}#g" \
-	> tmp/cluster-config-wb.yaml
+# ------------------------------------------------------------------------------
+# Upload and deploy
+# ------------------------------------------------------------------------------
 
-aws s3 cp tmp/ s3://${S3_BUCKETNAME} --recursive 
+echo "Uploading scripts to s3://$TPL_S3_PREFIX/"
+for f in "${UPLOADS[@]}"; do
+    aws s3 cp --only-show-errors "tmp/$f" "s3://$TPL_S3_PREFIX/$f"
+done
 
-
-#echo "Starting deployment"
-pcluster create-cluster --suppress-validators ALL --cluster-name="$CLUSTERNAME" --cluster-config=tmp/cluster-config-wb.yaml --rollback-on-failure false 
+echo "Creating cluster $CLUSTERNAME"
+pcluster create-cluster "${PCLUSTER_ARGS[@]}"

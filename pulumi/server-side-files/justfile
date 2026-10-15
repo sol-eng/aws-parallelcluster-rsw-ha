@@ -3,18 +3,22 @@ set dotenv-load
 AD_DOMAIN := env_var("AD_DOMAIN")
 AD_PASSWD := env_var("AD_PASSWD")
 
+# All recipes are idempotent: Pulumi re-runs 'just integrate-ad' whenever the
+# remote command's inputs change, so a second run must not change anything.
 
 install-adcli:
     #!/bin/bash
-    sudo apt-get update 
+    if [ -x /usr/local/sbin/adcli ] || command -v adcli >/dev/null; then echo "adcli already installed"; exit 0; fi
+    sudo apt-get update
     sudo apt install -y git automake libtool libkrb5-dev libldap2-dev libsasl2-dev make expect
+    rm -rf adcli
     git clone -b 0.9.2 https://gitlab.freedesktop.org/realmd/adcli.git
     pushd adcli
     ./autogen.sh --disable-doc
     make
     sudo make install
     popd
-    rm -rf adcli 
+    rm -rf adcli
 
 install-ad-prereqs:
     #!/bin/bash
@@ -22,29 +26,35 @@ install-ad-prereqs:
 
 update-etchosts:
     #!/bin/bash
-    sudo apt-get install -y net-tools
-    echo -e "\n#Local server\n`ifconfig | grep inet | head -1 | awk '{print $2}'` `hostname`" | sudo tee -a /etc/hosts
+    my_ip=$(hostname -I | awk '{print $1}')
+    if grep -q "^$my_ip $(hostname)\$" /etc/hosts; then echo "/etc/hosts already up to date"; exit 0; fi
+    echo -e "\n#Local server\n$my_ip $(hostname)" | sudo tee -a /etc/hosts
 
 copy-ad-files:
     #!/bin/bash
-    #let's remove the symlink so that systemd does not interfere 
+    #let's remove the symlink so that systemd does not interfere
     sudo rm -f /etc/resolv.conf
     sudo cp ~/krb5.conf /etc/
     sudo cp ~/resolv.conf /etc/
-    #rm -f ~/krb5.conf ~/resolv.conf
 
 join-ad:
     #!/bin/bash
-    echo $AD_PASSWD | sudo realm join -U Administrator $AD_DOMAIN
-    echo "ad_gpo_map_service = +rstudio" | sudo tee -a /etc/sssd/sssd.conf
-    echo "krb5_canonicalize = True" | sudo tee -a /etc/sssd/sssd.conf
+    if sudo realm list | grep -qi "domain-name: {{AD_DOMAIN}}"; then
+        echo "Already joined to {{AD_DOMAIN}}"
+    else
+        echo $AD_PASSWD | sudo realm join -U Administrator {{AD_DOMAIN}}
+    fi
+    # add each sssd option only once (duplicate keys break sssd)
+    for opt in "ad_gpo_map_service = +rstudio" "krb5_canonicalize = True"; do
+        sudo grep -qxF "$opt" /etc/sssd/sssd.conf || echo "$opt" | sudo tee -a /etc/sssd/sssd.conf
+    done
     sudo sed -i 's#use_fully_qualified_names.*#use_fully_qualified_names=False#' /etc/sssd/sssd.conf
     sudo systemctl stop sssd && sudo rm -f /var/lib/sss/db/* && sudo systemctl start sssd
     sudo pam-auth-update --enable mkhomedir
 
 integrate-ad:
-    just install-adcli 
+    just install-adcli
     just install-ad-prereqs
-    just update-etchosts 
+    just update-etchosts
     just copy-ad-files
     just join-ad
