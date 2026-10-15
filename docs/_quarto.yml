@@ -6,15 +6,17 @@ website:
   navbar:
     left:
       - href: Introduction.qmd
-        text: Introduction 
-      - href: AMI.qmd
-        text: AMI
-      - href: Pulumi.qmd
-        text: Pulumi
+        text: Introduction
       - href: Architecture.qmd
         text: Architecture
-      - href: AWSParallelcluster.qmd 
-        text: AWS ParallelCluster 
+      - href: Pulumi.qmd
+        text: Pulumi
+      - href: AMI.qmd
+        text: AMI
+      - href: AWSParallelcluster.qmd
+        text: AWS ParallelCluster
+      - href: Troubleshooting.qmd
+        text: Troubleshooting
     right:
       - icon: github
         menu:
@@ -27,5 +29,4 @@ website:
 format:
   html:
     theme: cosmo
-    css: styles.css
     toc: true

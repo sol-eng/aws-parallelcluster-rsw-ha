@@ -3,128 +3,115 @@ title: "Pulumi"
 number-sections: true
 ---
 
+# Auxiliary services via Pulumi
 
-# Auxiliary Services via Pulumi
+Posit Workbench in a load-balanced setup needs a PostgreSQL database, and a distributed HPC cluster needs a directory service for users. This setup uses [AWS SimpleAD](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html). A small EC2 instance, the *jump host*, is joined to SimpleAD and uses [adcli](https://www.freedesktop.org/software/realmd/adcli/adcli.html) and `expect` scripts to create users programmatically.
 
-When using Posit Workbench for High Availability, the use of a PostgreSQL db is mandatory. Given the distributed nature of a HPC cluster, some kind of directory service for user management is needed. The directory service of choice here is [AWS SimpleAD](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_simple_ad.html). In order to efficiently and reliably work with this directory service, an additional EC2 instance is spun up that is used to add new users to the directory. This so-called jump host is fully integrated into SimpleAD and runs a tool called [adcli](https://www.freedesktop.org/software/realmd/adcli/adcli.html) (Active Directory CLI tool) that facilitates the management of users in SimpleAD. Via the use of additional `expect` scripts, this tool is used to programmatically create users. All of those tools and services are orchestrated via [Pulumi](https://www.pulumi.com/b/) recipes
+The [Pulumi](https://www.pulumi.com/) program in the `pulumi/` folder creates:
+
+-   SimpleAD, plus the jump host joined to it
+-   PostgreSQL databases for Workbench (`pwb`) and its audit log (`audit`), and a MySQL database for Slurm accounting
+-   Secrets Manager secrets for the AD, Slurm DB and user passwords, and a secure cookie key for Workbench
+-   An EC2 key pair, IAM policies and security groups used by the cluster
+-   An S3 bucket for the image build and cluster scripts
+-   An external and an internal Application Load Balancer with HTTPS listeners, plus Route53 records for both
 
 # Prerequisites
 
-You will need to have
+-   [Pulumi](https://www.pulumi.com/docs/install/), logged in to a backend (`pulumi login`)
+-   [uv](https://docs.astral.sh/uv/), which Pulumi uses to manage the Python environment
+-   [just](https://github.com/casey/just)
+-   AWS credentials for the target account and region
+-   An existing **VPC** whose `Name` tag matches `vpc_name_tag` (default `shared`), with subnets whose `Name` tags contain `public` and `private`. The private subnets must span at least two availability zones (SimpleAD requirement) and need outbound internet access (NAT).
+-   An existing **Route53 hosted zone** (`dns_zone`) and an **ACM certificate** in status `ISSUED` that covers `*.<dns_subdomain>.<dns_zone>` (or whatever you set as `acm_domain`)
+-   **Network access to the private subnets on port 22** from the machine running `pulumi up` (VPN, Direct Connect, or running Pulumi from an instance in the VPC). Pulumi configures the jump host over SSH on its private IP.
 
--   [pulumi](https://pulumi.com) installed and configured so you can successfully create, run and modify pulumi stacks
+# How to set up
 
--   [just](https://github.com/casey/just) installed locally
-
--   ssh client including the `ssh-keygen` utility
-
-# How to setup
-
-In the github repo, go tho the [`pulumi`](../../pulumi) sub-folder. 
-
-First, we need to define a new pulumi stack 
+In the `pulumi/` folder, create a stack. **The stack name must be the same as the ParallelCluster cluster name you use later**, because the target groups and DNS records are named after the stack.
 
 ``` bash
-pulumi stack init <STACKNAME>
+cd pulumi
+pulumi stack init <CLUSTERNAME>
+pulumi config set aws:region eu-west-1
+pulumi config set region eu-west-1
+pulumi config set email you@example.com
+pulumi config set billing_code my-project
+pulumi config set dns_zone example.com
+pulumi config set dns_subdomain hpc          # optional
 ```
 
-where `<STACKNAME>` is the name of the pulumi stack. 
-
-Then we need to set two pulumi stack configs 
+Then deploy everything and create 10 users:
 
 ``` bash
-pulumi config set email <YOUREMAIL>
-pulumi config set billing_code <BILLING>
+just up
 ```
 
-Both configuration values are used to set up the appropriate `ssh` keys and to account for billing, respectively. 
+`just up` runs `pulumi up -y` followed by `just create-users`. To create a different number of users later, run `just create-users <N>`.
 
-Finally we create all the necessary secrets via 
+## Configuration
+
+| Parameter | Description | Default |
+|---|---|---|
+| `email` | Owner e-mail, used for tags and the key pair name | (required) |
+| `billing_code` | Value of the `rs:subsystem` tag | (required) |
+| `dns_zone` | Existing Route53 hosted zone | (required) |
+| `dns_subdomain` | Label between stack name and zone: records become `<stack>.<dns_subdomain>.<dns_zone>` | empty |
+| `acm_domain` | Domain of the ACM certificate for the ALBs | `*.<dns_subdomain>.<dns_zone>` |
+| `vpc_name_tag` | `Name` tag of the VPC to deploy into | `shared` |
+| `region` | Region written into the jump host's `resolv.conf`. Keep it equal to `aws:region`. | `eu-west-1` |
+| `domain_name` | SimpleAD domain name | `pwb.posit.co` |
+| `ServerInstanceType` | Instance type of the jump host | `t3.medium` |
+| `jumphost_ubuntu` | Ubuntu release of the jump host (`focal`, `jammy`, `noble`) | `noble` |
+| `jumphost_instance_profile` | Optional IAM instance profile for the jump host (e.g. for SSM) | none |
+| `rsw_db_username` | PostgreSQL admin user | `pwb_db_admin` |
+| `slurm_db_username` | MySQL admin user | `slurm_db_admin` |
+
+: Pulumi configuration {#tbl-pulumi-config}
+
+::: callout-note
+## Upgrading an existing stack
+Stacks created before these settings existed need `dns_zone` (and `dns_subdomain` if the old names were `<stack>.pcluster.<zone>`). To keep the existing jump host, also set `jumphost_ubuntu focal` and `jumphost_instance_profile` to the profile it had. Changing either replaces or modifies the jump host. Always run `pulumi preview` first.
+:::
+
+## Users and passwords {#sec-passwords}
+
+Users are named `positXXXX`, where `XXXX` is a zero-padded number (`posit0001`, `posit0002`, ...). They all share one password, which is generated by Pulumi and stored in Secrets Manager. You can read it with
 
 ``` bash
-just create-secrets
+pulumi stack output posit_user_pass --show-secrets
 ```
 
-and eventually we can start the deployment of the new pulumi stack 
+`posit0001` additionally gets passwordless `sudo` on all cluster nodes.
 
-```
-just up 
-```
+All generated passwords are random strings of 16 characters (20 for the user password) with at least one lower-case letter, one upper-case letter and one digit. The passwords needed by ParallelCluster (AD, Slurm DB) are also stored in AWS Secrets Manager.
 
-The stack deployment will also already set up 10 users named `posit0001...posit0010`. 
+User creation is done by `server-side-files/config/useradd.sh` on the jump host. It creates up to 40 users in parallel and verifies each one with `pamtester`, retrying if needed.
 
-## Additionl information 
+## Outputs used downstream
 
-Please be aware
+`image/build-image.sh` and `parallelcluster/deploy.sh` read the stack outputs directly, so you don't need to copy values around. The most important ones:
 
--   Naming of your stack (`auxiliary-wb`) can be changed to your preference
+| Output | Used for |
+|---|---|
+| `s3_bucket_id` | image scripts, cluster scripts |
+| `vpc_private_subnet`, `ssh_security_group` | image build instance, cluster nodes |
+| `rsw_security_group_https` / `_nohttps` | login nodes |
+| `rsw_db_*`, `rsw_audit_db_*` | Workbench `database.conf`, `audit-database.conf` |
+| `slurm_db_endpoint`, `slurm_db_name`, `slurm_db_user`, `slurm_db_pass_arn` | Slurm accounting |
+| `ad_dns_1`, `ad_domain`, `ad_password_arn` | `DirectoryService` section and `/etc/hosts` |
+| `iam_elb_access`, `iam_s3_access`, `iam_ec2_runinstances` | node IAM policies |
+| `secure_cookie_key` | Workbench `secure-cookie-key` |
+| `pwb_url_ext`, `pwb_url_int` | Workbench URLs, session callback address |
+| `jump_host_private_ip`, `private_key_ssh` | SSH access to the jump host |
 
--   Make sure to set your correct eMail address.
+Run `pulumi stack output` to see all of them.
 
--   If you would like to use a different number of users, run `just create-users X` where X is the number of users you want to create.
-
--   You can change the default values for various parameters defined in `Pulumi.yaml` to your liking as well. Please do NOT change `Domain` - this is currently hard-coded into the AWS ParallelCluster setup. Anything else can be changed as you see fit.
--   Users are created in the following way by default: User Name is `positXXXX` where `XXXX` is a 4-digit zero-padded number. Password is chosen as per {ref:sec-passwords}. Those defaults can be changed in `server-side-files/config/useradd.sh` . The referenced script is using multi-threaded bash to speed up user creation. In order to prevent user creation from failing due to too many concurrent connections, it additionally runs `pamtester` to ensure the user is correctly created.
-
-## Defining "good"/secure passwords {#sec-passwords}
-
-Since this deployment will be done in the AWS cloud with some instances exposed to the public internet, using secure passwords is a necessity. As a consequence, all passwords using random strings with 16 characters with a minumum of 1 lower case and 1 upper case letter as well 1 number. 
-
-Passwords that are needed by the ParallelCluster deployment (e.g. for the SLURM or PostgreSQL DB) are additionally stored as a secret in AWS Secrets Manager. Same is true for the common password for all `positXXXX` users. 
-
-Current configurable parameters in the pulumi recipe
-
-| Parameter            | Description                                                          | Default value           |
-|----------------------|----------------------------------------------------------------------|-------------------------|
-| `region`             | AWS region                                                           | `eu-west-1`             |
-| `email`              | eMail address of user                                                | `tbd@tbc.com`           |
-| `ServerInstanceType` | Instance Type for the AD jumphost                                    | `t3.medium`             |
-| `Domain`             | Name of Domain to be used for AD                                     | `pwb.posit.co`          |
-| `slurm_db_username`  | User name for MySQL DB used for SLURM accounting                     | `slurm_db_admin`        |
-| `rsw_db_username`    | User name for PostgreSQL DB for Workbench metadata                   | `pwb_db_admin`          |
-
-: Pulumi recipe parameters
-
-Once you successfully built everything, `pulumi stack output`\` should report something like
+## Accessing the jump host
 
 ``` bash
-Current stack outputs (36):
-    OUTPUT                               VALUE
-    ad_access_url                        d-9367b69bb0.awsapps.com
-    ad_dns_1                             10.0.12.162
-    ad_dns_2                             10.0.129.28
-    ad_password                          [secret]
-    ad_password_arn                      arn:aws:secretsmanager:eu-west-1:637485797898:secret:SimpleADPassword-testing-2e1b657-Q2G38a
-    ami_id                               ami-00e528f20622b7c63
-    billing_code                         me
-    elb_access                           arn:aws:iam::637485797898:policy/elbaccess-20a0cab
-    jump_host_dns                        ec2-3-249-65-17.eu-west-1.compute.amazonaws.com
-    jump_host_public_ip                  3.249.65.17
-    key_pair id                          michael.mayer3@posit.co-keypair-for-pulumi
-    posit_user_pass                      [secret]
-    posit_user_pass_arn                  arn:aws:secretsmanager:eu-west-1:637485797898:secret:PositUserPassword-testing-3b66e30-bIFVvn
-    rsw_db_address                       rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com
-    rsw_db_endpoint                      rsw-dbdf49494.clovh3dmuvji.eu-west-1.rds.amazonaws.com:5432
-    rsw_db_name                          pwb
-    rsw_db_pass                          [secret]
-    rsw_db_port                          5432
-    rsw_db_user                          pwb_db_admin
-    rsw_security_group                   sg-077c470194ee6b798
-    rsw_security_group_db                sg-0d7b12857f91b688a
-    s3_bucket_id                         hpc-scripts-testing-f75b7d7
-    secure_cookie_key                    [secret]
-    slurm_db_address                     slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com
-    slurm_db_endpoint                    slurm-db7c04b6e.clovh3dmuvji.eu-west-1.rds.amazonaws.com:3306
-    slurm_db_name                        slurm
-    slurm_db_pass                        [secret]
-    slurm_db_pass_arn                    arn:aws:secretsmanager:eu-west-1:637485797898:secret:SlurmDBPassword-testing-04dc72f-syQYzS
-    slurm_db_port                        3306
-    slurm_db_user                        slurm_db_admin
-    slurm_security_group_db              sg-02535d06fd5bb5503
-    ssh_security_group                   sg-0f6e1c077d4f3e04c
-    stack_name                           testing
-    vpc_public_subnet                    subnet-0bb915288a434510b
+pulumi stack output private_key_ssh --show-secrets > jumphost.pem && chmod 600 jumphost.pem
+ssh -i jumphost.pem ubuntu@$(pulumi stack output jump_host_private_ip)
 ```
 
-
-
+`*.pem` files are ignored by git, but delete the key when you are done.

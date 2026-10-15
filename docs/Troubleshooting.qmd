@@ -1,0 +1,33 @@
+---
+title: "Troubleshooting"
+number-sections: true
+---
+
+# Where to look
+
+| Node | Log | Content |
+|---|---|---|
+| head | `/var/log/cfn-init.log`, `/var/log/parallelcluster/` | ParallelCluster bootstrap |
+| head | `/var/log/install-pwb-config.log` | Workbench configuration, ALB registration |
+| login | `/var/log/rc.pwb.log` | cron-driven Workbench install and restarts |
+| login | `/var/log/rstudio/rstudio-server/`, `/var/log/rstudio/launcher/` | Workbench and Launcher |
+| compute | `/opt/rstudio/config-compute/<host>-<time>.log` | session component install |
+| image build | `pcluster get-image-log-events`, `/opt/r-install.log`, `/opt/python-install.log` | AMI build |
+
+The nodes are in private subnets. Use SSM Session Manager (`aws ssm start-session --target <instance-id>`) or SSH from inside the VPC. `./cluster-stat.sh <clustername>` lists the instance IDs.
+
+# Common problems
+
+**`deploy.sh` fails with "Pulumi output '...' missing".** The stack is older than the scripts, or you are using the wrong stack name. Run `pulumi up` in `pulumi/`, and check that `STACKNAME`/`CLUSTERNAME` match the stack.
+
+**Cluster creation hangs or the head node times out.** Check `/var/log/install-pwb-config.log`. The script waits up to an hour for the login node load balancer and for all login nodes to register. If they never come up, look at the login node pool in the EC2 console.
+
+**Workbench URL returns 502/503.** The login nodes are not (yet) healthy in the ALB target groups. Check that `pwb-alb-tg-ext-<cluster>` has targets (`aws elbv2 describe-target-health`). Then check `/var/log/rc.pwb.log` on a login node: Workbench is installed by the cron job, so it can take a few minutes after the node is up.
+
+**Sessions start but never connect.** The session on the compute node can't call back into Workbench. Check `launcher-sessions-callback-address` in `/etc/rstudio/rserver.conf`. With `SSL=false` it should be `https://<stack>.<domain>`, the internal ALB. It must resolve and be reachable from the compute nodes.
+
+**Users cannot log in.** Check that the user exists (`id posit0001` on a login node) and that `sssd` is running. Users are created by `just create-users` in `pulumi/`, which needs SSH access to the jump host.
+
+**SimpleAD creation fails.** SimpleAD needs two private subnets in different availability zones. Pulumi takes the first private subnet of each AZ, so the VPC must have private subnets in at least two AZs.
+
+**Database migration errors when Workbench starts.** A Workbench downgrade, or two clusters sharing one database, can leave the `pwb` database in an incompatible state. Each cluster should have its own Pulumi stack (and therefore its own databases).

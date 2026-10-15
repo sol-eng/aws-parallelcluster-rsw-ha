@@ -793,7 +793,7 @@ def main():
             )
         )
 
-    command_build_jumphost = remote.Command(
+    remote.Command(
         "build-jump-host",
         # create="alias just='/home/ubuntu/bin/just'; just build-rsw",
         create="""export PATH="$PATH:$HOME/bin"; just integrate-ad""",

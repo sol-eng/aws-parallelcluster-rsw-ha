@@ -1,3 +1,4 @@
+#!/bin/bash
 #Install apptainer
 
 APPTAINER_VER=$1

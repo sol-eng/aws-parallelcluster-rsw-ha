@@ -1,37 +1,31 @@
-# Build custom AMI 
+# Custom AMI
 
-1. Make sure you have read/write access to a S3 bucket where you can store transient data and scripts. Replace occurrence of `s3://hpc-scripts1234` with the actual S3 bucket reference in `install-image.sh`, `image-config.yaml` and `install-r.sh`. 
-2. Check versions in `install-image.sh`
-3. Finally, run 
-```
-./build-image.sh <IMAGENAME> [<BUCKETNAME>]
-```
-where `<IMAGENAME>` is the desired name of the new AMI and `<BUCKETNAME>` the name of the S3 bucket, e.g. `hpc-scripts1234`. `<BUCKETNAME>` is an optional argument. If missing, the script will look in `.bucket.default` to read the default bucket name. 
+Builds a ParallelCluster AMI based on the official Ubuntu 24.04 image. It contains:
+- R and Python (several versions each)
+- Quarto and Apptainer
+- system libraries for R packages
+- AD integration tools
+- the `rc.pwb` cron job that sets up Workbench on login nodes
 
-# Useful for debugging 
+Details: [docs/AMI.qmd](../docs/AMI.qmd).
 
-## Creating your own S3 bucket 
+## Usage
 
-```
-aws s3api create-bucket --bucket <BUCKETNAME> --region <REGION> --create-bucket-configuration LocationConstraint=<REGION>
-```
+Run the Pulumi stack first; its S3 bucket, private subnet and SSH security group are used for the build.
 
-where `<BUCKETNAME>` is the desired name of the s3 bucket and `<REGION>` the region intended for use. 
-
-## Cleanup 
-
-If you want to get rid of all AVAILABLE images, run
-
-```
-for i in `pcluster list-images --image-status AVAILABLE | grep imageId | awk '{print $2}' | sed 's#"##g' | sed 's#,##'`; do pcluster delete-image -i $i ; done
+```bash
+# from the repo root: uv sync && source .venv/bin/activate
+./build-image.sh <IMAGENAME> <PULUMI_STACK>
+pcluster describe-image -i <IMAGENAME> | jq -r '.imageBuildStatus, .ec2AmiInfo.amiId'
 ```
 
-## Get information about image 
+Put the AMI ID into `AMI=` in `parallelcluster/envs/<name>.env`.
 
-```
-pcluster describe-image -i <IMAGENAME>
-pcluster  list-image-log-streams -i <IMAGENAME>
-pcluster get-image-log-events  -i <IMAGENAME> --log-stream-name <AWSPCVERSION>/1
-```
+## Files
 
-where `<AWSPCVERSION>` is the version of AWS parallelcluster used (e.g. 3.11.1)  
+| File | Purpose |
+|---|---|
+| `build-image.sh` | Uploads the scripts to `s3://<bucket>/image/`, renders `image-config.yaml`, starts `pcluster build-image` |
+| `image-config.yaml` | Image build config (`@@...@@` placeholders filled by `build-image.sh`) |
+| `install-image.sh` | Entry point on the build instance. **All software versions are pinned here.** |
+| `install-*.sh`, `run.R` | Individual install steps (R, Python, Quarto, OS deps, Apptainer, NVIDIA, AD tools) |
