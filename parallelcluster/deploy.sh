@@ -1,21 +1,25 @@
 #!/bin/bash
 
-CLUSTERNAME="benchmark"
-STACKNAME="benchmark"
-PWB_VERSION="2025.12.0-daily-286.pro1"
-AMI=ami-0896bebc4edc2cfd6
+CLUSTERNAME="demo"
+STACKNAME="demo"
+PWB_VERSION="2026.04.0-526.pro2"
+AMI=ami-0be8337c34bfe6436
+#AMI=ami-0e6876c6d0fc1f485
+#AMI=ami-0896bebc4edc2cfd6
+#AMI=ami-0ba426d51e5fcf6f9
+#AMI=ami-0896bebc4edc2cfd6
 #AMI=ami-0a4b160d31e46676e
 #AMI="ami-09d641c6d0df34503"
 #AMI="ami-0a23aa1812f0b93c8"
 REGION="eu-west-1"
-SINGULARITY_SUPPORT=false
-BENCHMARK_SUPPORT=true
+SINGULARITY_SUPPORT=true
+BENCHMARK_SUPPORT=false
 EASYBUILD_SUPPORT=false
-CONFIG="benchmark"
+CONFIG="default"
 HPC_DOMAIN=mayer.cx
-HPC_HOST="benchmark"
+HPC_HOST="demo"
 ALLOWEDIPS="10.32.0.0/16"
-SSL=true
+SSL=false
 LOCAL=false
 
 echo "Extracting values from pulumi setup"

@@ -26,7 +26,6 @@ HeadNode:
   SharedStorageEfsSettings:
     Encrypted: true
   Ssh:
-    KeyName: KEY
     AllowedIps: ALLOWEDIPS
 Image: 
   Os: ubuntu2404
@@ -126,7 +125,6 @@ LoginNodes:
         SubnetIds: 
           - SUBNETID
       Ssh:
-        KeyName: KEY
         AllowedIps: ALLOWEDIPS
       Iam:
         AdditionalIamPolicies:
@@ -140,10 +138,10 @@ DevSettings:
 SharedStorage:
   - MountDir: /home
     Name: home
-    StorageType: FsxLustre
-    FsxLustreSettings:
-      StorageCapacity: 1200
-      DeploymentType: SCRATCH_2
+    StorageType: Efs
+    EfsSettings:
+      Encrypted: true
+      EncryptionInTransit: true
   - MountDir: /opt/rstudio
     Name: rstudio
     StorageType: Efs

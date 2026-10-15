@@ -20,9 +20,11 @@ from pulumi_tls import PrivateKey
 # Helper functions
 # ------------------------------------------------------------------------------
 
+
 @dataclass
 class ConfigValues:
     """A single object to manage all config files."""
+
     config: pulumi.Config = field(default_factory=lambda: pulumi.Config())
     email: str = field(init=False)
     public_key: str = field(init=False)
@@ -41,7 +43,7 @@ class ConfigValues:
 
 
 def create_template(path: str) -> jinja2.Template:
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         template = jinja2.Template(f.read())
     return template
 
@@ -49,41 +51,31 @@ def create_template(path: str) -> jinja2.Template:
 def hash_file(path: str) -> pulumi.Output:
     with open(path, mode="r") as f:
         text = f.read()
-    hash_str = hashlib.sha224(bytes(text, encoding='utf-8')).hexdigest()
+    hash_str = hashlib.sha224(bytes(text, encoding="utf-8")).hexdigest()
     return pulumi.Output.concat(hash_str)
 
 
-def get_password(
-        name: str
-):
-    return RandomPassword(name,
-                          length=16,
-                          special=False,
-                          min_lower=1,
-                          min_numeric=1,
-                          min_upper=1
-                          ).result
+def get_password(name: str):
+    return RandomPassword(
+        name, length=16, special=False, min_lower=1, min_numeric=1, min_upper=1
+    ).result
 
-def get_password2( 
-        name: str
-):  
-    return RandomPassword(name,
-                          length=20,
-                          special=False,   
-                          min_lower=1,     
-                          min_numeric=1,
-                          min_upper=1
-                          ).result
+
+def get_password2(name: str):
+    return RandomPassword(
+        name, length=20, special=False, min_lower=1, min_numeric=1, min_upper=1
+    ).result
+
 
 def make_server(
-        name: str,
-        srvtype: str,
-        tags: Dict,
-        vpc_group_ids: List[str],
-        subnet_id: str,
-        instance_type: str,
-        ami: str,
-        key_name: str
+    name: str,
+    srvtype: str,
+    tags: Dict,
+    vpc_group_ids: List[str],
+    subnet_id: str,
+    instance_type: str,
+    ami: str,
+    key_name: str,
 ):
     # Stand up a server.
     server = ec2.Instance(
@@ -103,8 +95,8 @@ def make_server(
     )
 
     # Export final pulumi variables.
-    pulumi.export(f'{type}_{name}_private_ip', server.private_ip)
-    pulumi.export(f'{type}_{name}_private_dns', server.private_dns)
+    pulumi.export(f"{type}_{name}_private_ip", server.private_ip)
+    pulumi.export(f"{type}_{name}_private_dns", server.private_dns)
 
     return server
 
@@ -116,7 +108,7 @@ def main():
         "rs:environment": "development",
         "rs:owner": config.email,
         "rs:project": "solutions",
-        "rs:subsystem": config.billing_code
+        "rs:subsystem": config.billing_code,
     }
 
     pulumi.export("billing_code", config.billing_code)
@@ -132,19 +124,16 @@ def main():
     # Pulumi secrets
     # --------------------------------------------------------------------------
 
-    
-
     posit_user_pass = get_password2("posit_user_pass")
     pulumi.export("posit_user_pass", pulumi.Output.secret(posit_user_pass))
     posit_user_pass_secret = secretsmanager.Secret(f"PositUserPassword-{stack_name}")
-    secretsmanager.SecretVersion(f"PositUserPassword-{stack_name}",
-                                       secret_id=posit_user_pass_secret.id,
-                                       secret_string=posit_user_pass)
+    secretsmanager.SecretVersion(
+        f"PositUserPassword-{stack_name}",
+        secret_id=posit_user_pass_secret.id,
+        secret_string=posit_user_pass,
+    )
 
     pulumi.export("posit_user_pass_arn", posit_user_pass_secret.arn)
-    
-    
-
 
     secure_cookie_key = RandomUuid("secure_cookie_key")
     pulumi.export("secure_cookie_key", pulumi.Output.secret(secure_cookie_key.id))
@@ -155,14 +144,11 @@ def main():
 
     key_pair_name = f"{config.email}-keypair-for-pulumi-{stack_name}"
 
+    #    ssh_key = PrivateKey(key_pair_name,
+    #        algorithm="ED25519"
+    #    )
 
-#    ssh_key = PrivateKey(key_pair_name,
-#        algorithm="ED25519"
-#    )  
-
-    ssh_key = PrivateKey(key_pair_name,
-        algorithm="RSA"
-    ) 
+    ssh_key = PrivateKey(key_pair_name, algorithm="RSA")
 
     # Export the public key in OpenSSH format
     pulumi.export("public_key_ssh", ssh_key.public_key_openssh)
@@ -170,9 +156,10 @@ def main():
     # Optionally, export the private key (be cautious with this)
     pulumi.export("private_key_ssh", pulumi.Output.secret(ssh_key.private_key_openssh))
 
-    key_pair = ec2.KeyPair("pcluster-deployment",
+    key_pair = ec2.KeyPair(
+        "pcluster-deployment",
         key_name=key_pair_name,
-        public_key=ssh_key.public_key_openssh
+        public_key=ssh_key.public_key_openssh,
     )
 
     pulumi.export("key_pair id", key_pair.key_name)
@@ -181,13 +168,16 @@ def main():
     # Set up S3 bucket to store scripts for parallelcluster
     # --------------------------------------------------------------------------
 
-    s3bucket = s3.Bucket("hpc-scripts-" + stack_name,
-                         acl="private",
-                         force_destroy=True,
-                         tags=tags | {
-                             "AWS Parallelcluster Name": stack_name,
-                             "Name": "hpc-scripts-" + stack_name,
-                         })
+    s3bucket = s3.Bucket(
+        "hpc-scripts-" + stack_name,
+        acl="private",
+        force_destroy=True,
+        tags=tags
+        | {
+            "AWS Parallelcluster Name": stack_name,
+            "Name": "hpc-scripts-" + stack_name,
+        },
+    )
 
     pulumi.export("s3_bucket_id", s3bucket.id)
 
@@ -214,36 +204,26 @@ def main():
     #     private_dns_enabled=True,  # Enable private DNS for this endpoint
     # )
 
-    vpc = ec2.get_vpc(filters=[ec2.GetVpcFilterArgs(
-            name="tag:Name",
-            values=["shared"]
-        )])
-    
-
-    public_subnets = ec2.get_subnets(filters=[
-    ec2.GetSubnetsFilterArgs(
-        name="vpc-id",
-        values=[vpc.id]
-    ),
-    ec2.GetSubnetsFilterArgs(
-        name="tag:Name",
-        values=["*public*"]
+    vpc = ec2.get_vpc(
+        filters=[ec2.GetVpcFilterArgs(name="tag:Name", values=["shared"])]
     )
-    ])
+
+    public_subnets = ec2.get_subnets(
+        filters=[
+            ec2.GetSubnetsFilterArgs(name="vpc-id", values=[vpc.id]),
+            ec2.GetSubnetsFilterArgs(name="tag:Name", values=["*public*"]),
+        ]
+    )
 
     # Export the subnet IDs
     pulumi.export("public_subnet_ids", public_subnets.ids)
 
-    private_subnets = ec2.get_subnets(filters=[
-    ec2.GetSubnetsFilterArgs(
-        name="vpc-id",
-        values=[vpc.id]
-    ),
-    ec2.GetSubnetsFilterArgs(
-        name="tag:Name",
-        values=["*private*"]
+    private_subnets = ec2.get_subnets(
+        filters=[
+            ec2.GetSubnetsFilterArgs(name="vpc-id", values=[vpc.id]),
+            ec2.GetSubnetsFilterArgs(name="tag:Name", values=["*private*"]),
+        ]
     )
-    ])
 
     # Export the subnet IDs
     pulumi.export("private_subnet_ids", private_subnets.ids)
@@ -252,31 +232,37 @@ def main():
     # ELB access from within AWS ParallelCluster
     # --------------------------------------------------------------------------
 
-    policy = iam.Policy("elbaccess",
-                        path="/",
-                        description="ELB Access from head node of parallelcluster",
-                        policy=json.dumps({
-                            "Version": "2012-10-17",
-                            "Statement": [{
-                                "Action": [
-                                    "elasticloadbalancing:DescribeTags",
-                                    "elasticloadbalancing:DescribeTargetGroups",
-                                    "elasticloadbalancing:DescribeLoadBalancers",
-                                    "elasticloadbalancing:DescribeTargetHealth",
-                                    "elasticloadbalancing:RegisterTargets"
-                                ],
-                                "Effect": "Allow",
-                                "Resource": "*",
-                            },
-                            {
-                                "Action": [
-                                    "ec2:DescribeNetworkInterfaces",
-                                    "ec2:DescribeSubnets"
-                                ],
-                                "Effect": "Allow",
-                                "Resource": "*",
-                            }]
-                        }))
+    policy = iam.Policy(
+        "elbaccess",
+        path="/",
+        description="ELB Access from head node of parallelcluster",
+        policy=json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "elasticloadbalancing:DescribeTags",
+                            "elasticloadbalancing:DescribeTargetGroups",
+                            "elasticloadbalancing:DescribeLoadBalancers",
+                            "elasticloadbalancing:DescribeTargetHealth",
+                            "elasticloadbalancing:RegisterTargets",
+                        ],
+                        "Effect": "Allow",
+                        "Resource": "*",
+                    },
+                    {
+                        "Action": [
+                            "ec2:DescribeNetworkInterfaces",
+                            "ec2:DescribeSubnets",
+                        ],
+                        "Effect": "Allow",
+                        "Resource": "*",
+                    },
+                ],
+            }
+        ),
+    )
 
     pulumi.export("iam_elb_access", policy.arn)
 
@@ -284,20 +270,23 @@ def main():
     # Allow headnote to start nodes via ec2:RunInstances
     # --------------------------------------------------------------------------
 
-    policy = iam.Policy("ec2_runinstances",
-                        path="/",
-                        description="Allow headnode of parallelcluster to start nodes",
-                        policy=json.dumps({
-                            "Version": "2012-10-17",
-                            "Statement": [{
-                                "Action": [
-                                    "ec2:RunInstances"
-                                ],
-                                "Effect": "Allow",
-                                "Resource": "*",
-                            }
-                            ],
-                        }))
+    policy = iam.Policy(
+        "ec2_runinstances",
+        path="/",
+        description="Allow headnode of parallelcluster to start nodes",
+        policy=json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": ["ec2:RunInstances"],
+                        "Effect": "Allow",
+                        "Resource": "*",
+                    }
+                ],
+            }
+        ),
+    )
 
     pulumi.export("iam_ec2_runinstances", policy.arn)
 
@@ -305,26 +294,31 @@ def main():
     # S3 access from login nodes
     # --------------------------------------------------------------------------
 
-    policy = iam.Policy("s3access",
-                        path="/",
-                        description="S3 Access from login nodes of parallelcluster",
-                        policy=json.dumps({
-                            "Version": "2012-10-17",
-                            "Statement": [{
-                                "Action": [
-                                    "s3:Get*",
-                                    "s3:List*",
-                                    "s3:Describe*",
-                                    "s3-object-lambda:Get*",
-                                    "s3-object-lambda:List*"
-                                ],
-                                "Effect": "Allow",
-                                "Resource": "*",
-                            }],
-                        }))
+    policy = iam.Policy(
+        "s3access",
+        path="/",
+        description="S3 Access from login nodes of parallelcluster",
+        policy=json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "s3:Get*",
+                            "s3:List*",
+                            "s3:Describe*",
+                            "s3-object-lambda:Get*",
+                            "s3-object-lambda:List*",
+                        ],
+                        "Effect": "Allow",
+                        "Resource": "*",
+                    }
+                ],
+            }
+        ),
+    )
 
     pulumi.export("iam_s3_access", policy.arn)
-    
 
     # --------------------------------------------------------------------------
     # Make security group for Posit Workbench
@@ -334,17 +328,32 @@ def main():
         "WorkbenchServerHTTPS",
         description="Security group for WorkbenchServer access (HTTPS and launcher port 5559)",
         ingress=[
-            {"protocol": "TCP", "from_port": 443, "to_port": 443,
-             'cidr_blocks': [vpc.cidr_block], "description": "WorkbenchServer access"},
-            {"protocol": "TCP", "from_port": 5559, "to_port": 5559,
-             'cidr_blocks': [vpc.cidr_block], "description": "Launcher access"},
+            {
+                "protocol": "TCP",
+                "from_port": 443,
+                "to_port": 443,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "WorkbenchServer access",
+            },
+            {
+                "protocol": "TCP",
+                "from_port": 5559,
+                "to_port": 5559,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "Launcher access",
+            },
         ],
         egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+            {
+                "protocol": "All",
+                "from_port": 0,
+                "to_port": 0,
+                "cidr_blocks": ["0.0.0.0/0"],
+                "description": "Allow all outbound traffic",
+            },
         ],
         tags=tags,
-        vpc_id=vpc.id
+        vpc_id=vpc.id,
     )
     pulumi.export("rsw_security_group_https", rsw_security_group.id)
 
@@ -352,20 +361,34 @@ def main():
         "WorkbenchServerNOHTTPS",
         description="Security group for WorkbenchServer access (workbench port 8787 and launcher port 5559)",
         ingress=[
-            {"protocol": "TCP", "from_port": 8787, "to_port": 8787,
-             'cidr_blocks': [vpc.cidr_block], "description": "WorkbenchServer access"},
-            {"protocol": "TCP", "from_port": 5559, "to_port": 5559,
-             'cidr_blocks': [vpc.cidr_block], "description": "Launcher access"},
+            {
+                "protocol": "TCP",
+                "from_port": 8787,
+                "to_port": 8787,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "WorkbenchServer access",
+            },
+            {
+                "protocol": "TCP",
+                "from_port": 5559,
+                "to_port": 5559,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "Launcher access",
+            },
         ],
         egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+            {
+                "protocol": "All",
+                "from_port": 0,
+                "to_port": 0,
+                "cidr_blocks": ["0.0.0.0/0"],
+                "description": "Allow all outbound traffic",
+            },
         ],
         tags=tags,
-        vpc_id=vpc.id
+        vpc_id=vpc.id,
     )
     pulumi.export("rsw_security_group_nohttps", rsw_security_group.id)
-
 
     # --------------------------------------------------------------------------
     # Posit Workbench DB (PostgreSQL)
@@ -375,25 +398,37 @@ def main():
         "postgres",
         description="Security group for PostgreSQL access",
         ingress=[
-            {"protocol": "TCP", "from_port": 5432, "to_port": 5432,
-             'cidr_blocks': [vpc.cidr_block], "description": "PostgreSQL DB"}
+            {
+                "protocol": "TCP",
+                "from_port": 5432,
+                "to_port": 5432,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "PostgreSQL DB",
+            }
         ],
         egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+            {
+                "protocol": "All",
+                "from_port": 0,
+                "to_port": 0,
+                "cidr_blocks": ["0.0.0.0/0"],
+                "description": "Allow all outbound traffic",
+            },
         ],
         tags=tags,
-        vpc_id=vpc.id
+        vpc_id=vpc.id,
     )
     pulumi.export("rsw_security_group_db", rsw_security_group_db.id)
 
-    subnetgroup = rds.SubnetGroup("postgresdbsubnetgroup",
-                                  subnet_ids=private_subnets.ids,
-                                  tags={
-                                      "Name": "Postgres subnet group",
-                                  })
+    subnetgroup = rds.SubnetGroup(
+        "postgresdbsubnetgroup",
+        subnet_ids=private_subnets.ids,
+        tags={
+            "Name": "Postgres subnet group",
+        },
+    )
 
-    # Default DB 
+    # Default DB
 
     rsw_db_pass = get_password("rsw_db_pass")
     pulumi.export("rsw_db_pass", pulumi.Output.secret(rsw_db_pass))
@@ -413,8 +448,8 @@ def main():
         vpc_security_group_ids=[rsw_security_group_db.id],
         db_subnet_group_name=subnetgroup,
         storage_encrypted=True,
-        performance_insights_enabled=True, # TODO: Update pro-actively to Database Insights standard
-        copy_tags_to_snapshot=True
+        performance_insights_enabled=True,  # TODO: Update pro-actively to Database Insights standard
+        copy_tags_to_snapshot=True,
     )
     pulumi.export("rsw_db_port", rsw_db.port)
     pulumi.export("rsw_db_address", rsw_db.address)
@@ -422,8 +457,7 @@ def main():
     pulumi.export("rsw_db_name", rsw_db.db_name)
     pulumi.export("rsw_db_user", config.rsw_db_username)
 
-
-    # Audit DB 
+    # Audit DB
 
     rsw_audit_db_pass = get_password("rsw_audit_db_pass")
     pulumi.export("rsw_audit_db_pass", pulumi.Output.secret(rsw_audit_db_pass))
@@ -443,8 +477,8 @@ def main():
         vpc_security_group_ids=[rsw_security_group_db.id],
         db_subnet_group_name=subnetgroup,
         storage_encrypted=True,
-        performance_insights_enabled=True, # TODO: Update pro-actively to Database Insights standard
-        copy_tags_to_snapshot=True
+        performance_insights_enabled=True,  # TODO: Update pro-actively to Database Insights standard
+        copy_tags_to_snapshot=True,
     )
     pulumi.export("rsw_audit_db_port", rsw_audit_db.port)
     pulumi.export("rsw_audit_db_address", rsw_audit_db.address)
@@ -460,15 +494,25 @@ def main():
         "mysql",
         description="Security group for MySQL access",
         ingress=[
-            {"protocol": "TCP", "from_port": 3306, "to_port": 3306,
-             'cidr_blocks': [vpc.cidr_block], "description": "MySQL DB"}
+            {
+                "protocol": "TCP",
+                "from_port": 3306,
+                "to_port": 3306,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "MySQL DB",
+            }
         ],
         egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbound traffic"},
+            {
+                "protocol": "All",
+                "from_port": 0,
+                "to_port": 0,
+                "cidr_blocks": ["0.0.0.0/0"],
+                "description": "Allow all outbound traffic",
+            },
         ],
         tags=tags,
-        vpc_id=vpc.id
+        vpc_id=vpc.id,
     )
     pulumi.export("slurm_security_group_db", slurm_security_group_db.id)
 
@@ -476,22 +520,24 @@ def main():
     pulumi.export("slurm_db_pass", pulumi.Output.secret(slurm_db_pass))
 
     secret = secretsmanager.Secret(f"SlurmDBPassword-{stack_name}")
-    slurm_db_pass_sec = secretsmanager.SecretVersion(f"SlurmDBPassword-{stack_name}",
-                                           secret_id=secret.id,
-                                           secret_string=slurm_db_pass)
+    slurm_db_pass_sec = secretsmanager.SecretVersion(
+        f"SlurmDBPassword-{stack_name}",
+        secret_id=secret.id,
+        secret_string=slurm_db_pass,
+    )
     pulumi.export("slurm_db_pass_arn", slurm_db_pass_sec.arn)
 
     mysql_param_group = rds.ParameterGroup(
-    "mysql-encryption-param-group",
-    family="mysql8.0",  # adjust to your MySQL version
-    description="Custom MySQL parameter group enforcing encryption in transit",
-    parameters=[
-        rds.ParameterGroupParameterArgs(
-            name="require_secure_transport",
-            value="1",
-        ),
-    ],
-)
+        "mysql-encryption-param-group",
+        family="mysql8.4",  # adjust to your MySQL version
+        description="Custom MySQL parameter group enforcing encryption in transit",
+        parameters=[
+            rds.ParameterGroupParameterArgs(
+                name="require_secure_transport",
+                value="1",
+            ),
+        ],
+    )
 
     slurm_db = rds.Instance(
         "slurm-db",
@@ -511,7 +557,7 @@ def main():
         performance_insights_enabled=True,
         performance_insights_retention_period=7,
         storage_encrypted=True,
-        copy_tags_to_snapshot=True
+        copy_tags_to_snapshot=True,
     )
 
     pulumi.export("slurm_db_port", slurm_db.port)
@@ -526,61 +572,75 @@ def main():
 
     ad_password = get_password("ad_password")
     pulumi.export("ad_password", pulumi.Output.secret(ad_password))
-    
+
     secret = secretsmanager.Secret(f"SimpleADPassword-{stack_name}")
-    ad_password_sec = secretsmanager.SecretVersion(f"SimpleADPassword-{stack_name}",
-                                           secret_id=secret.id,
-                                           secret_string=ad_password)
+    ad_password_sec = secretsmanager.SecretVersion(
+        f"SimpleADPassword-{stack_name}", secret_id=secret.id, secret_string=ad_password
+    )
     pulumi.export("ad_password_arn", ad_password_sec.arn)
 
-    ad = directoryservice.Directory("pwb_directory",
-                                    name=config.domain_name,
-                                    password=ad_password,
-                                    # edition="Standard",
-                                    type="SimpleAD",
-                                    size="Small",
-                                    description="Directory for PWB environment",
-                                    vpc_settings=directoryservice.DirectoryVpcSettingsArgs(
-                                        vpc_id=vpc.id,
-                                        subnet_ids=private_subnets.ids,
-                                    ),
-                                    tags=tags | {"Name": f"pwb-directory-{stack_name}"},
-                                    )
-    pulumi.export('ad_dns_1', ad.dns_ip_addresses[0])
-    pulumi.export('ad_dns_2', ad.dns_ip_addresses[1])
-    pulumi.export('ad_access_url', ad.access_url)
+    ad = directoryservice.Directory(
+        "pwb_directory",
+        name=config.domain_name,
+        password=ad_password,
+        # edition="Standard",
+        type="SimpleAD",
+        size="Small",
+        description="Directory for PWB environment",
+        vpc_settings=directoryservice.DirectoryVpcSettingsArgs(
+            vpc_id=vpc.id,
+            subnet_ids=private_subnets.ids,
+        ),
+        tags=tags | {"Name": f"pwb-directory-{stack_name}"},
+    )
+    pulumi.export("ad_dns_1", ad.dns_ip_addresses[0])
+    pulumi.export("ad_dns_2", ad.dns_ip_addresses[1])
+    pulumi.export("ad_access_url", ad.access_url)
 
     # --------------------------------------------------------------------------
     # Jump Host (AD)
     # --------------------------------------------------------------------------
 
-     
-
     ssh_security_group = ec2.SecurityGroup(
         "ssh",
         description="ssh access ",
         ingress=[
-            {"protocol": "TCP", "from_port": 22, "to_port": 22,
-             'cidr_blocks': [vpc.cidr_block], "description": "SSH"},
+            {
+                "protocol": "TCP",
+                "from_port": 22,
+                "to_port": 22,
+                "cidr_blocks": [vpc.cidr_block],
+                "description": "SSH",
+            },
         ],
         egress=[
-            {"protocol": "All", "from_port": 0, "to_port": 0,
-             'cidr_blocks': ['0.0.0.0/0'], "description": "Allow all outbout traffic"},
+            {
+                "protocol": "All",
+                "from_port": 0,
+                "to_port": 0,
+                "cidr_blocks": ["0.0.0.0/0"],
+                "description": "Allow all outbout traffic",
+            },
         ],
         tags=tags,
-        vpc_id=vpc.id
+        vpc_id=vpc.id,
     )
     pulumi.export("ssh_security_group", ssh_security_group.id)
 
     # Fetch the most recent Ubuntu 20.04 AMI with HVM and x86_64 architecture in the specified region
-    ami = ec2.get_ami(most_recent=True,
-                        owners=["099720109477"],  # Canonical
-                        filters=[
-                            {"name": "name", "values": ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]},
-                            {"name": "architecture", "values": ["x86_64"]},
-                            {"name": "virtualization-type", "values": ["hvm"]},
-                        ],
-                        opts=pulumi.InvokeOptions(provider=Provider("test",region=get_region().name)))
+    ami = ec2.get_ami(
+        most_recent=True,
+        owners=["099720109477"],  # Canonical
+        filters=[
+            {
+                "name": "name",
+                "values": ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"],
+            },
+            {"name": "architecture", "values": ["x86_64"]},
+            {"name": "virtualization-type", "values": ["hvm"]},
+        ],
+        opts=pulumi.InvokeOptions(provider=Provider("test", region=get_region().name)),
+    )
 
     # Export the AMI ID
     pulumi.export("ami_id", ami.id)
@@ -593,7 +653,7 @@ def main():
         instance_type=config.ServerInstanceType,
         subnet_id=private_subnets.ids[0],
         ami=ami.id,
-        key_name=key_pair.key_name
+        key_name=key_pair.key_name,
     )
 
     pulumi.export("vpc_public_subnet", public_subnets.ids[0])
@@ -605,39 +665,44 @@ def main():
     connection = remote.ConnectionArgs(
         host=jump_host.private_ip,  # host=jump_host.id,
         user="ubuntu",
-        #private_key=Path(f"{key_pair.key_name}.pem").read_text()
-        private_key=ssh_key.private_key_openssh
+        # private_key=Path(f"{key_pair.key_name}.pem").read_text()
+        private_key=ssh_key.private_key_openssh,
     )
 
     command_set_environment_variables = remote.Command(
         f"set-env",
         create=pulumi.Output.concat(
-            'echo "export AD_PASSWD=', ad_password, '" >> .env;\n',
-            'echo "export AD_DOMAIN=', config.domain_name, '" >> .env;\n',
+            'echo "export AD_PASSWD=',
+            ad_password,
+            '" >> .env;\n',
+            'echo "export AD_DOMAIN=',
+            config.domain_name,
+            '" >> .env;\n',
         ),
-
         connection=connection,
-        opts=pulumi.ResourceOptions(depends_on=jump_host)
+        opts=pulumi.ResourceOptions(depends_on=jump_host),
     )
 
     command_install_justfile = remote.Command(
         f"install-justfile",
-        create="\n".join([
-            """curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
-            """echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bashrc;"""
-        ]),
+        create="\n".join(
+            [
+                """curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin;""",
+                """echo 'export PATH="$PATH:$HOME/bin"' >> ~/.bashrc;""",
+            ]
+        ),
         opts=pulumi.ResourceOptions(depends_on=jump_host),
-        connection=connection
+        connection=connection,
     )
 
     justfile_asset = pulumi.FileAsset("server-side-files/justfile")
     command_copy_justfile = remote.CopyToRemote(
         f"copy-justfile",
         source=justfile_asset,
-        remote_path='justfile',
+        remote_path="justfile",
         connection=connection,
         opts=pulumi.ResourceOptions(depends_on=jump_host),
-        triggers=[hash_file("server-side-files/justfile")]
+        triggers=[hash_file("server-side-files/justfile")],
     )
 
     # Copy the server side files
@@ -652,44 +717,57 @@ def main():
             "server-side-files/config/krb5.conf",
             "~/krb5.conf",
             pulumi.Output.all().apply(
-                lambda x: create_template("server-side-files/config/krb5.conf").render(domain_name=config.domain_name))
-
+                lambda x: create_template("server-side-files/config/krb5.conf").render(
+                    domain_name=config.domain_name
+                )
+            ),
         ),
         serverSideFile(
             "server-side-files/config/resolv.conf",
             "~/resolv.conf",
-            pulumi.Output.all(config.domain_name, ad.dns_ip_addresses, config.aws_region).apply(
-                lambda x: create_template("server-side-files/config/resolv.conf").render(domain_name=x[0], dns1=x[1][0],
-                                                                                         dns2=x[1][1], aws_region=x[2]))
+            pulumi.Output.all(
+                config.domain_name, ad.dns_ip_addresses, config.aws_region
+            ).apply(
+                lambda x: create_template(
+                    "server-side-files/config/resolv.conf"
+                ).render(domain_name=x[0], dns1=x[1][0], dns2=x[1][1], aws_region=x[2])
+            ),
         ),
         serverSideFile(
             "server-side-files/config/create-users.exp",
             "~/create-users.exp",
             pulumi.Output.all(config.domain_name, ad_password).apply(
-                lambda x: create_template("server-side-files/config/create-users.exp").render(domain_name=x[0],
-                                                                                              ad_password=x[1]))
+                lambda x: create_template(
+                    "server-side-files/config/create-users.exp"
+                ).render(domain_name=x[0], ad_password=x[1])
+            ),
         ),
         serverSideFile(
             "server-side-files/config/create-group.exp",
             "~/create-group.exp",
             pulumi.Output.all(config.domain_name, ad_password).apply(
-                lambda x: create_template("server-side-files/config/create-group.exp").render(domain_name=x[0],
-                                                                                              ad_password=x[1]))
+                lambda x: create_template(
+                    "server-side-files/config/create-group.exp"
+                ).render(domain_name=x[0], ad_password=x[1])
+            ),
         ),
         serverSideFile(
             "server-side-files/config/add-group-member.exp",
             "~/add-group-member.exp",
             pulumi.Output.all(config.domain_name, ad_password).apply(
-                lambda x: create_template("server-side-files/config/add-group-member.exp").render(domain_name=x[0],
-                                                                                                  ad_password=x[1]))
+                lambda x: create_template(
+                    "server-side-files/config/add-group-member.exp"
+                ).render(domain_name=x[0], ad_password=x[1])
+            ),
         ),
         serverSideFile(
             "server-side-files/config/useradd.sh",
             "~/useradd.sh",
             pulumi.Output.all(config.domain_name, ad_password, posit_user_pass).apply(
-                lambda x: create_template("server-side-files/config/useradd.sh").render(domain_name=x[0],
-                                                                                        ad_password=x[1],
-                                                                                        user_pass=x[2]))
+                lambda x: create_template("server-side-files/config/useradd.sh").render(
+                    domain_name=x[0], ad_password=x[1], user_pass=x[2]
+                )
+            ),
         ),
     ]
 
@@ -699,10 +777,12 @@ def main():
             command_copy_config_files.append(
                 remote.Command(
                     f"copy {f.file_out} server",
-                    create=pulumi.Output.concat('echo "', f.template_render_command, f'" > {f.file_out}'),
+                    create=pulumi.Output.concat(
+                        'echo "', f.template_render_command, f'" > {f.file_out}'
+                    ),
                     connection=connection,
                     triggers=[hash_file(f.file_in)],
-                    opts=pulumi.ResourceOptions(depends_on=jump_host)
+                    opts=pulumi.ResourceOptions(depends_on=jump_host),
                 )
             )
 
@@ -711,8 +791,15 @@ def main():
         # create="alias just='/home/ubuntu/bin/just'; just build-rsw",
         create="""export PATH="$PATH:$HOME/bin"; just integrate-ad""",
         connection=connection,
-        opts=pulumi.ResourceOptions(depends_on=[jump_host, command_set_environment_variables, command_install_justfile,
-                                                command_copy_justfile] + command_copy_config_files)
+        opts=pulumi.ResourceOptions(
+            depends_on=[
+                jump_host,
+                command_set_environment_variables,
+                command_install_justfile,
+                command_copy_justfile,
+            ]
+            + command_copy_config_files
+        ),
     )
 
     #########################################################################
@@ -769,10 +856,7 @@ def main():
         egress=[
             # Allow outbound traffic to private subnet HTTP only
             ec2.SecurityGroupEgressArgs(
-                from_port=443,
-                to_port=443,
-                protocol="tcp",
-                cidr_blocks=[vpc.cidr_block]
+                from_port=443, to_port=443, protocol="tcp", cidr_blocks=[vpc.cidr_block]
             )
         ],
         tags=tags,
@@ -783,10 +867,10 @@ def main():
     pwb_alb_ext = lb.LoadBalancer(
         f"pwb-alb-ext-{stack_name}",
         name=f"pwb-alb-ext-{stack_name}",
-        internal=False, # This makes it a public-facing ALB
+        internal=False,  # This makes it a public-facing ALB
         load_balancer_type="application",
         security_groups=[alb_sg.id],
-        subnets=public_subnets.ids, # Place it in public subnets
+        subnets=public_subnets.ids,  # Place it in public subnets
         tags=tags | {"Name": f"pwb-alb-ext-{stack_name}"},
         opts=pulumi.ResourceOptions(delete_before_replace=True),
     )
@@ -799,7 +883,7 @@ def main():
         internal=True,
         load_balancer_type="application",
         security_groups=[alb_sg.id],
-        subnets=public_subnets.ids, # Place it in public subnets
+        subnets=public_subnets.ids,  # Place it in public subnets
         tags=tags | {"Name": f"pwb-alb-int-{stack_name}"},
         opts=pulumi.ResourceOptions(delete_before_replace=True),
     )
@@ -807,15 +891,15 @@ def main():
     pulumi.export("pwb_alb_int_dns_name", pwb_alb_int.dns_name)
 
     # Get the ACM certificate
-    cert = acm.get_certificate(domain="*.pcluster.soleng.posit.it",
-                               most_recent=True,
-                               statuses=["ISSUED"])
+    cert = acm.get_certificate(
+        domain="*.pcluster.soleng.posit.it", most_recent=True, statuses=["ISSUED"]
+    )
 
     # Create a target group for the ALB.
     # The head node will register itself with this target group.
     alb_target_group_ext = lb.TargetGroup(
         f"pwb-alb-tg-ext-{stack_name}",
-        port=8787, # The internal service port
+        port=8787,  # The internal service port
         protocol="HTTP",
         vpc_id=vpc.id,
         target_type="ip",
@@ -829,7 +913,7 @@ def main():
             protocol="HTTP",
             path="/",
             port="traffic-port",
-            matcher="302", # RStudio Workbench redirects with a 302
+            matcher="302",  # RStudio Workbench redirects with a 302
         ),
         tags=tags | {"Name": f"pwb-alb-tg-ext-{stack_name}"},
     )
@@ -837,7 +921,7 @@ def main():
 
     alb_target_group_int = lb.TargetGroup(
         f"pwb-alb-tg-int-{stack_name}",
-        port=8787, # The internal service port
+        port=8787,  # The internal service port
         protocol="HTTP",
         vpc_id=vpc.id,
         target_type="ip",
@@ -851,12 +935,11 @@ def main():
             protocol="HTTP",
             path="/",
             port="traffic-port",
-            matcher="302", # RStudio Workbench redirects with a 302
+            matcher="302",  # RStudio Workbench redirects with a 302
         ),
         tags=tags | {"Name": f"pwb-alb-tg-int-{stack_name}"},
     )
     pulumi.export("alb_target_group_int_arn", alb_target_group_int.arn)
-
 
     # Create a listener for HTTPS traffic
     alb_listener_ext = lb.Listener(
@@ -865,12 +948,16 @@ def main():
         port=443,
         protocol="HTTPS",
         certificate_arn=cert.arn,
-        default_actions=[lb.ListenerDefaultActionArgs(
-            type="forward",
-            target_group_arn=alb_target_group_ext.arn,
-        )],
+        default_actions=[
+            lb.ListenerDefaultActionArgs(
+                type="forward",
+                target_group_arn=alb_target_group_ext.arn,
+            )
+        ],
         tags=tags,
-        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_ext]),
+        opts=pulumi.ResourceOptions(
+            delete_before_replace=True, depends_on=[pwb_alb_ext]
+        ),
     )
     pulumi.export("alb_listener_ext_arn", alb_listener_ext.arn)
 
@@ -880,15 +967,18 @@ def main():
         port=443,
         protocol="HTTPS",
         certificate_arn=cert.arn,
-        default_actions=[lb.ListenerDefaultActionArgs(
-            type="forward",
-            target_group_arn=alb_target_group_int.arn,
-        )],
+        default_actions=[
+            lb.ListenerDefaultActionArgs(
+                type="forward",
+                target_group_arn=alb_target_group_int.arn,
+            )
+        ],
         tags=tags,
-        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_int]),
+        opts=pulumi.ResourceOptions(
+            delete_before_replace=True, depends_on=[pwb_alb_int]
+        ),
     )
     pulumi.export("alb_listener_int_arn", alb_listener_int.arn)
-
 
     # --------------------------------------------------------------------------
     # Route53 for demo.pcluster.soleng.posit.it
@@ -904,12 +994,16 @@ def main():
         zone_id=soleng_zone.id,
         name=stack_name + "-ext.pcluster.soleng.posit.it",
         type="A",
-        aliases=[route53.RecordAliasArgs(
-            name=pwb_alb_ext.dns_name,
-            zone_id=pwb_alb_ext.zone_id,
-            evaluate_target_health=True,
-        )],
-        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_ext])
+        aliases=[
+            route53.RecordAliasArgs(
+                name=pwb_alb_ext.dns_name,
+                zone_id=pwb_alb_ext.zone_id,
+                evaluate_target_health=True,
+            )
+        ],
+        opts=pulumi.ResourceOptions(
+            delete_before_replace=True, depends_on=[pwb_alb_ext]
+        ),
     )
 
     pulumi.export("pwb_url_ext", dns_record_ext.fqdn)
@@ -919,16 +1013,19 @@ def main():
         zone_id=soleng_zone.id,
         name=stack_name + ".pcluster.soleng.posit.it",
         type="A",
-        aliases=[route53.RecordAliasArgs(
-            name=pwb_alb_int.dns_name,
-            zone_id=pwb_alb_int.zone_id,
-            evaluate_target_health=True,
-        )],
-        opts=pulumi.ResourceOptions(delete_before_replace=True,depends_on=[pwb_alb_int])
+        aliases=[
+            route53.RecordAliasArgs(
+                name=pwb_alb_int.dns_name,
+                zone_id=pwb_alb_int.zone_id,
+                evaluate_target_health=True,
+            )
+        ],
+        opts=pulumi.ResourceOptions(
+            delete_before_replace=True, depends_on=[pwb_alb_int]
+        ),
     )
 
     pulumi.export("pwb_url_int", dns_record_int.fqdn)
-
 
 
 main()

@@ -1,10 +1,10 @@
 Build:
-  InstanceType: g5.2xlarge 
+  InstanceType: g4dn.xlarge 
   ParentImage: AMI
   # private-0 | shared
   SubnetId: subnet-08a17fc2026b879b6 
   SecurityGroupIds:
-    - sg-01f2cc3bfe3a4c675
+    - sg-0dcca122fc164c801 
   UpdateOsPackages:
     Enabled: true 
   Iam:

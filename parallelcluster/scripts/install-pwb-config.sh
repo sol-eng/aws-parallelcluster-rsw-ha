@@ -671,20 +671,20 @@ fi
 
 if SINGULARITY_SUPPORT 
 then
-        cd /tmp && \
-                git clone https://github.com/sol-eng/singularity-rstudio.git && \
-                cd singularity-rstudio/data/r-session-complete &&
-                export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
-                sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
-                sed -i "s/PWB_VERSION.*/PWB_VERSION=$PWB_VERSION/" build.env &&
-                for i in `ls -d */ | grep -v scripts | grep -v rhel | sed 's#/##'`; do \
-                        ( if [[ ! -f $PWB_BASE_DIR/apptainer/$i.sif ]]; then pushd $i && \
-			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
-                        popd; fi ) & 
-                        if [[ $(jobs -r -p | wc -l) -ge 3 ]]; then
-                                wait -n
-                        fi
-                done
+#        cd /tmp && \
+#                git clone https://github.com/sol-eng/singularity-rstudio.git && \
+#                cd singularity-rstudio/data/r-session-complete &&
+#                export slurm_version=`/opt/slurm/bin/sinfo -V | cut -d " " -f 2` && 
+#                sed -i "s/SLURM_VERSION.*/SLURM_VERSION=$slurm_version/" build.env &&
+#                sed -i "s/PWB_VERSION.*/PWB_VERSION=$PWB_VERSION/" build.env &&
+#                for i in `ls -d */ | grep -v scripts | grep -v rhel | sed 's#/##'`; do \
+#                        ( if [[ ! -f $PWB_BASE_DIR/apptainer/$i.sif ]]; then pushd $i && \
+#			singularity build --build-arg-file ../build.env $PWB_BASE_DIR/apptainer/$i.sif r-session-complete.sdef && \
+#                        popd; fi ) & 
+#                        if [[ $(jobs -r -p | wc -l) -ge 3 ]]; then
+#                                wait -n
+#                        fi
+#                done
 
         # We also need to build the SPANK plugin for singularity
 
