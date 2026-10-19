@@ -388,10 +388,10 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "jinja2", specifier = "==3.1.6" },
-    { name = "pulumi", specifier = "==3.268.0" },
+    { name = "pulumi", specifier = "==3.269.0" },
     { name = "pulumi-aws", specifier = "==6.83.4" },
     { name = "pulumi-command", specifier = "==1.2.1" },
-    { name = "pulumi-random", specifier = "==4.21.2" },
+    { name = "pulumi-random", specifier = "==4.21.4" },
     { name = "pulumi-tls", specifier = "==5.6.2" },
 ]
 
@@ -421,7 +421,7 @@ wheels = [
 
 [[package]]
 name = "pulumi"
-version = "3.268.0"
+version = "3.269.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "debugpy" },
@@ -438,7 +438,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/81/afc7585aa7b395f87565817644c1c840fdd06400134eef64610d515e7ec3/pulumi-3.268.0-py3-none-any.whl", hash = "sha256:0a6d0e85fb3b60eb4d8e1bbf07528fff1b45cd2b45d92cc8ac8bb6703f520325", size = 427519, upload-time = "2026-10-07T10:26:17.592Z" },
+    { url = "https://files.pythonhosted.org/packages/93/08/6ae46f800286e64d228e9103ed5ca0afe928b6fa6c23ab363476bf8cde66/pulumi-3.269.0-py3-none-any.whl", hash = "sha256:80f720d6c43043f7acc32a510b044f9fd21b7da989ced679749eb694920b47b3", size = 433032, upload-time = "2026-10-16T11:37:41.233Z" },
 ]
 
 [[package]]
@@ -471,16 +471,16 @@ wheels = [
 
 [[package]]
 name = "pulumi-random"
-version = "4.21.2"
+version = "4.21.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "parver" },
+    { name = "packaging" },
     { name = "pulumi" },
     { name = "semver" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/80/69/8788f884a4fcffa72ee29376db688890c6a5040f8d04d57109d4b5d32c60/pulumi_random-4.21.2.tar.gz", hash = "sha256:90ebcab17de5401b8c5dabfef6349d0d9ed0e32be4598dd147b627fe4722f01d", size = 22763, upload-time = "2026-09-17T11:21:56.149Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/b5/c97973fe86e95da07fbd601adc41508da870af7f33a639db69b945c40eb0/pulumi_random-4.21.4.tar.gz", hash = "sha256:77c9a4e3170cc623e6dc0f1838eb99f2afa6ff34a0af85ee8f0f1bd3e71ba3d7", size = 22826, upload-time = "2026-10-16T11:31:18.434Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/89/71b35c6fecb31e5ec4bb71bfe40df0525dd8e7ae5ca43289bb15517fa7ee/pulumi_random-4.21.2-py3-none-any.whl", hash = "sha256:d070453fc962217866a6bbfc8f19d59ec127b24dede3376beaab6eae5cbc1294", size = 36074, upload-time = "2026-09-17T11:21:54.808Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/a1/cca989317c4c1826a10ae9e7d55301d34e0bc67dc8d7e41b0fe72f62ee41/pulumi_random-4.21.4-py3-none-any.whl", hash = "sha256:bd1bc42c489a49ec0ac09910f86f030858d7e88f31d0ff81ae4425a6c65cef4e", size = 36100, upload-time = "2026-10-16T11:31:17.039Z" },
 ]
 
 [[package]]

@@ -61,7 +61,7 @@ protobuf==7.36.2
     #   googleapis-common-protos
     #   opentelemetry-proto
     #   pulumi
-pulumi==3.268.0
+pulumi==3.269.0
     # via
     #   parallelcluster-pulumi
     #   pulumi-aws
@@ -72,7 +72,7 @@ pulumi-aws==7.50.0
     # via parallelcluster-pulumi
 pulumi-command==1.2.1
     # via parallelcluster-pulumi
-pulumi-random==4.21.2
+pulumi-random==4.21.4
     # via parallelcluster-pulumi
 pulumi-tls==5.6.2
     # via parallelcluster-pulumi
