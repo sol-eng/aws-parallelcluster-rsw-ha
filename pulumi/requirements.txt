@@ -6,7 +6,7 @@ dill==0.4.1
     # via pulumi
 googleapis-common-protos==1.76.0
     # via opentelemetry-exporter-otlp-proto-grpc
-grpcio==1.84.1
+grpcio==1.85.0
     # via
     #   opentelemetry-exporter-otlp-proto-grpc
     #   pulumi
@@ -56,19 +56,19 @@ parver==1.0.1.post0
     # via
     #   pulumi-aws
     #   pulumi-command
-protobuf==7.36.2
+protobuf==6.33.6
     # via
     #   googleapis-common-protos
     #   opentelemetry-proto
     #   pulumi
-pulumi==3.272.0
+pulumi==3.269.0
     # via
     #   parallelcluster-pulumi
     #   pulumi-aws
     #   pulumi-command
     #   pulumi-random
     #   pulumi-tls
-pulumi-aws==7.51.1
+pulumi-aws==6.83.4
     # via parallelcluster-pulumi
 pulumi-command==1.2.1
     # via parallelcluster-pulumi
