@@ -1,7 +1,7 @@
 # Weekly dependency update PRs: one grouped PR per uv project (uv.lock and
 # pyproject.toml) plus one for GitHub Actions. requirements.txt files are
-# generated with 'uv export --no-hashes -o requirements.txt'; re-export them
-# after merging an update.
+# generated from uv.lock; the "Dependency sync" workflow re-exports them on
+# Dependabot PRs, and "Security floors" fixes vulnerable transitive pins.
 version: 2
 updates:
   # ParallelCluster CLI (repository root)
