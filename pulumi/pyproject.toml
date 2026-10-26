@@ -5,7 +5,7 @@ requires-python = ">=3.12.11"
 # Direct dependencies only; all transitive dependencies are pinned in uv.lock
 dependencies = [
     "jinja2==3.1.6",
-    "pulumi==3.269.0",
+    "pulumi==3.272.0",
     # stay on 6.x: 7.x is a major upgrade with resource/state changes
     "pulumi-aws==6.83.4",
     "pulumi-command==1.2.1",
