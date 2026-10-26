@@ -12,7 +12,7 @@ constraints = [
     { name = "idna", specifier = ">=3.15" },
     { name = "protobuf", specifier = ">=5.29.6" },
     { name = "requests", specifier = ">=2.33.0" },
-    { name = "setuptools", specifier = ">=83.0.0" },
+    { name = "setuptools", specifier = ">=84.1.0" },
     { name = "urllib3", specifier = ">=2.7.0" },
     { name = "wheel", specifier = ">=0.46.2" },
 ]
