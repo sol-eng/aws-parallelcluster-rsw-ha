@@ -18,32 +18,33 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     env:
       FIX: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
-      - name: Sync uv.lock and requirements.txt
+      - name: Sync requirements.txt with uv.lock
         run: |
           base="origin/$GITHUB_BASE_REF"
+          audit=false
           for dir in . pulumi; do
-            # Dependabot security updates may bump only requirements.txt; carry
-            # the bumped packages into uv.lock so re-exporting keeps the fix
-            if [ "$FIX" = true ] && git diff --quiet "$base...HEAD" -- "$dir/uv.lock" \
+            # A Dependabot security update that bumps only requirements.txt is
+            # reverted by the re-export; let "Security floors" fix it in uv.lock
+            if git diff --quiet "$base...HEAD" -- "$dir/uv.lock" \
                 && ! git diff --quiet "$base...HEAD" -- "$dir/requirements.txt"; then
-              pkgs=$(git diff "$base...HEAD" -- "$dir/requirements.txt" | sed -n 's/^+\([A-Za-z0-9._-]*\)==.*/\1/p')
-              (cd "$dir" && uv lock $(printf -- '--upgrade-package %s ' $pkgs))
+              audit=true
             fi
-            if [ "$FIX" = true ]; then
-              (cd "$dir" && uv lock && uv export --no-hashes -o requirements.txt >/dev/null)
-            else
-              (cd "$dir" && uv lock --check && uv export --no-hashes -o requirements.txt >/dev/null)
-            fi
+            (cd "$dir" && uv lock --check && uv export --frozen --no-hashes -o requirements.txt >/dev/null)
           done
+          if [ "$FIX" = true ] && [ "$audit" = true ]; then
+            gh workflow run deps-security.yml
+          fi
           git diff --quiet && exit 0
           if [ "$FIX" != true ]; then
             git diff
@@ -52,5 +53,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -qam "Sync uv.lock and requirements.txt"
+          git commit -qam "Sync requirements.txt with uv.lock"
           git push
+          # pushes made with GITHUB_TOKEN don't trigger workflows
+          gh workflow run lint.yml --ref "$GITHUB_HEAD_REF"
