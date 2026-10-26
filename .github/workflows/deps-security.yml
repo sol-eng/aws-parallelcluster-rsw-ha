@@ -1,0 +1,39 @@
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+name: Security floors
+
+# Audits both uv lockfiles and raises [tool.uv] constraint-dependencies floors
+# for vulnerable transitive dependencies, then opens (or updates) a single PR.
+# Set the DEPS_BOT_TOKEN secret (GitHub App or fine-grained PAT with contents
+# and pull-requests write) so CI runs on that PR; with the default token it
+# does not, and "Allow GitHub Actions to create pull requests" must be enabled.
+jobs:
+  floors:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: Audit and raise floors
+        run: |
+          summary="$RUNNER_TEMP/summary.md"
+          for dir in . pulumi; do
+            uv run --no-project --with tomlkit --with packaging \
+              python .github/scripts/security_floors.py "$dir" >> "$summary"
+          done
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n\n' "Raises security floors for vulnerable locked packages found by pip-audit, relocks and re-exports requirements.txt." \
+            | cat - "$summary" > "$RUNNER_TEMP/body.md"
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.DEPS_BOT_TOKEN || github.token }}
+          branch: deps/security-floors
+          delete-branch: true
+          commit-message: "Fix security advisories: raise uv constraint floors"
+          title: "Fix security advisories: raise uv constraint floors"
+          body-path: ${{ runner.temp }}/body.md

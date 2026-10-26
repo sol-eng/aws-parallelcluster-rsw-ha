@@ -1,0 +1,56 @@
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "requirements.txt"
+      - "pulumi/pyproject.toml"
+      - "pulumi/uv.lock"
+      - "pulumi/requirements.txt"
+      - ".github/workflows/deps-sync.yml"
+
+name: Dependency sync
+
+# uv.lock is the source of truth; requirements.txt is generated from it.
+# Dependabot edits requirements.txt independently of the lock, so its PRs are
+# fixed up in place. Any other PR fails if the two are out of sync.
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FIX: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v7
+      - name: Sync uv.lock and requirements.txt
+        run: |
+          base="origin/$GITHUB_BASE_REF"
+          for dir in . pulumi; do
+            # Dependabot security updates may bump only requirements.txt; carry
+            # the bumped packages into uv.lock so re-exporting keeps the fix
+            if [ "$FIX" = true ] && git diff --quiet "$base...HEAD" -- "$dir/uv.lock" \
+                && ! git diff --quiet "$base...HEAD" -- "$dir/requirements.txt"; then
+              pkgs=$(git diff "$base...HEAD" -- "$dir/requirements.txt" | sed -n 's/^+\([A-Za-z0-9._-]*\)==.*/\1/p')
+              (cd "$dir" && uv lock $(printf -- '--upgrade-package %s ' $pkgs))
+            fi
+            if [ "$FIX" = true ]; then
+              (cd "$dir" && uv lock && uv export --no-hashes -o requirements.txt >/dev/null)
+            else
+              (cd "$dir" && uv lock --check && uv export --no-hashes -o requirements.txt >/dev/null)
+            fi
+          done
+          git diff --quiet && exit 0
+          if [ "$FIX" != true ]; then
+            git diff
+            echo "::error::requirements.txt is out of sync with uv.lock; run 'uv export --no-hashes -o requirements.txt' in the affected project"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "Sync uv.lock and requirements.txt"
+          git push
