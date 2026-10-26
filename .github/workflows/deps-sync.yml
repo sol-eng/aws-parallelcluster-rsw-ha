@@ -18,11 +18,9 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: write
     env:
       FIX: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -32,19 +30,20 @@ jobs:
       - name: Sync requirements.txt with uv.lock
         run: |
           base="origin/$GITHUB_BASE_REF"
-          audit=false
+          # Project whose Dependabot updater opened the PR; the root updater
+          # also edits pulumi/requirements.txt, which must not leak into the lock
+          case "$GITHUB_HEAD_REF" in dependabot/uv/pulumi/*) owner=pulumi ;; *) owner=. ;; esac
           for dir in . pulumi; do
-            # A Dependabot security update that bumps only requirements.txt is
-            # reverted by the re-export; let "Security floors" fix it in uv.lock
-            if git diff --quiet "$base...HEAD" -- "$dir/uv.lock" \
+            # Dependabot often bumps only requirements.txt; carry those bumps
+            # into uv.lock so re-exporting keeps them
+            if [ "$FIX" = true ] && [ "$dir" = "$owner" ] \
+                && git diff --quiet "$base...HEAD" -- "$dir/uv.lock" \
                 && ! git diff --quiet "$base...HEAD" -- "$dir/requirements.txt"; then
-              audit=true
+              pkgs=$(git diff "$base...HEAD" -- "$dir/requirements.txt" | sed -n 's/^+\([A-Za-z0-9._-]*\)==.*/\1/p')
+              (cd "$dir" && uv lock $(printf -- '--upgrade-package %s ' $pkgs))
             fi
             (cd "$dir" && uv lock --check && UV_FROZEN=1 uv export --no-hashes -o requirements.txt >/dev/null)
           done
-          if [ "$FIX" = true ] && [ "$audit" = true ]; then
-            gh workflow run deps-security.yml
-          fi
           git diff --quiet && exit 0
           if [ "$FIX" != true ]; then
             git diff
@@ -55,5 +54,3 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -qam "Sync requirements.txt with uv.lock"
           git push
-          # pushes made with GITHUB_TOKEN don't trigger workflows
-          gh workflow run lint.yml --ref "$GITHUB_HEAD_REF"
