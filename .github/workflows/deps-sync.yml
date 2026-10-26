@@ -40,7 +40,7 @@ jobs:
                 && ! git diff --quiet "$base...HEAD" -- "$dir/requirements.txt"; then
               audit=true
             fi
-            (cd "$dir" && uv lock --check && uv export --frozen --no-hashes -o requirements.txt >/dev/null)
+            (cd "$dir" && uv lock --check && UV_FROZEN=1 uv export --no-hashes -o requirements.txt >/dev/null)
           done
           if [ "$FIX" = true ] && [ "$audit" = true ]; then
             gh workflow run deps-security.yml
