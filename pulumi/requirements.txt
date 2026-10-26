@@ -50,13 +50,13 @@ packaging==26.3
     # via
     #   opentelemetry-instrumentation
     #   pulumi
+    #   pulumi-random
     #   pulumi-tls
 parver==1.0.1.post0
     # via
     #   pulumi-aws
     #   pulumi-command
-    #   pulumi-random
-protobuf==7.36.2
+protobuf==6.33.6
     # via
     #   googleapis-common-protos
     #   opentelemetry-proto
@@ -68,7 +68,7 @@ pulumi==3.269.0
     #   pulumi-command
     #   pulumi-random
     #   pulumi-tls
-pulumi-aws==7.51.1
+pulumi-aws==6.83.4
     # via parallelcluster-pulumi
 pulumi-command==1.2.1
     # via parallelcluster-pulumi
