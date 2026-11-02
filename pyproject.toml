@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12.11"
 dependencies = [
     # ParallelCluster CLI; all transitive dependencies are pinned in uv.lock
-    "aws-parallelcluster==3.16.1",
+    "aws-parallelcluster==3.16.2",
 ]
 
 [tool.uv]
