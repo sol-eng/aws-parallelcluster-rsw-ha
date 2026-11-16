@@ -1277,7 +1277,7 @@ wheels = [
 
 [[package]]
 name = "aws-parallelcluster"
-version = "3.16.1"
+version = "3.16.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aws-cdk-aws-batch" },
@@ -1310,9 +1310,9 @@ dependencies = [
     { name = "tabulate" },
     { name = "werkzeug" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/44/e08be3f4ab1a28be82717186a3cc3c7fce5ac2ade5fd71be11850000d48f/aws_parallelcluster-3.16.1.tar.gz", hash = "sha256:31b1d1bd3a01a75c683521b37c17d1f96786106962a9169a2561b345aac822a9", size = 361379, upload-time = "2026-09-08T20:03:21.202Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/1f/38d9e8247230fe34e2c9dfc23251f66137e6c5b94bcb531893c0e98e64ab/aws_parallelcluster-3.16.2.tar.gz", hash = "sha256:baa43217c4a400c49f36b426b0fce26d0bcc4a57a54b1c56e1a2edf7c19804aa", size = 368886, upload-time = "2026-10-29T19:11:18.202Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/f0/c10d315c2ed9ef4efcd52f4132436b316e40e77c990da1667d16bc5cf31a/aws_parallelcluster-3.16.1-py3-none-any.whl", hash = "sha256:34e22c2aedfb29507fb4502a2d15e7fe8aa50e4fa61bf086766d2ce0e02d6556", size = 517634, upload-time = "2026-09-08T20:03:19.731Z" },
+    { url = "https://files.pythonhosted.org/packages/14/63/43e80cadca6791a62995d2b08c9bb42df56b6e1d4fbd4a195de63f313c85/aws_parallelcluster-3.16.2-py3-none-any.whl", hash = "sha256:dc2729fbcf7a879049d55a9f7e17ff9c847973be690c63a857f506ed30834952", size = 525201, upload-time = "2026-10-29T19:11:16.675Z" },
 ]
 
 [[package]]
@@ -1324,7 +1324,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "aws-parallelcluster", specifier = "==3.16.1" }]
+requires-dist = [{ name = "aws-parallelcluster", specifier = "==3.16.2" }]
 
 [[package]]
 name = "blinker"
